@@ -10,7 +10,6 @@ The repository contains:
 - `BridgeCrew/.claude/` - The complete orchestrator system (source of truth)
 - `scripts/install.sh` - Installation script for deploying to target projects
 - `README.md` - Detailed reference documentation for the orchestrator architecture
-- `setup-orchestrator.sh` - Legacy single-file installer (maintained for compatibility)
 
 ## Key Architecture Concepts
 
@@ -241,7 +240,6 @@ CommandDeck/
 │       └── logs/                 # (empty, created on install)
 ├── scripts/
 │   └── install.sh                # Installation script
-├── setup-orchestrator.sh         # Legacy installer (maintained)
 └── .claude/                      # Local testing (gitignored)
 ```
 
@@ -256,8 +254,7 @@ CommandDeck/
 2. **Edit real files, not heredocs** - This is much easier for both humans and Claude to work with
 3. **Test before committing** - Always install to a test project and verify changes work
 4. **PICARD.md becomes CLAUDE.md** - The install script renames it during installation
-5. **setup-orchestrator.sh is maintained** - Update it periodically for users who prefer single-file distribution
-6. **Local .claude/ is gitignored** - Use it for testing without polluting the repo
+5. **Local .claude/ is gitignored** - Use it for testing without polluting the repo
 
 ## Common Tasks
 
