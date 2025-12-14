@@ -32,7 +32,8 @@ This document provides detailed explanations of each component in the orchestrat
 │                                                                 │
 │  Guided by: CLAUDE.md                                           │
 │  Entry points: /project:feature, /project:bugfix, etc.          │
-│  State tracking: .claude/state/{task}.md                        │
+│  State tracking: .claude/state/{task}.md (automated)            │
+│  Logging: .claude/logs/orchestration.jsonl (automatic)          │
 └─────────────────────────────────────────────────────────────────┘
         │               │               │               │
         ▼               ▼               ▼               ▼
@@ -40,7 +41,15 @@ This document provides detailed explanations of each component in the orchestrat
    │researcher│    │ planner │    │code-    │    │test-    │
    │         │    │         │    │writer   │    │writer   │
    │ haiku   │    │ sonnet  │    │ sonnet  │    │ sonnet  │
-   │ R/O     │    │ R/O     │    │ R/W     │    │ R/W     │
+   │ R/O+Bash│    │ R/O     │    │ R/W     │    │ R/W     │
+   └─────────┘    └─────────┘    └─────────┘    └─────────┘
+        │               │               │               │
+        ▼               ▼               ▼               ▼
+   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+   │log-     │    │debugger │    │summarizer│    │feedback-│
+   │analyzer │    │         │    │         │    │coord.   │
+   │ haiku   │    │ sonnet  │    │ haiku   │    │ haiku   │
+   │ R+Bash  │    │ R+Bash  │    │ R/O     │    │ R/W     │
    └─────────┘    └─────────┘    └─────────┘    └─────────┘
 
    Each subagent:
@@ -303,6 +312,152 @@ How to combine outputs from multiple subagents:
 
 ---
 
+### log-analyzer.md
+
+**Purpose**: Log analysis and reporting
+
+**Model**: haiku (fast parsing)
+
+**Tools**: Read, Bash, Grep
+
+**When to use**:
+- Generating orchestration activity reports
+- Debugging orchestration failures
+- Analyzing performance patterns
+- Cost tracking analysis
+
+**Output format**:
+```markdown
+## Orchestration Log Analysis
+
+**Period**: [Date range]
+**Total Events**: [Count]
+
+### Activity Overview
+[Statistics table]
+
+### Agent Usage
+[Agent usage breakdown]
+
+### Recent Activity
+[Timeline of events]
+
+### Failures & Errors
+[Error analysis]
+
+### Recommendations
+[Insights]
+```
+
+---
+
+### debugger.md
+
+**Purpose**: Failure diagnosis and recovery
+
+**Model**: sonnet (thorough analysis)
+
+**Tools**: Read, Grep, Glob, Bash
+
+**When to use**:
+- When a subagent fails
+- Returns incomplete results
+- Orchestration stuck or failing
+- Need root cause analysis
+
+**Output format**:
+```markdown
+## Debugging Report
+
+### Summary
+[One-sentence diagnosis]
+
+### Timeline of Events
+[What happened chronologically]
+
+### Root Cause
+[What actually went wrong]
+
+### Recovery Strategy
+#### Option 1: [Recommended]
+- Action, Why, Steps, Success Probability
+
+#### Option 2: [Alternative]
+[...]
+
+### Prevention
+[How to avoid in future]
+```
+
+---
+
+### summarizer.md
+
+**Purpose**: Context compression for long workflows
+
+**Model**: haiku (efficient compression)
+
+**Tools**: Read
+
+**When to use**:
+- State file > 500 lines
+- Every 5-7 steps in long orchestration
+- Before major phase transitions
+- Approaching context limits
+
+**Output format**:
+```markdown
+## Context Summary
+
+**Compression**: ~N lines → ~M lines (X% reduction)
+
+### Key Decisions
+[Critical decisions made]
+
+### Completed Steps
+[Summary of completed work]
+
+### Current State
+[Where we are now]
+
+### Essential Context
+[Only critical background]
+```
+
+---
+
+### feedback-coordinator.md
+
+**Purpose**: Manages agent-to-agent feedback loops
+
+**Model**: haiku (lightweight coordination)
+
+**Tools**: Read, Write, Bash
+
+**When to use**:
+- Code-reviewer finds critical issues
+- Test failures needing iteration
+- Any agent-to-agent iteration scenario
+
+**Output format**:
+```markdown
+## Feedback Loop Complete
+
+**Status**: CONVERGED | MAX_ITERATIONS_REACHED | ESCALATED
+**Iterations**: N
+
+### Iteration Summary
+[Summary of each iteration]
+
+### Final State
+[Outcome]
+
+### Recommendation
+[Next steps for orchestrator]
+```
+
+---
+
 ## Slash Commands
 
 **Location**: `.claude/commands/`
@@ -418,6 +573,243 @@ How to combine outputs from multiple subagents:
 /project:logs:summary        # Last 10 entries
 /project:logs:summary 25     # Last 25 entries
 ```
+
+---
+
+### /project:costs:report
+
+**File**: `costs/report.md`
+
+**Purpose**: Cost and performance analysis
+
+**Usage**:
+```
+/project:costs:report                  # All orchestrations
+/project:costs:report all              # All orchestrations
+/project:costs:report <state-file>     # Specific orchestration
+```
+
+**Output**:
+- Total metrics (orchestrations, invocations, tokens, cost)
+- Breakdown by model (Haiku, Sonnet, Opus)
+- Breakdown by agent type
+- Performance insights
+- Cost optimization recommendations
+
+---
+
+## State Management Utilities
+
+**Location**: `.claude/skills/state-management/utilities/`
+
+The v2 system includes bash utility scripts for automatic state file management.
+
+### init-state.sh
+
+**Purpose**: Initialize a new orchestration state file
+
+**Usage**:
+```bash
+.claude/skills/state-management/utilities/init-state.sh "task-name" "Original user request"
+```
+
+**Output**: Prints the created state file path (e.g., `.claude/state/2025-12-14_task-name.md`)
+
+**Example**:
+```bash
+STATE_FILE=$(.claude/skills/state-management/utilities/init-state.sh "add-user-auth" "Add JWT authentication")
+echo "State file: $STATE_FILE"
+```
+
+---
+
+### update-step.sh
+
+**Purpose**: Update step status in state file
+
+**Usage**:
+```bash
+.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "step-name" "status" "details"
+```
+
+**Status values**: `pending`, `in_progress`, `complete`, `failed`
+
+**Example**:
+```bash
+.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "research" "in_progress" "Starting codebase research"
+.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "research" "complete" "Found 5 relevant files"
+```
+
+---
+
+### complete-state.sh
+
+**Purpose**: Mark orchestration as complete
+
+**Usage**:
+```bash
+.claude/skills/state-management/utilities/complete-state.sh "$STATE_FILE" "Final summary"
+```
+
+**Example**:
+```bash
+.claude/skills/state-management/utilities/complete-state.sh "$STATE_FILE" "Feature implemented successfully"
+```
+
+---
+
+### add-metrics.sh
+
+**Purpose**: Add performance metrics to state file
+
+**Usage**:
+```bash
+.claude/skills/state-management/utilities/add-metrics.sh "$STATE_FILE" "step-name" "model" "estimated-tokens"
+```
+
+**Example**:
+```bash
+.claude/skills/state-management/utilities/add-metrics.sh "$STATE_FILE" "research" "haiku" "5000"
+```
+
+---
+
+### get-state.sh
+
+**Purpose**: Retrieve current state file content
+
+**Usage**:
+```bash
+.claude/skills/state-management/utilities/get-state.sh "$STATE_FILE"
+```
+
+---
+
+## Advanced Orchestration Features
+
+### Conditional Workflows
+
+The orchestrator can use conditional logic (IF/THEN/ELSE, WHILE loops) for adaptive workflows.
+
+**IF/THEN Pattern**:
+```
+1. Invoke code-reviewer
+2. IF critical_issues > 0
+   THEN invoke code-writer to fix
+   ELSE proceed to next phase
+```
+
+**WHILE Loop Pattern**:
+```
+attempts = 0
+WHILE test_coverage < 80% AND attempts < 3
+  Invoke test-writer
+  Run coverage analysis
+  attempts += 1
+```
+
+**Best Practices**:
+- Always set max iteration limits
+- Update state on each iteration
+- Log decision points
+- Have fallback paths for every IF
+
+---
+
+### Parallel Execution
+
+Execute multiple independent subagents simultaneously by invoking multiple Task tools in a single message.
+
+**When to Use**:
+- No data dependencies between tasks
+- Tasks modify different files/areas
+- No risk of conflicts
+
+**Example**:
+```
+In one message, invoke:
+- Task → researcher (investigate auth)
+- Task → researcher (investigate sessions)
+- Task → researcher (investigate tokens)
+
+Wait for all to complete, then synthesize.
+```
+
+**Limits**:
+- Max 3-4 parallel tasks recommended
+- Don't use for dependent tasks
+- Don't use when debugging
+
+---
+
+### Context Summarization
+
+For long orchestrations (>10 steps), invoke the `summarizer` agent periodically.
+
+**Triggers**:
+- State file > 500 lines
+- Every 5-7 steps
+- Before major phases
+- Approaching context limits
+
+**Process**:
+1. Invoke summarizer with current state file
+2. Save summary to `.claude/state/{task}_summary_{N}.md`
+3. Use summary + recent 2-3 steps for subsequent context
+
+---
+
+### Agent Feedback Loops
+
+Use `feedback-coordinator` for iterative agent-to-agent work instead of manual orchestration.
+
+**Traditional Flow** (inefficient):
+```
+Orchestrator → code-writer → Orchestrator → code-reviewer → Orchestrator → code-writer
+```
+
+**Feedback Loop Flow** (efficient):
+```
+Orchestrator → feedback-coordinator
+  └→ Manages: code-writer ↔ code-reviewer (direct iteration)
+Orchestrator ← feedback-coordinator (when complete)
+```
+
+**When to Use**:
+- Code-reviewer finds critical issues
+- Test failures needing iteration
+- Any scenario requiring agent-to-agent iteration
+
+**Benefits**:
+- Reduces orchestrator overhead
+- Faster iteration cycles
+- Automatic convergence detection
+- Built-in escalation after 3 attempts
+
+---
+
+### Multi-Level Recovery Strategy
+
+When subagents fail, the orchestrator uses a three-level recovery strategy:
+
+**Level 1: Immediate Retry with Refinement**
+1. Log the failure
+2. Update state
+3. Analyze failure output
+4. Refine task (simplify, add context)
+5. Retry with refined prompt
+
+**Level 2: Diagnostic Investigation**
+1. Invoke `debugger` subagent
+2. Review diagnosis and recommendations
+3. Implement recovery strategy
+4. Retry
+
+**Level 3: User Escalation**
+1. Update state with comprehensive failure summary
+2. Present situation to user with options
+3. Await user decision
+4. Execute based on user choice
 
 ---
 
@@ -687,31 +1079,60 @@ Options:
 
 ### Commands
 ```
-/project:feature <desc>     Full feature workflow
-/project:bugfix <desc>      Bug investigation & fix
-/project:refactor <desc>    Refactoring workflow
-/project:plan <desc>        Planning only
-/project:review <target>    Code review
-/project:logs:summary [n]   View logs
+/project:feature <desc>          Full feature workflow
+/project:bugfix <desc>           Bug investigation & fix
+/project:refactor <desc>         Refactoring workflow
+/project:plan <desc>             Planning only
+/project:review <target>         Code review
+/project:logs:summary [n]        View logs
+/project:costs:report [file]     Cost analysis
 ```
 
-### Subagents
+### Subagents (10 Total)
 ```
-researcher           Read-only exploration (haiku)
-planner              Implementation planning (sonnet)
-code-writer          Code implementation (sonnet)
-code-reviewer        Quality review (sonnet)
-test-writer          Test creation (sonnet)
-documentation-writer Documentation (haiku)
+Core Agents:
+  researcher            Read-only exploration (haiku + bash)
+  planner               Implementation planning (sonnet)
+  code-writer           Code implementation (sonnet)
+  code-reviewer         Quality review (sonnet)
+  test-writer           Test creation (sonnet)
+  documentation-writer  Documentation (haiku)
+
+Advanced Agents:
+  log-analyzer          Log analysis & reporting (haiku)
+  debugger              Failure diagnosis (sonnet)
+  summarizer            Context compression (haiku)
+  feedback-coordinator  Agent feedback loops (haiku)
+```
+
+### State Management Utilities
+```
+init-state.sh         Initialize orchestration state file
+update-step.sh        Update step status
+complete-state.sh     Mark orchestration complete
+add-metrics.sh        Add performance metrics
+get-state.sh          Retrieve state content
+```
+
+### Advanced Features
+```
+Conditional Workflows:    IF/THEN/ELSE, WHILE loops
+Parallel Execution:       Multiple subagents in one message
+Context Summarization:    Auto-compress long workflows
+Agent Feedback Loops:     Direct agent-to-agent iteration
+Multi-Level Recovery:     Automatic failure handling (3 levels)
+Enhanced Logging:         JSONL logs with rich metrics
+Cost Tracking:            Model & token usage analysis
 ```
 
 ### Key Files
 ```
 CLAUDE.md                           Orchestrator brain
-.claude/agents/                     Subagent definitions
+.claude/agents/                     Subagent definitions (10 agents)
 .claude/commands/                   Workflow commands
 .claude/skills/orchestration/       Templates & examples
+.claude/skills/state-management/    Utility scripts
 .claude/state/                      Orchestration state
-.claude/logs/                       Activity logs
+.claude/logs/                       Activity logs (JSONL)
 .claude/settings.json               Hooks config
 ```
