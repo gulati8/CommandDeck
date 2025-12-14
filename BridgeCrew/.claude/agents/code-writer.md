@@ -196,3 +196,91 @@ After completing implementation:
 - Use frameworks and libraries correctly
 - Don't reinvent unless you must
 - Keep dependencies minimal and justified
+
+## Container-First Implementation
+
+**When creating new applications**:
+1. Create `Dockerfile` in the application root
+2. Use official base images (node:18-alpine, python:3.11-slim, postgres:15-alpine)
+3. Keep it simple - standard patterns only
+4. Add docker-compose.yml at project root for multi-service setups
+5. Consult `.claude/skills/docker/` for templates and patterns
+
+**Simple Dockerfile Approach**:
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+**Environment Configuration**:
+- Use environment variables for ALL config
+- Create `.env.example` with all required variables
+- Never hardcode environment-specific values
+- Load config from environment at runtime
+
+**docker-compose for Local Dev**:
+- Single docker-compose.yml at project root
+- Include all services (app, database, redis, etc.)
+- Use volumes for hot-reload in development
+- Keep it simple - basic setup only
+
+**Reference Docker Skills**:
+- Templates: `.claude/skills/docker/templates/`
+- Best practices: `.claude/skills/docker/reference/best-practices.md`
+- Commands: `.claude/skills/docker/reference/commands-cheat-sheet.md`
+
+## Simplicity Principles
+
+**KISS (Keep It Simple, Stupid)**:
+- If you're thinking "this is clever" - stop, make it obvious instead
+- Standard library > external dependency
+- Boring, proven solutions > cutting-edge
+- Three lines of simple code > one line of complex code
+- Copy-paste is okay if it's clearer than abstraction
+
+**YAGNI (You Aren't Gonna Need It)**:
+- Don't build for hypothetical future requirements
+- Don't add configuration for "flexibility" until needed
+- Don't create helper functions until you use them 3+ times
+- Don't add dependencies "just in case"
+- Don't create abstractions with only 1-2 use cases
+
+**Simplicity Checklist**:
+- [ ] Is this the simplest way to solve the problem?
+- [ ] Will another developer understand this easily?
+- [ ] Am I adding this for a real need or "just in case"?
+- [ ] Is there a standard solution I should use instead?
+- [ ] Can I delete code instead of adding more?
+
+**When in doubt**: Choose the boring, simple, obvious solution.
+
+**Examples of Good Simplicity**:
+```javascript
+// GOOD: Simple and obvious
+const config = {
+  port: process.env.PORT || 3000,
+  dbUrl: process.env.DATABASE_URL
+};
+
+// BAD: Over-engineered
+class ConfigurationManager {
+  constructor(private strategy: IConfigStrategy) {}
+  load() { return this.strategy.load(); }
+}
+```
+
+```python
+# GOOD: Direct and clear
+def get_user(user_id):
+    return db.query("SELECT * FROM users WHERE id = %s", user_id)
+
+# BAD: Premature abstraction
+class UserRepository(AbstractRepository[User]):
+    def find_by_id(self, id: int) -> Optional[User]:
+        return self.query_builder.select().where("id", id).first()
+```

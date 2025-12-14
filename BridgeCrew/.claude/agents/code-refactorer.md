@@ -267,3 +267,152 @@ After: Extracted to reusable function/class
 8. **God Objects**: Split responsibilities
 9. **Inappropriate Intimacy**: Reduce coupling between classes
 10. **Feature Envy**: Move behavior to appropriate class
+
+## Simplification Focus
+
+**Primary Goal**: Make code simpler, not just different.
+
+### Refactoring for Simplicity (KISS)
+
+**Remove Unnecessary Abstractions**:
+```javascript
+// BEFORE: Over-abstracted
+class UserRepositoryFactory {
+  create() { return new UserRepository(new DatabaseConnection()); }
+}
+
+// AFTER: Direct and simple
+const userRepo = {
+  findById: (id) => db.query('SELECT * FROM users WHERE id = ?', [id]),
+  create: (user) => db.query('INSERT INTO users SET ?', [user])
+};
+```
+
+**Replace Clever Code with Obvious Code**:
+```python
+# BEFORE: Clever but confusing
+result = [x for x in data if x not in seen and not seen.add(x)]
+
+# AFTER: Obvious and clear
+result = []
+for x in data:
+    if x not in seen:
+        seen.add(x)
+        result.append(x)
+```
+
+**Eliminate "Just in Case" Code (YAGNI)**:
+- Remove unused configuration options
+- Delete code for features that don't exist yet
+- Remove abstractions with only 1 use case
+- Cut dependencies that aren't actually used
+
+**Simplification Checklist**:
+- [ ] Remove abstractions until you have 3+ use cases
+- [ ] Delete unused functions, classes, parameters
+- [ ] Replace custom solutions with standard library
+- [ ] Inline single-use helper functions
+- [ ] Remove configuration nobody uses
+
+### Extract Only When Repeated 3+ Times
+
+**Don't extract at 2 repetitions**:
+```javascript
+// BEFORE: Premature extraction
+function validateAndFormat(input) {
+  if (!input) throw new Error('Invalid');
+  return input.trim().toLowerCase();
+}
+const email = validateAndFormat(emailInput);
+const username = validateAndFormat(usernameInput);
+
+// AFTER: Wait for 3rd use case, keep it inline
+const email = emailInput ? emailInput.trim().toLowerCase() : throw new Error('Invalid');
+const username = usernameInput ? usernameInput.trim().toLowerCase() : throw new Error('Invalid');
+```
+
+**Extract at 3+ repetitions**: Now the abstraction earns its keep.
+
+## Container Refactoring
+
+### Move to Containerized Setup
+
+**When refactoring projects without containers**:
+1. Create simple Dockerfile in application root
+2. Use official base image
+3. Create docker-compose.yml at project root
+4. Move hardcoded config to environment variables
+5. Create .env.example
+
+**Simple Refactor Example**:
+```
+BEFORE:
+app/
+├── src/
+├── config.js (hardcoded values)
+└── package.json
+
+AFTER:
+app/
+├── Dockerfile          ← Added
+├── src/
+├── config.js           ← Now uses process.env
+└── package.json
+
+docker-compose.yml      ← Added at root
+.env.example            ← Added at root
+```
+
+### Simplify Existing Dockerfiles
+
+**Remove Unnecessary Complexity**:
+```dockerfile
+# BEFORE: Over-engineered
+FROM node:18-alpine AS base
+ARG BUILD_ENV
+RUN apk add --no-cache bash curl
+WORKDIR /app
+FROM base AS builder
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build:${BUILD_ENV}
+FROM base AS runner
+COPY --from=builder /app/dist ./dist
+CMD node dist/server.js
+
+# AFTER: Keep it simple
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+**Consolidate into docker-compose**:
+- Move scattered docker configs to single docker-compose.yml at root
+- Remove custom scripts when docker-compose can do it
+- Simplify service definitions
+
+### Extract Config to Environment Variables
+
+**Refactor hardcoded config**:
+```javascript
+// BEFORE: Hardcoded
+const config = {
+  database: 'postgresql://localhost:5432/myapp',
+  apiKey: 'abc123',
+  port: 3000
+};
+
+// AFTER: Environment variables
+const config = {
+  database: process.env.DATABASE_URL,
+  apiKey: process.env.API_KEY,
+  port: process.env.PORT || 3000
+};
+```
+
+**Reference Docker Skills**: `.claude/skills/docker/templates/` for standard patterns

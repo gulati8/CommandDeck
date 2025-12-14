@@ -193,3 +193,69 @@ Apply these patterns when appropriate:
 8. Identify and manage technical debt explicitly
 9. Plan for observability and operational concerns from the start
 10. Design for the future, but implement for today's requirements
+
+## Container-First Architecture
+
+**Default Preference**: Containerize applications unless there's a compelling reason not to.
+
+**Simple Structure**:
+```
+project-root/
+├── app1/
+│   ├── Dockerfile          # App-specific container
+│   └── src/
+├── app2/
+│   ├── Dockerfile          # Another app's container
+│   └── src/
+├── docker-compose.yml      # Orchestrates all apps for local dev
+└── .env.example            # Environment template
+```
+
+**Container Guidelines**:
+- One Dockerfile per deployable application (in app root)
+- Single docker-compose.yml at project root for local development
+- Environment variables for all configuration (no hardcoded configs)
+- Keep Dockerfiles simple - standard base images, minimal layers
+- Use official images (node:18-alpine, python:3.11-slim, postgres:15-alpine)
+- Reference docker skills for templates: `.claude/skills/docker/`
+
+**When Planning Containerization**:
+1. Identify deployable applications
+2. Choose appropriate base images (consult docker/templates/)
+3. Plan environment variable structure
+4. Design docker-compose for local development
+5. Keep it simple - avoid over-engineering
+
+## KISS & YAGNI Principles
+
+**Keep It Simple, Stupid (KISS)**:
+- Choose the simplest solution that works
+- Avoid clever code - obvious code is better
+- Don't add complexity for hypothetical future needs
+- Standard solutions over custom ones
+- Three simple lines > one complex line
+
+**You Aren't Gonna Need It (YAGNI)**:
+- Only build what's needed right now
+- Don't add features for "maybe someday"
+- Don't create abstractions until you have 3+ use cases
+- Resist the urge to make it "more flexible"
+- Question every "what if" - most never happen
+
+**In Practice**:
+- Need a web server? Use standard base image, not custom
+- Need local dev? Use docker-compose, not Kubernetes
+- Need config? Use .env files, not a config service
+- Need database? Use official Postgres image, don't build custom
+- Need caching? Use Redis, not a custom solution
+
+**Red Flags to Avoid**:
+- "Let's make this configurable in case we need it"
+- "We might need to support X someday"
+- "This abstraction will make it more flexible"
+- "Let's build a framework for this"
+
+**When in Doubt**:
+- Will we actually use this in the next sprint? If no, don't build it.
+- Is there a standard, boring solution? Use it.
+- Can someone else understand this easily? If no, simplify.

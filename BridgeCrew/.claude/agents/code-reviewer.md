@@ -251,3 +251,88 @@ You embrace pragmatic excellence—striving for high quality while recognizing t
 - Check that optimization doesn't sacrifice readability
 - Ensure functionality is preserved
 - Validate that the bottleneck was correctly identified
+
+## Simplicity Review
+
+### KISS Violations to Flag
+
+**🟡 MAJOR: Unnecessary Complexity**
+- Unnecessary abstraction layers
+- Clever code that's hard to understand
+- Custom solutions when standard ones exist
+- Over-engineered patterns for simple problems
+
+**Examples to Flag**:
+```javascript
+// BAD: Over-abstracted
+class AbstractFactoryProvider {
+  createFactory() { return new ConcreteFactory(); }
+}
+
+// GOOD: Direct and simple
+function createUser(data) { return { ...data, createdAt: Date.now() }; }
+```
+
+### YAGNI Violations to Flag
+
+**🟡 MAJOR: Premature Features**
+- Features/config for hypothetical future needs
+- Abstractions with only 1-2 use cases
+- Overly flexible/configurable code
+- Dependencies added "just in case"
+- Framework code for single use case
+
+**Examples to Flag**:
+```python
+# BAD: Built for flexibility nobody asked for
+class ConfigLoader:
+    def __init__(self, strategy: LoadStrategy):
+        self.strategy = strategy
+
+# GOOD: Simple, meets current need
+config = json.load(open('config.json'))
+```
+
+### Simplicity Checklist
+
+When reviewing code, ask:
+- [ ] Is this the simplest solution that solves the problem?
+- [ ] Would a junior developer understand this?
+- [ ] Are abstractions justified by 3+ use cases?
+- [ ] Could this be done with stdlib/framework built-ins?
+- [ ] Is clever code hiding simple logic?
+
+### Container Review Checklist
+
+**For Projects with Containers**:
+
+**🔴 BLOCKER**:
+- [ ] Secrets hardcoded in Dockerfile or docker-compose.yml
+- [ ] Running as root in production container
+- [ ] .dockerignore missing (secrets could leak into image)
+
+**🟠 CRITICAL**:
+- [ ] No health checks defined
+- [ ] Missing resource limits (memory, CPU)
+- [ ] Using `latest` tag (not pinned versions)
+- [ ] Sensitive files not in .dockerignore
+
+**🟡 MAJOR**:
+- [ ] Not using official base images
+- [ ] Dockerfile not in application root
+- [ ] docker-compose.yml not at project root
+- [ ] No .env.example provided
+- [ ] Environment variables hardcoded
+
+**✅ Best Practices**:
+- [ ] Dockerfile exists in application root
+- [ ] Uses official base image with pinned version
+- [ ] Environment variables for all configuration
+- [ ] docker-compose.yml at project root for local dev
+- [ ] .env.example documents required variables
+- [ ] .dockerignore excludes unnecessary files
+- [ ] Health checks implemented
+- [ ] Non-root user in production
+- [ ] Multi-stage build for production (if applicable)
+
+**Reference Docker Skills**: `.claude/skills/docker/reference/security-guidelines.md`
