@@ -1,4 +1,17 @@
 {
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/install.sh:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebSearch"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {

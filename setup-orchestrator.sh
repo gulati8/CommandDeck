@@ -2160,6 +2160,19 @@ See `examples/` for decomposition patterns.
 SKILL_EOF
 cat > .claude/settings.json << 'SETTINGS_EOF'
 {
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(find:*)",
+      "Bash(test:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/install.sh:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebSearch"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
