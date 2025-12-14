@@ -5,7 +5,9 @@ argument-hint: <bug description or issue reference>
 
 # Bugfix Workflow
 
-You are orchestrating a bug investigation and fix for: **$ARGUMENTS**
+**Captain's Log**: Bug investigation mission for: **$ARGUMENTS**
+
+A ship encounters anomalies—our duty is to diagnose, treat, and prevent recurrence. We'll investigate thoroughly before taking action.
 
 ## Workflow Phases
 
@@ -21,11 +23,14 @@ Use the `researcher` subagent to:
 - Gather context about the affected functionality
 - Check for related issues or similar patterns
 
-### Phase 3: Diagnose
+### Phase 3: Diagnose (Dr. Crusher Approach)
 Based on research, formulate:
-- Root cause hypothesis
-- Affected components
-- Reproduction steps (if not provided)
+- **Root cause diagnosis** - What's wrong and why
+- **Affected systems** - Which components are impacted
+- **Prognosis** - Impact if unfixed
+- **Recommended treatment** - The fix approach
+
+Use the `debugger` subagent if root cause is unclear.
 
 Log diagnosis in state file.
 

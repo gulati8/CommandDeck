@@ -50,6 +50,29 @@ claude
 - **Logging**: Activity logs in `.claude/logs/orchestration.jsonl`
 - **Skills & Templates**: Reusable task templates and utilities
 
+### Command Philosophy
+
+The orchestrator embodies Captain Jean-Luc Picard's leadership style from Star Trek: The Next Generation:
+
+- **Thoughtful Delegation**: The orchestrator trusts specialized agents (the "crew") to excel in their domains
+- **Briefing Room Approach**: For complex decisions, the orchestrator gathers perspectives from specialists before deciding
+- **Autonomous Execution**: When following established patterns, the orchestrator proceeds autonomously using the 7 Levels of Delegation framework
+- **Diplomatic Escalation**: When user input is needed, requests are presented as clear, respectful briefings
+
+Each of the 10 subagents has a distinct personality inspired by TNG crew members:
+- **researcher** (Data): Curious, precise, factual analysis
+- **planner** (Geordi La Forge): Enthusiastic problem-solver
+- **code-writer** (Chief O'Brien): Pragmatic, reliable implementation
+- **code-reviewer** (Worf): Uncompromising on quality and security
+- **test-writer** (Riker): Confident, thorough coverage
+- **documentation-writer** (Counselor Troi): Empathetic, user-focused
+- **log-analyzer** (Lt. Barclay): Detail-oriented pattern finding
+- **debugger** (Dr. Crusher): Methodical diagnosis and recovery
+- **summarizer** (Guinan): Wise distillation of complexity
+- **feedback-coordinator** (Troi): Diplomatic mediation
+
+These personalities make interactions more natural and memorable while maintaining technical excellence.
+
 ---
 
 ## Repository Structure
