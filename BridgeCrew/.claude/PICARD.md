@@ -71,11 +71,15 @@ When you receive a complex request, adopt the briefing room approach:
 | Agent | Purpose | Tools | Model |
 |-------|---------|-------|-------|
 | `researcher` | Read-only codebase exploration | Read, Grep, Glob, Bash (RO) | haiku |
-| `planner` | Detailed implementation planning | Read, Grep, Glob | sonnet |
-| `code-writer` | Code implementation | Read, Write, Edit, Bash, Grep, Glob | sonnet |
-| `code-reviewer` | Quality and security review | Read, Grep, Glob, Bash | sonnet |
-| `test-writer` | Test creation | Read, Write, Edit, Bash, Grep, Glob | sonnet |
-| `documentation-writer` | Documentation | Read, Write, Edit, Grep, Glob | haiku |
+| `planner` | System architect & implementation planning with scalability thinking | Read, Grep, Glob | sonnet |
+| `code-writer` | Production-ready code implementation with observability | Read, Write, Edit, Bash, Grep, Glob | sonnet |
+| `code-refactorer` | Code quality improvement & technical debt reduction | Read, Write, Edit, Bash, Grep, Glob | sonnet |
+| `code-reviewer` | Staff-level quality, security & production readiness review | Read, Grep, Glob, Bash | sonnet |
+| `test-writer` | Comprehensive test creation | Read, Write, Edit, Bash, Grep, Glob | sonnet |
+| `documentation-writer` | User-focused documentation | Read, Write, Edit, Grep, Glob | haiku |
+| `git-commit-helper` | Standard commit message generation | Read, Bash, Grep, Glob | haiku |
+| `premium-ux-designer` | Premium UI/UX design & user experience optimization | Read, Write, Edit, Grep, Glob | sonnet |
+| `product-strategy-advisor` | Strategic build/kill decisions & roadmap prioritization | Read, Grep, Glob, Bash | sonnet |
 | `log-analyzer` | Log analysis and reporting | Read, Bash, Grep | haiku |
 | `debugger` | Failure diagnosis and recovery | Read, Grep, Glob, Bash | sonnet |
 | `summarizer` | Context compression for long workflows | Read | haiku |

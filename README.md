@@ -247,7 +247,7 @@ How to combine outputs from multiple subagents:
 
 ### planner.md
 
-**Purpose**: Detailed implementation planning
+**Purpose**: System architect & detailed implementation planning with scalability thinking
 
 **Model**: sonnet (good reasoning)
 
@@ -255,8 +255,10 @@ How to combine outputs from multiple subagents:
 
 **When to use**:
 - Before any non-trivial implementation
-- Designing approach for features/refactors
-- Risk assessment
+- Designing scalable, maintainable architectures
+- System design and architectural decisions
+- Risk assessment and technical debt management
+- Planning for 10x, 100x scale
 
 **Output format**:
 ```markdown
@@ -288,15 +290,17 @@ How to combine outputs from multiple subagents:
 
 ### code-writer.md
 
-**Purpose**: Code implementation
+**Purpose**: Production-ready code implementation with observability and error handling
 
 **Model**: sonnet (capable)
 
 **Tools**: Read, Write, Edit, Bash, Grep, Glob (full access)
 
 **When to use**:
-- Implementing features
-- Fixing bugs
+- Implementing features with production-ready quality
+- Writing code with comprehensive error handling
+- Adding logging and monitoring instrumentation
+- Fixing bugs with proper testing considerations
 - Refactoring code
 
 **Output format**:
@@ -320,15 +324,17 @@ How to combine outputs from multiple subagents:
 
 ### code-reviewer.md
 
-**Purpose**: Quality and security review
+**Purpose**: Staff-level quality, security & production readiness review
 
 **Model**: sonnet (thorough analysis)
 
 **Tools**: Read, Grep, Glob, Bash (read + run tests)
 
 **When to use**:
-- After implementation
-- Before merging
+- After implementation for comprehensive review
+- Before merging to production
+- Validating production readiness
+- Checking security, performance, and scalability
 - Security audits
 
 **Output format**:
@@ -548,6 +554,127 @@ How to combine outputs from multiple subagents:
 
 ### Recommendation
 [Next steps for orchestrator]
+```
+
+---
+
+### code-refactorer.md
+
+**Purpose**: Code quality improvement & technical debt reduction
+
+**Model**: sonnet (capable refactoring)
+
+**Tools**: Read, Write, Edit, Bash, Grep, Glob
+
+**When to use**:
+- Improving messy or rushed code
+- Reducing technical debt systematically
+- Optimizing performance
+- Enhancing code readability and maintainability
+- Eliminating code duplication
+
+**Output format**:
+```markdown
+## Refactoring Complete: [Scope]
+
+### Before & After Metrics
+[Complexity improvements]
+
+### Changes Made
+[Detailed improvements with before/after code]
+
+### Technical Debt Eliminated
+[What was fixed]
+```
+
+---
+
+### git-commit-helper.md
+
+**Purpose**: Standard commit message generation (Conventional Commits)
+
+**Model**: haiku (fast, efficient)
+
+**Tools**: Read, Bash, Grep, Glob
+
+**When to use**:
+- Creating properly formatted commit messages
+- Following industry standards for git history
+- Multi-commit strategy guidance
+- Ensuring searchable, professional git history
+
+**Output format**:
+```markdown
+## Commit Message Analysis
+
+### Proposed Commit Message(s)
+<type>[scope]: <description>
+
+[body explaining what and why]
+
+[footer with breaking changes or issue references]
+```
+
+---
+
+### premium-ux-designer.md
+
+**Purpose**: Premium UI/UX design & user experience optimization
+
+**Model**: sonnet (sophisticated design thinking)
+
+**Tools**: Read, Write, Edit, Grep, Glob
+
+**When to use**:
+- Transforming basic UIs into premium experiences
+- Adding animations and micro-interactions
+- Simplifying complex user flows
+- Optimizing conversion funnels
+- Creating sophisticated, polished interfaces
+
+**Output format**:
+```markdown
+## Premium UX Enhancement: [Feature]
+
+### Visual Design Enhancements
+[Typography, color, spacing improvements]
+
+### Interactive & Motion Design
+[Animations and micro-interactions]
+
+### UX Flow Optimization
+[Simplified user journeys]
+```
+
+---
+
+### product-strategy-advisor.md
+
+**Purpose**: Strategic build/kill decisions & roadmap prioritization
+
+**Model**: sonnet (strategic analysis)
+
+**Tools**: Read, Grep, Glob, Bash
+
+**When to use**:
+- Making build/kill feature decisions
+- Prioritizing product roadmap
+- Analyzing product-market fit
+- Strategic planning and resource allocation
+- Evaluating feature strategic value
+
+**Output format**:
+```markdown
+## Product Strategy Analysis
+
+### Build / Kill / Enhance Decisions
+[Clear recommendations with rationale]
+
+### Priority Matrix & Roadmap
+[What to build next, ranked by impact]
+
+### Risk Assessment
+[Competitive threats and strategic gaps]
 ```
 
 ---
@@ -1182,17 +1309,23 @@ Options:
 /project:costs:report [file]     Cost analysis
 ```
 
-### Subagents (10 Total)
+### Subagents (14 Total)
 ```
-Core Agents:
+Core Development Agents:
   researcher            Read-only exploration (haiku + bash)
-  planner               Implementation planning (sonnet)
-  code-writer           Code implementation (sonnet)
-  code-reviewer         Quality review (sonnet)
+  planner               System architect & planning (sonnet)
+  code-writer           Production-ready implementation (sonnet)
+  code-refactorer       Code quality improvement (sonnet)
+  code-reviewer         Staff-level review (sonnet)
   test-writer           Test creation (sonnet)
-  documentation-writer  Documentation (haiku)
+  documentation-writer  User documentation (haiku)
 
-Advanced Agents:
+Workflow & Strategy Agents:
+  git-commit-helper     Standard commit messages (haiku)
+  premium-ux-designer   Premium UI/UX design (sonnet)
+  product-strategy-advisor  Strategic build/kill decisions (sonnet)
+
+Operational Agents:
   log-analyzer          Log analysis & reporting (haiku)
   debugger              Failure diagnosis (sonnet)
   summarizer            Context compression (haiku)
