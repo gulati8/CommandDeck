@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_start\\\", \\\"tool\\\": \\\"Task\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_complete\\\", \\\"tool\\\": \\\"Task\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}

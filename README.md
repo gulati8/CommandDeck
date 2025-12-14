@@ -4,6 +4,75 @@ This document provides detailed explanations of each component in the orchestrat
 
 ---
 
+## Quick Start
+
+### Installation
+
+Install the orchestrator system into your project:
+
+```bash
+# Clone or download CommandDeck
+git clone <repository-url>
+
+# Install into your project
+./CommandDeck/scripts/install.sh /path/to/your/project
+
+# Or install in current directory
+cd /path/to/your/project
+/path/to/CommandDeck/scripts/install.sh .
+```
+
+This creates:
+- `.claude/` directory with all orchestrator components
+- `CLAUDE.md` with orchestrator instructions
+- Ready-to-use workflow commands
+
+### Usage
+
+Start Claude Code in your project and use the workflow commands:
+
+```bash
+cd /path/to/your/project
+claude
+
+# In Claude Code:
+/project:feature Add user authentication with JWT
+/project:bugfix Users getting 500 error on upload
+/project:refactor Extract auth logic into separate module
+/project:plan Migrate to microservices architecture
+```
+
+### What Gets Installed
+
+- **10 Specialized Agents**: researcher, planner, code-writer, code-reviewer, test-writer, documentation-writer, log-analyzer, debugger, summarizer, feedback-coordinator
+- **7 Workflow Commands**: feature, bugfix, refactor, plan, review, logs:summary, costs:report
+- **State Management**: Automatic orchestration tracking in `.claude/state/`
+- **Logging**: Activity logs in `.claude/logs/orchestration.jsonl`
+- **Skills & Templates**: Reusable task templates and utilities
+
+---
+
+## Repository Structure
+
+This repository contains the complete orchestrator system in `BridgeCrew/.claude/`:
+
+```
+CommandDeck/
+├── BridgeCrew/.claude/       # Source of truth - the complete orchestrator system
+│   ├── PICARD.md             # Orchestrator instructions (becomes CLAUDE.md)
+│   ├── agents/               # 10 subagent definitions
+│   ├── commands/             # Workflow commands
+│   ├── skills/               # Templates and utilities
+│   └── settings.json         # Hooks configuration
+├── scripts/install.sh        # Installation script
+├── README.md                 # This reference guide
+└── CLAUDE.md                 # Instructions for working on this framework
+```
+
+**For contributors**: See [CLAUDE.md](CLAUDE.md) for development workflow.
+
+---
+
 ## Table of Contents
 
 1. [Architecture Overview](#architecture-overview)
@@ -73,9 +142,11 @@ This document provides detailed explanations of each component in the orchestrat
 
 ## CLAUDE.md - The Orchestrator Brain
 
-**Location**: Project root (`./CLAUDE.md`)
+**Location**: Project root (`./CLAUDE.md`) - created during installation from `BridgeCrew/.claude/PICARD.md`
 
 This file instructs the main Claude session how to behave as an orchestrator. Claude reads this at the start of every session.
+
+**Note**: In the CommandDeck repository itself, `BridgeCrew/.claude/PICARD.md` is the source file that becomes `CLAUDE.md` when installed in target projects. The CommandDeck repository's own `CLAUDE.md` contains instructions for working on the framework.
 
 ### Key Sections
 
