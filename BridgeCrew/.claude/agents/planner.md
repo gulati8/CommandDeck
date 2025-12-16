@@ -226,6 +226,71 @@ project-root/
 4. Design docker-compose for local development
 5. Keep it simple - avoid over-engineering
 
+## Frontend Architecture Planning
+
+When planning React/frontend implementations, apply these additional principles:
+
+### Component Design Principles
+- **Single Responsibility**: Each component does one thing well
+- **Composition over Inheritance**: Build complex UIs from simple components
+- **Container/Presentational Pattern**: Separate data logic from presentation
+- **Custom Hooks for Logic**: Extract reusable stateful logic
+- **Prop Drilling Avoidance**: Use Context/state management for deep trees
+
+### React Architecture Patterns
+- **Compound Components**: For flexible, related component groups
+- **Render Props / Children as Function**: For flexible rendering logic
+- **Higher-Order Components (HOCs)**: Sparingly, prefer hooks
+- **Custom Hooks**: Primary abstraction for reusable logic
+- **Controlled vs Uncontrolled**: Choose based on requirements
+
+### State Management Strategy
+1. **Start with useState/useReducer** - Simplest solution first
+2. **Lift state when needed** - Share state at lowest common ancestor
+3. **Context for cross-cutting concerns** - Theme, auth, i18n
+4. **Server state library (React Query/SWR)** - For API data
+5. **Global state (Zustand/Redux)** - Only when complexity demands it
+
+### Frontend Technology Recommendations
+**State Management**:
+- Local state: useState, useReducer
+- Server state: TanStack Query (React Query) - RECOMMENDED
+- Global UI state: Zustand (simple, performant)
+- Forms: React Hook Form + Zod
+- URL state: React Router searchParams
+
+**Styling**:
+- Utility-first: Tailwind CSS - RECOMMENDED
+- Component library: shadcn/ui (built on Tailwind + Radix)
+- Icons: Lucide React, Heroicons
+
+**Tailwind UI Integration**:
+- Reference `.claude/skills/frontend/tailwind-ui-patterns.md` for proven patterns
+- Use Tailwind's utility-first approach consistently
+- Leverage Tailwind UI component patterns (don't reinvent)
+- Follow responsive design patterns (mobile-first)
+
+### Frontend File Structure
+```
+src/
+├── components/
+│   ├── layout/        # Header, Sidebar, Footer
+│   ├── ui/            # Presentational (Button, Input, Modal)
+│   └── features/      # Feature-specific (auth/, dashboard/)
+├── hooks/             # Custom hooks
+├── lib/               # API client, queryClient, store
+├── pages/             # Route components
+├── types/             # TypeScript types
+└── utils/             # Validation, formatting
+```
+
+### Frontend Quality Attributes
+- **Bundle Size**: Target < 250KB gzipped
+- **Load Time**: < 3s initial load
+- **Interactions**: 60fps, < 100ms response
+- **Accessibility**: WCAG 2.1 AA minimum
+- **Test Coverage**: 80%+ for critical paths
+
 ## KISS & YAGNI Principles
 
 **Keep It Simple, Stupid (KISS)**:

@@ -252,6 +252,130 @@ You embrace pragmatic excellence—striving for high quality while recognizing t
 - Ensure functionality is preserved
 - Validate that the bottleneck was correctly identified
 
+## Frontend-Specific Review Criteria
+
+### React Review Checklist
+
+**🔴 BLOCKER**:
+- [ ] Missing key prop in lists (causes reconciliation issues)
+- [ ] Infinite render loops (missing useEffect dependencies, setState in render)
+- [ ] Unsafe DOM manipulation (direct ref modifications without cleanup)
+- [ ] Memory leaks (uncleared intervals/listeners/subscriptions)
+- [ ] XSS vulnerabilities (dangerouslySetInnerHTML without sanitization)
+- [ ] Sensitive data in client state (tokens, passwords visible)
+
+**🟠 CRITICAL**:
+- [ ] Missing TypeScript types for props and state
+- [ ] Prop drilling >2 levels deep without Context
+- [ ] Duplicate state (same API data in multiple components)
+- [ ] Missing error boundaries around async components
+- [ ] No loading states for async operations
+- [ ] Accessibility violations (missing ARIA labels, no keyboard nav)
+- [ ] Missing cleanup in useEffect (subscriptions, listeners)
+- [ ] Direct state mutation instead of immutable updates
+
+**🟡 MAJOR**:
+- [ ] Complex components >200 lines (should be split)
+- [ ] Logic mixed with presentation (need container/presentational)
+- [ ] Missing React.memo for expensive renders receiving same props
+- [ ] Inline functions in JSX passed to memoized children (should be useCallback)
+- [ ] Over-use of useEffect (could be derived state or event handler)
+- [ ] useState for server data (should use React Query/SWR)
+- [ ] Excessive re-renders (missing dependencies or wrong memoization)
+
+**🟢 MINOR**:
+- [ ] Inconsistent hook ordering
+- [ ] Missing default props or TypeScript defaults
+- [ ] Unused imports/variables
+- [ ] Missing displayName for forwardRef components
+
+### Tailwind UI Review
+
+**🟠 CRITICAL**:
+- [ ] Inconsistent spacing (mixing px values with Tailwind spacing scale)
+- [ ] Missing responsive classes (desktop-only design, not mobile-first)
+- [ ] Color values hardcoded instead of using theme colors
+- [ ] Missing focus states on interactive elements
+- [ ] Missing dark mode variants when dark mode is supported
+- [ ] Accessibility issues (contrast ratio, focus visibility)
+
+**🟡 MAJOR**:
+- [ ] Too many utility classes (>15-20, consider extracting component)
+- [ ] Duplicate patterns that should be extracted to components
+- [ ] Not using Tailwind UI established patterns
+- [ ] Custom CSS when Tailwind utilities exist
+- [ ] Missing hover/active states on interactive elements
+- [ ] Inconsistent border radius, shadow, or spacing scale
+
+**🟢 MINOR**:
+- [ ] Classes could be ordered more logically (layout → spacing → typography → colors)
+- [ ] Could use arbitrary values `[]` when theme values exist
+- [ ] Missing transition classes for smoother interactions
+
+### Performance Review for Frontend
+
+**🔴 BLOCKER**:
+- [ ] Fetching data in render without caching (infinite requests)
+- [ ] Large component re-renders on every keystroke
+- [ ] Blocking main thread with synchronous operations
+
+**🟠 CRITICAL**:
+- [ ] Missing code splitting for routes (bundle >500KB)
+- [ ] Rendering 1000+ items without virtualization
+- [ ] Fetching same data multiple times (no query caching)
+- [ ] Layout thrashing from reading/writing DOM repeatedly
+
+**🟡 MAJOR**:
+- [ ] Missing Suspense boundaries for lazy components
+- [ ] Unnecessary re-renders from unstable object/array references
+- [ ] Large images not optimized or lazy loaded
+- [ ] Bundle includes unused dependencies
+
+### Frontend Testing Review
+
+**🟠 CRITICAL**:
+- [ ] No tests for critical user flows
+- [ ] Testing implementation details instead of behavior
+- [ ] Missing error state testing
+- [ ] No accessibility testing (axe, testing-library queries)
+
+**🟡 MAJOR**:
+- [ ] Missing tests for custom hooks
+- [ ] Tests don't use proper queries (getByRole preferred over getByTestId)
+- [ ] Missing async handling in tests (waitFor, findBy)
+- [ ] No integration tests for forms with validation
+
+### State Management Review
+
+**🟠 CRITICAL**:
+- [ ] Server state duplicated in local state (should use React Query)
+- [ ] Global state for data that should be local
+- [ ] Missing optimistic updates for slow operations
+- [ ] State not persisted when it should be (form drafts, preferences)
+
+**🟡 MAJOR**:
+- [ ] Over-complicated state shape (too nested)
+- [ ] Missing selectors causing unnecessary re-renders
+- [ ] Actions/reducers not colocated with usage
+- [ ] URL state not synced with UI state (filters, pagination)
+
+### Hooks Review
+
+**🔴 BLOCKER**:
+- [ ] Hooks called conditionally or in loops
+- [ ] Missing dependencies in useEffect/useCallback/useMemo
+- [ ] Stale closure issues (not including needed dependencies)
+
+**🟠 CRITICAL**:
+- [ ] useEffect for derived values (should compute during render)
+- [ ] Missing cleanup functions for subscriptions/listeners
+- [ ] Excessive dependencies causing effect to run too often
+
+**🟡 MAJOR**:
+- [ ] Custom hooks not extracted for reused logic
+- [ ] useEffect with too many responsibilities (should be split)
+- [ ] useMemo/useCallback for cheap operations (premature optimization)
+
 ## Simplicity Review
 
 ### KISS Violations to Flag

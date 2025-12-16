@@ -197,6 +197,183 @@ After completing implementation:
 - Don't reinvent unless you must
 - Keep dependencies minimal and justified
 
+## React & Frontend Implementation Standards
+
+### React Component Structure
+```tsx
+// Standard component template
+import { useState, useEffect, useCallback } from 'react';
+import { useCustomHook } from '@/hooks/useCustomHook';
+
+interface Props {
+  // TypeScript for all props
+  userId: string;
+  onUpdate?: (data: UpdateData) => void;
+}
+
+export function ComponentName({ userId, onUpdate }: Props) {
+  // 1. Hooks (useState, useEffect, custom hooks)
+  const [state, setState] = useState(initialState);
+  const customData = useCustomHook(userId);
+
+  // 2. Event handlers
+  const handleAction = useCallback(() => {
+    // Implementation
+  }, [dependencies]);
+
+  // 3. Side effects
+  useEffect(() => {
+    // Effect logic
+    return () => {
+      // Cleanup
+    };
+  }, [dependencies]);
+
+  // 4. Early returns for loading/error states
+  if (customData.isLoading) return <LoadingSkeleton />;
+  if (customData.error) return <ErrorState error={customData.error} />;
+
+  // 5. Render
+  return (
+    <div className="container mx-auto px-4">
+      {/* Tailwind UI patterns */}
+    </div>
+  );
+}
+```
+
+### Tailwind UI Best Practices
+- **Use Design Tokens**: Extract common patterns to tailwind.config.js
+- **Component Classes**: Group related utilities with @apply sparingly
+- **Responsive Design**: Always mobile-first (sm:, md:, lg:, xl:)
+- **Dark Mode**: Use dark: variant for dark mode support
+- **Accessibility**: Include sr-only for screen readers, focus states
+
+### Performance Optimization
+- **React.memo**: For expensive pure components that receive same props frequently
+- **useMemo**: For expensive calculations (filtering large arrays, complex computations)
+- **useCallback**: For stable function references passed to memoized children
+- **Code Splitting**: Lazy load routes and heavy components
+- **List Virtualization**: Use react-window for long lists (100+ items)
+
+**When NOT to memoize**:
+- Cheap components (< 20 elements)
+- Components that re-render infrequently
+- Premature optimization
+
+### Common Frontend Patterns to Use
+- **Form Handling**: react-hook-form + zod for type-safe forms
+- **Data Fetching**: TanStack Query (React Query) for server state
+- **Routing**: React Router v6 patterns (nested routes, loaders)
+- **State Management**: Zustand for global state (simpler than Redux)
+- **Animations**: Framer Motion for complex, Tailwind transitions for simple
+
+### Custom Hooks Pattern
+```typescript
+// Hook for API data
+export function useUser(userId: string) {
+  return useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => fetchUser(userId),
+  });
+}
+
+// Hook for UI state
+export function useDisclosure(defaultOpen = false) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const open = useCallback(() => setIsOpen(true), []);
+  const close = useCallback(() => setIsOpen(false), []);
+  const toggle = useCallback(() => setIsOpen(prev => !prev), []);
+  return { isOpen, open, close, toggle };
+}
+```
+
+### Form Implementation Pattern
+```typescript
+// Form with react-hook-form + zod
+const schema = z.object({
+  name: z.string().min(2).max(50),
+  email: z.string().email(),
+});
+
+type FormData = z.infer<typeof schema>;
+
+function UserForm() {
+  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
+
+  const { mutate, isPending } = useUpdateUser();
+
+  return (
+    <form onSubmit={handleSubmit((data) => mutate(data))}>
+      <Input {...register('name')} error={errors.name?.message} />
+      <Input {...register('email')} error={errors.email?.message} />
+      <Button type="submit" loading={isPending}>Save</Button>
+    </form>
+  );
+}
+```
+
+### Tailwind Component Examples
+```tsx
+// Button with variants
+<button className="
+  px-4 py-2 rounded-lg font-medium
+  bg-blue-600 text-white
+  hover:bg-blue-700
+  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+  disabled:opacity-50 disabled:cursor-not-allowed
+  transition-colors duration-200
+">
+  Click me
+</button>
+
+// Card with shadow and hover
+<div className="
+  bg-white rounded-xl shadow-sm
+  hover:shadow-md
+  transition-shadow duration-200
+  p-6 space-y-4
+">
+  <h3 className="text-lg font-semibold text-gray-900">Title</h3>
+  <p className="text-gray-600">Content</p>
+</div>
+
+// Responsive grid
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  {items.map(item => <Card key={item.id} {...item} />)}
+</div>
+```
+
+### Frontend Error Handling
+```typescript
+// Error boundary wrapper
+<ErrorBoundary fallback={<ErrorFallback />}>
+  <Suspense fallback={<LoadingSkeleton />}>
+    <LazyComponent />
+  </Suspense>
+</ErrorBoundary>
+
+// API error handling with React Query
+const { data, error, isError } = useQuery({...});
+
+if (isError) {
+  return <ErrorState
+    message={error.message}
+    retry={() => queryClient.invalidateQueries(['key'])}
+  />;
+}
+```
+
+### Accessibility Implementation
+- Always use semantic HTML (`<button>`, `<nav>`, `<main>`, `<article>`)
+- Add ARIA labels for icon-only buttons: `aria-label="Close"`
+- Implement keyboard navigation for custom components
+- Use `focus-visible:` for focus states (keyboard only)
+- Include skip links for navigation
+- Announce dynamic changes with `aria-live` regions
+
 ## Container-First Implementation
 
 **When creating new applications**:
