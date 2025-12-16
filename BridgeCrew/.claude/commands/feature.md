@@ -38,28 +38,49 @@ Execute these phases in order, updating the state file after each:
 
 ### Phase 3: Strategic Planning
 1. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "planning" "in_progress"`
-2. Use the `planner` subagent to create:
-   - Detailed implementation plan
+2. **Detect frontend work**: If the feature involves UI components, pages, or user-facing interfaces:
+   - First invoke `premium-ux-designer` to create visual specifications and styling approach
+   - Provide the UX design output as context to the planner
+3. Use the `planner` subagent to create:
+   - Detailed implementation plan (must include UI/UX specifications for frontend work)
+   - Parallelization strategy (identify independent steps that can run concurrently)
    - File changes list
    - Risk assessment
    - Testing strategy
-3. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "planning" "complete" "Plan created"`
+4. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "planning" "complete" "Plan created"`
 
 **Checkpoint**: Present the plan to the user and ask for approval before proceeding.
 
-### Phase 4: Engage
+### Phase 4: Engage (Parallel Execution)
 1. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "implementation" "in_progress"`
-2. Use the `code-writer` subagent for each implementation step in the plan
-3. Work through steps sequentially
-4. If a step fails: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "implementation" "failed" "Error details"`
-5. On success: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "implementation" "complete" "Files modified"`
+2. **Analyze the plan's parallelization strategy**:
+   - Review the parallel execution groups identified by the planner
+   - Group independent steps together (different files, no data dependencies)
+   - Identify sequential dependencies (steps that need previous outputs)
+3. **Execute implementation in parallel phases**:
+   - **For each parallel group**: Invoke multiple `code-writer` subagents in a SINGLE message
+     - Example: If Step 2, 3, 4 are independent → invoke 3 code-writers simultaneously
+   - **Wait for all parallel tasks to complete** before proceeding to next group
+   - **For sequential steps**: Execute one at a time when they depend on previous outputs
+4. **Handle results after each parallel group**:
+   - Check status of all parallel tasks
+   - If any fail: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "implementation" "failed" "Error details"`
+   - If all succeed: Continue to next parallel group or sequential step
+5. On complete: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "implementation" "complete" "Files modified"`
 
-### Phase 5: Verify Systems
+**Key Rule**: NEVER execute independent steps sequentially. Always parallelize when the plan identifies safe parallel groups.
+
+### Phase 5: Verify Systems (Parallel Testing)
 1. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "testing" "in_progress"`
-2. Use the `test-writer` subagent to:
-   - Create tests for the new feature
-   - Run tests and verify they pass
-3. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "testing" "complete" "Tests created and passing"`
+2. **Parallel test creation**: If multiple independent modules/components were implemented:
+   - Identify modules that need separate test files (e.g., Auth module, API module, DB module)
+   - Invoke multiple `test-writer` subagents in parallel (one per module) in a SINGLE message
+   - Example: Auth + API + DB → 3 parallel test-writers invoked simultaneously
+3. **For single-module features**: Use single `test-writer` subagent
+4. **Run tests**: After all test files are created, run the full test suite
+5. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "testing" "complete" "Tests created and passing"`
+
+**Parallelization benefit**: Writing tests for 3 modules in parallel instead of sequentially saves ~65% of time.
 
 ### Phase 6: Quality Inspection
 1. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "review" "in_progress"`

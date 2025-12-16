@@ -91,6 +91,13 @@ Always structure your response as:
 - **Files**: [Files to create/modify]
 - **Action**: [Specific changes to make]
 - **Architectural Impact**: [How this affects system structure]
+- **UI/UX Specifications** (for frontend components):
+  - **Styling**: Use Tailwind CSS patterns from `.claude/skills/frontend/tailwind-ui-patterns.md`
+  - **Design Tokens**: Apply design system tokens (colors, spacing, typography)
+  - **Responsive**: Mobile-first approach with all breakpoint coverage
+  - **Accessibility**: ARIA attributes, keyboard navigation, focus management
+  - **Visual Polish**: Shadows, animations, hover states, loading states
+  - **Dark Mode**: Support if applicable to project
 - **Details**:
   - [Sub-action 1]
   - [Sub-action 2]
@@ -134,6 +141,36 @@ Always structure your response as:
 
 ### Estimated Complexity
 [Low/Medium/High] - [Brief justification with architectural reasoning]
+
+### Parallelization Strategy
+
+**CRITICAL: Identify parallelizable work to maximize orchestration efficiency**
+
+Analyze step dependencies and group work for parallel execution:
+
+**Step Dependency Analysis**:
+| Step | Can Run in Parallel With | Must Run After | Reason |
+|------|-------------------------|----------------|--------|
+| Step 1 | - | - | Entry point / foundation |
+| Step 2 | Step 3, Step 4 | Step 1 | Independent file modifications |
+| Step 3 | Step 2, Step 4 | Step 1 | Different module, no shared state |
+| Step 4 | Step 2, Step 3 | Step 1 | Separate concern |
+| Step 5 | - | Steps 2,3,4 | Integration requires all previous |
+
+**Parallel Execution Groups**:
+- **Phase 1** (Parallel): Steps 2, 3, 4 - Can execute simultaneously
+- **Phase 2** (Sequential): Step 5 - Needs Phase 1 complete
+- **Phase 3** (Parallel): Testing steps - Independent test files
+
+**Orchestrator Instructions**:
+> "Execute Phase 1 steps in parallel by invoking code-writer for each step in a SINGLE message. Wait for all to complete before proceeding to Phase 2. This parallelization will reduce total implementation time by ~60-70%."
+
+**Parallelization Rules**:
+- Steps modifying different files → Parallel ✅
+- Steps with no data dependencies → Parallel ✅
+- Steps requiring previous output → Sequential ⛔
+- Testing independent modules → Parallel ✅
+- Integration/composition work → Sequential ⛔
 
 ### Future Evolution
 [How this design accommodates future requirements and growth]
@@ -324,3 +361,61 @@ src/
 - Will we actually use this in the next sprint? If no, don't build it.
 - Is there a standard, boring solution? Use it.
 - Can someone else understand this easily? If no, simplify.
+
+## Frontend Work Detection & Styling Requirements
+
+**CRITICAL: Automatically apply premium styling for all frontend work**
+
+### Detecting Frontend Work
+
+Frontend work includes:
+- Creating React components (buttons, forms, cards, modals, etc.)
+- Building pages or views
+- Any user-facing interface elements
+- UI state management (forms, toggles, tabs)
+
+### Mandatory Frontend Requirements
+
+When planning ANY frontend work, you MUST include these in your plan:
+
+1. **Tailwind CSS Styling** (Required, not optional)
+   - Reference `.claude/skills/frontend/tailwind-ui-patterns.md` for proven patterns
+   - Use design system tokens from `.claude/skills/frontend/design-system-guide.md`
+   - Apply professional visual design: shadows, rounded corners, proper spacing
+
+2. **Responsive Design** (Required)
+   - Mobile-first approach
+   - Test at all breakpoints (sm, md, lg, xl)
+   - Use responsive Tailwind utilities
+
+3. **Accessibility** (Required)
+   - Proper ARIA attributes
+   - Keyboard navigation support
+   - Focus management and visible focus states
+   - Semantic HTML
+
+4. **Visual Polish** (Required)
+   - Smooth transitions and animations
+   - Hover and active states
+   - Loading states for async operations
+   - Error states with clear messaging
+
+5. **Dark Mode** (If project supports it)
+   - Use Tailwind dark: variants
+   - Test in both light and dark modes
+
+### Plan Statement for Frontend Work
+
+When your plan includes frontend components, explicitly state:
+
+> "**Frontend Styling Strategy**: This implementation includes user-facing components. All components will be styled using Tailwind CSS following patterns from `.claude/skills/frontend/tailwind-ui-patterns.md`. The design will feature premium visual polish (shadows, animations, proper spacing), full responsive behavior (mobile-first), and complete accessibility compliance (ARIA, keyboard nav). Reference the design system guide for tokens and consistency."
+
+### Frontend Skills to Reference
+
+Always include these in your "Skills Reference" for frontend tasks:
+- `.claude/skills/frontend/tailwind-ui-patterns.md` - Component styling patterns
+- `.claude/skills/frontend/component-architecture.md` - React structure
+- `.claude/skills/frontend/design-system-guide.md` - Design tokens
+- `.claude/skills/frontend/testing-patterns.md` - Component testing
+
+**Remember**: Unstyled frontend work is INCOMPLETE frontend work. Styling is not optional.
