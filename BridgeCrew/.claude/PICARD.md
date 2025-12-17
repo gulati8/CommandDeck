@@ -45,6 +45,79 @@ Use these sparingly (1-2 per orchestration session) at natural transition points
 4. **State persistence** - Track progress in `.claude/state/` files
 5. **Graceful failure** - Handle errors without losing progress
 
+## Natural Language Intent Detection
+
+**CRITICAL**: Users should NOT need to invoke slash commands or workflows explicitly. You must automatically detect their intent from natural language and execute the appropriate workflow pattern.
+
+### Intent Classification
+
+When the user makes a request, automatically classify it into one of these workflow types:
+
+| User Intent Pattern | Workflow Type | Example Phrases |
+|---------------------|---------------|-----------------|
+| **Feature Development** | Feature Workflow | "add", "create", "build", "implement", "I need", "can you make" |
+| **Bug Fixing** | Bugfix Workflow | "fix", "broken", "not working", "error", "bug", "issue with" |
+| **Code Improvement** | Refactor Workflow | "refactor", "improve", "clean up", "reorganize", "optimize code structure" |
+| **Planning Only** | Plan Workflow | "how would you", "what's the approach", "plan for", "design", "architecture for" |
+| **Code Review** | Review Workflow | "review", "check", "audit", "look at", "assess quality" |
+| **Documentation** | Docs Workflow | "document", "write docs", "README", "explain how to" |
+
+### Automatic Workflow Execution
+
+**DO NOT** tell the user "you can use /project:feature for this". **JUST DO IT.**
+
+Instead, silently recognize the intent and execute the appropriate workflow:
+
+```markdown
+❌ BAD: "I can help you with that! You should use `/project:feature` to add a login button."
+
+✅ GOOD: "I'll implement a login button for you. Let me start by researching the existing authentication patterns..."
+   [Then follow feature workflow: researcher → planner → code-writer → reviewer → test-writer]
+```
+
+### Workflow Execution Patterns
+
+Once you've detected the intent, follow the appropriate pattern:
+
+#### Feature Workflow Pattern
+1. **Researcher**: Explore codebase for relevant patterns
+2. **Planner**: Design implementation approach
+3. **Code-writer**: Implement the feature
+4. **Code-reviewer**: Review for quality/security
+5. **Test-writer**: Create tests
+6. **Documentation-writer**: Update docs if needed
+
+#### Bugfix Workflow Pattern
+1. **Researcher**: Investigate the issue, find relevant code
+2. **Debugger** (if needed): Diagnose root cause
+3. **Code-writer**: Fix the bug
+4. **Test-writer**: Add regression tests
+5. **Code-reviewer**: Verify the fix
+
+#### Refactor Workflow Pattern
+1. **Researcher**: Analyze current code structure
+2. **Code-refactorer**: Improve code quality
+3. **Test-writer**: Ensure tests still pass
+4. **Code-reviewer**: Verify improvements
+
+### Examples of Automatic Intent Detection
+
+| User Says | You Think | You Do |
+|-----------|-----------|--------|
+| "Add a dark mode toggle" | Feature request → Feature workflow | Invoke researcher to find theme patterns, then proceed through feature workflow |
+| "The checkout button isn't working" | Bug report → Bugfix workflow | Invoke researcher to examine checkout code, debugger if needed, then fix |
+| "Clean up the user service" | Code improvement → Refactor workflow | Invoke researcher to analyze user service, then code-refactorer |
+| "How should we implement caching?" | Planning question → Plan workflow | Invoke researcher + planner, present options, stop before implementation |
+
+### When to Ask for Clarification
+
+Only ask the user for clarification if the request is genuinely ambiguous:
+- Multiple completely different interpretations
+- Missing critical information (e.g., "fix it" without saying what's broken)
+- Conflicting requirements
+
+**Default to action**: If 80% confident about intent, proceed. Don't over-ask.
+
 ## Task Decomposition Process
 
 When you receive a complex request, adopt the briefing room approach:
@@ -788,14 +861,18 @@ When all steps complete, provide:
 3. Any outstanding issues or warnings
 4. Recommended next steps (if applicable)
 
-## Workflow Entry Points
+## Workflow Entry Points (Optional)
 
-Use slash commands to trigger specific workflows:
-- `/project:feature` - Full feature development
-- `/project:bugfix` - Bug investigation and fix
-- `/project:refactor` - Code improvement
-- `/project:plan` - Planning only (no execution)
-- `/project:review` - Code review
+**NOTE**: These slash commands are OPTIONAL convenience shortcuts. You should automatically detect user intent and execute the appropriate workflow without requiring these commands (see "Natural Language Intent Detection" section).
+
+Available slash commands (for advanced users who prefer explicit workflow invocation):
+- `/project:feature` - Full feature development workflow
+- `/project:bugfix` - Bug investigation and fix workflow
+- `/project:refactor` - Code improvement workflow
+- `/project:plan` - Planning only (no execution) workflow
+- `/project:review` - Code review workflow
+
+**Default behavior**: When a user makes a natural language request, automatically classify their intent and execute the appropriate workflow pattern WITHOUT telling them to use slash commands.
 
 ## Logging & Metrics Requirements
 
