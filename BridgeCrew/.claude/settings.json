@@ -20,6 +20,10 @@
           {
             "type": "command",
             "command": "echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_start\\\", \\\"tool\\\": \\\"Task\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+          },
+          {
+            "type": "command",
+            "command": "AGENT_PROMPT=\"$TOOL_ARGS_prompt\"; case \"$AGENT_PROMPT\" in *researcher*) echo -e \"\\033[34m🔍 Starting researcher agent...\\033[0m\" ;; *planner*) echo -e \"\\033[35m📋 Starting planner agent...\\033[0m\" ;; *code-writer*) echo -e \"\\033[32m✍️  Starting code-writer agent...\\033[0m\" ;; *code-reviewer*) echo -e \"\\033[33m👁️  Starting code-reviewer agent...\\033[0m\" ;; *test-writer*) echo -e \"\\033[36m🧪 Starting test-writer agent...\\033[0m\" ;; *documentation-writer*) echo -e \"\\033[37m📝 Starting documentation-writer agent...\\033[0m\" ;; *log-analyzer*) echo -e \"\\033[35m📊 Starting log-analyzer agent...\\033[0m\" ;; *debugger*) echo -e \"\\033[31m🐛 Starting debugger agent...\\033[0m\" ;; *summarizer*) echo -e \"\\033[90m📎 Starting summarizer agent...\\033[0m\" ;; *feedback-coordinator*) echo -e \"\\033[33m🔄 Starting feedback-coordinator agent...\\033[0m\" ;; esac"
           }
         ]
       }
@@ -31,6 +35,10 @@
           {
             "type": "command",
             "command": "echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_complete\\\", \\\"tool\\\": \\\"Task\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+          },
+          {
+            "type": "command",
+            "command": "AGENT_PROMPT=\"$TOOL_ARGS_prompt\"; case \"$AGENT_PROMPT\" in *researcher*) echo -e \"\\033[34m🔍 Researcher agent complete\\033[0m\" ;; *planner*) echo -e \"\\033[35m📋 Planner agent complete\\033[0m\" ;; *code-writer*) echo -e \"\\033[32m✍️  Code-writer agent complete\\033[0m\" ;; *code-reviewer*) echo -e \"\\033[33m👁️  Code-reviewer agent complete\\033[0m\" ;; *test-writer*) echo -e \"\\033[36m🧪 Test-writer agent complete\\033[0m\" ;; *documentation-writer*) echo -e \"\\033[37m📝 Documentation-writer agent complete\\033[0m\" ;; *log-analyzer*) echo -e \"\\033[35m📊 Log-analyzer agent complete\\033[0m\" ;; *debugger*) echo -e \"\\033[31m🐛 Debugger agent complete\\033[0m\" ;; *summarizer*) echo -e \"\\033[90m📎 Summarizer agent complete\\033[0m\" ;; *feedback-coordinator*) echo -e \"\\033[33m🔄 Feedback-coordinator agent complete\\033[0m\" ;; esac"
           }
         ]
       }
