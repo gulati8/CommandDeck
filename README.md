@@ -43,6 +43,14 @@ claude
 /project:plan Migrate to microservices architecture
 ```
 
+### Updating to the latest orchestrator version
+- Re-run the installer in your project root to sync `.claude/` (state/logs are preserved):
+  ```bash
+  /path/to/CommandDeck/scripts/install.sh .
+  ```
+- `CLAUDE.md` will be refreshed from the latest `PICARD.md`.
+- Existing `.claude/state/` and `.claude/logs/` are left intact.
+
 ### What Gets Installed
 
 - **20 Specialized Agents**: core engineering crew (researcher, planner, code-writer, code-reviewer, test-writer, documentation-writer, log-analyzer, debugger, summarizer, feedback-coordinator, code-refactorer, git-commit-helper) plus domain specialists (frontend-architect, premium-ux-designer, database-architect, api-designer, security-auditor, performance-optimizer, devops-engineer, product-strategy-advisor)

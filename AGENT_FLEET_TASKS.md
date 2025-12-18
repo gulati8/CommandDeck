@@ -13,6 +13,7 @@ Owner: _TBD_ | Last updated: 2024-12-18  <!-- replace during edits if desired --
 - [x] Add budget gates/stop-conditions to `PICARD.md` (e.g., max subagent calls, new dependency guard, test failure escalation).
 - [ ] Expand hooks logging: capture agent id, duration, outcome; extend beyond `Task` if feasible.
 - [x] Update `costs:report` to surface agent/model invocation counts and wall-time/cost insights (plus add log-summary utility).
+- [x] Trimmed heaviest prompts (frontend-architect, premium-ux-designer, performance-optimizer) into skills references.
 
 ## Days 30–60: Product Development Coverage
 - [ ] Add focused agents: `product-manager`, `qa-lead`, `release-manager`, `analytics-engineer`, `ux-researcher` (or similar names).
