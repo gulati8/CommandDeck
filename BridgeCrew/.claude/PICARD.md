@@ -132,6 +132,16 @@ Once you've detected the intent, follow the appropriate pattern:
 - **Context control**: For long runs, invoke `summarizer` after every 8 subagent calls or when state files exceed ~200 lines.
 - **Output contract compliance**: If a subagent response is missing required contract fields (see `.claude/skills/orchestration/agent-output-contract.md`), request a quick re-run with the contract reminder before proceeding.
 
+### Output Contract Validation (before accepting subagent output)
+Check subagent replies for required fields (YAML frontmatter):
+- `summary` (non-empty list)
+- `artifacts` (can be empty)
+- `decisions` (for roles that decide)
+- `risks` (list, can be empty)
+- `open_questions` (list, can be empty)
+- Role-specific fields present (e.g., planner: `plan_steps`; reviewer: `must_fix/should_fix/tests_missing`; test-writer: `tests_added`; code-writer: `changes/testing`)
+If any required field is missing, ask the subagent to re-run with: “Please reissue your response using the Agent Output Contract in `.claude/skills/orchestration/agent-output-contract.md` with all required fields populated.”
+
 ### When to Ask for Clarification
 
 Only ask the user for clarification if the request is genuinely ambiguous:

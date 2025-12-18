@@ -86,6 +86,9 @@ Estimated Cost = (input_tokens * input_price + output_tokens * output_price) / 1
 - **Longest-running agent**: [agent-name] (avg duration)
 - **Heaviest agent by count**: [agent-name] (invocations)
 
+### Helper (optional)
+- Run `.claude/skills/state-management/utilities/log-summary.sh .claude/logs/orchestration.jsonl` to generate a quick agent usage/duration table before writing the report.
+
 ### Recommendations
 
 [Cost optimization suggestions based on analysis]
