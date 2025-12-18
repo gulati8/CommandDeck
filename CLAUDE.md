@@ -75,15 +75,15 @@ mv /path/to/target/project/.claude/PICARD.md /path/to/target/project/CLAUDE.md
 ```
 
 This creates in the target project:
-- `.claude/agents/` - 10 specialized subagent definitions
-- `.claude/commands/` - Workflow commands (/project:feature, /project:bugfix, etc.)
+- `.claude/agents/` - 20 specialized subagent definitions (core + domain specialists)
+- `.claude/commands/` - Workflow commands (/project:feature, /project:frontend-feature, /project:bugfix, etc.)
 - `.claude/skills/` - Templates and utilities
 - `.claude/state/` - Orchestration state tracking
 - `.claude/logs/` - Activity logs
 - `.claude/settings.json` - Hooks configuration
 - `CLAUDE.md` - Main orchestrator instructions (from PICARD.md)
 
-## The 10 Subagents
+## Core Subagents
 
 | Agent | Purpose | Model | File |
 |-------|---------|-------|------|
@@ -98,14 +98,30 @@ This creates in the target project:
 | summarizer | Context compression for long workflows | haiku | `agents/summarizer.md` |
 | feedback-coordinator | Agent-to-agent feedback loops | haiku | `agents/feedback-coordinator.md` |
 
+### Domain Specialists (also available)
+
+- frontend-architect (`agents/frontend-architect.md`)
+- premium-ux-designer (`agents/premium-ux-designer.md`)
+- database-architect (`agents/database-architect.md`)
+- api-designer (`agents/api-designer.md`)
+- security-auditor (`agents/security-auditor.md`)
+- performance-optimizer (`agents/performance-optimizer.md`)
+- devops-engineer (`agents/devops-engineer.md`)
+- product-strategy-advisor (`agents/product-strategy-advisor.md`)
+- code-refactorer (`agents/code-refactorer.md`)
+- git-commit-helper (`agents/git-commit-helper.md`)
+
 ## Workflow Commands
 
 The system includes pre-built workflow commands:
 - `/project:feature <description>` - Full feature development workflow
+- `/project:frontend-feature <description>` - Frontend feature workflow
 - `/project:bugfix <description>` - Bug investigation and fix
 - `/project:refactor <description>` - Code refactoring workflow
 - `/project:plan <description>` - Planning only (no execution)
 - `/project:review <target>` - Code review
+- `/project:design-system <component|audit>` - Design system build/audit workflow
+- `/project:security-audit <scope>` - Security audit workflow
 - `/project:logs:summary [n]` - View orchestration logs
 - `/project:costs:report [file]` - Cost and performance analysis
 
@@ -224,7 +240,7 @@ CommandDeck/
 ├── BridgeCrew/                    # The orchestrator system (SOURCE OF TRUTH)
 │   └── .claude/
 │       ├── PICARD.md             # Orchestrator instructions (→ CLAUDE.md)
-│       ├── agents/               # 10 subagent definitions
+│       ├── agents/               # 20 subagent definitions (core + domain specialists)
 │       │   ├── researcher.md
 │       │   ├── planner.md
 │       │   └── ...

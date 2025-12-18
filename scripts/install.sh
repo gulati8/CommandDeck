@@ -14,6 +14,53 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Function to update .gitignore with orchestrator exclusions
+update_gitignore() {
+    local target_dir="$1"
+    local gitignore_file="$target_dir/.gitignore"
+
+    # Entries to add (full ignore of orchestrator system)
+    local entries=(
+        ".claude/"
+        "CLAUDE.md"
+    )
+
+    # Create .gitignore if it doesn't exist
+    if [ ! -f "$gitignore_file" ]; then
+        echo -e "   ${BLUE}Creating .gitignore...${NC}"
+        touch "$gitignore_file"
+    fi
+
+    # Track if we need to add entries
+    local needs_header=false
+    local additions=""
+
+    # Check each entry and add if missing
+    for entry in "${entries[@]}"; do
+        # Check if entry already exists (exact match or pattern match)
+        if ! grep -Fxq "$entry" "$gitignore_file" 2>/dev/null; then
+            if [ "$needs_header" = false ]; then
+                # Add header comment before first entry
+                # Only add newline if file is not empty
+                if [ -s "$gitignore_file" ]; then
+                    additions+=$'\n'
+                fi
+                additions+="# CommandDeck orchestrator system"$'\n'
+                needs_header=true
+            fi
+            additions+="$entry"$'\n'
+        fi
+    done
+
+    # Append new entries if any were found
+    if [ "$needs_header" = true ]; then
+        echo -n "$additions" >> "$gitignore_file"
+        echo -e "   ${GREEN}✓${NC} Updated .gitignore (ignoring .claude/ and CLAUDE.md)"
+    else
+        echo -e "   ${GREEN}✓${NC} .gitignore already contains orchestrator exclusions"
+    fi
+}
+
 echo -e "${BLUE}🚀 CommandDeck - Orchestrator Installation${NC}"
 echo ""
 
@@ -80,12 +127,15 @@ mkdir -p "$TARGET_DIR/.claude/logs"
 touch "$TARGET_DIR/.claude/logs/orchestration.jsonl"
 echo -e "   ${GREEN}✓${NC} Initialized state and log directories"
 
+# Update .gitignore to exclude orchestrator files
+update_gitignore "$TARGET_DIR"
+
 echo ""
 echo -e "${GREEN}✅ Installation complete!${NC}"
 echo ""
 echo -e "${BLUE}📊 Installed:${NC}"
-echo "   • 10 specialized agents (researcher, planner, code-writer, etc.)"
-echo "   • 7 workflow commands (/project:feature, /project:bugfix, etc.)"
+echo "   • 20 specialized agents (core + domain specialists)"
+echo "   • 10 workflow commands (/project:feature, /project:bugfix, /project:frontend-feature, etc.)"
 echo "   • State management utilities"
 echo "   • Skills and templates"
 echo ""

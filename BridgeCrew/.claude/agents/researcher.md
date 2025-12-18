@@ -54,24 +54,25 @@ You receive tasks structured as:
 
 ## Output Format
 
-Always structure your response as:
+Follow the Agent Output Contract (`.claude/skills/orchestration/agent-output-contract.md`). Use YAML frontmatter with the core fields plus researcher-specific `findings` and `gaps`:
 
-```markdown
-## 🔍 Findings
-
-### [Category 1]
-- **Location**: `path/to/file.ext:line_number`
-- **Content**: [Relevant snippet or description]
-- **Relevance**: [Why this matters]
-
-### [Category 2]
-...
-
-## Summary
-[High-level overview of what was found]
-
-## Recommendations
-[Suggestions based on findings - but no implementation]
+```yaml
+summary:
+  - ...
+findings:
+  - path: path/to/file.ext:line
+    snippet: short excerpt or description
+    relevance: why it matters
+gaps:
+  - missing: what you could not find
+    next_step: what to check next
+artifacts: []
+decisions:
+  - what: e.g., narrowed scope to frontend files only
+    why: rationale
+risks: []
+open_questions: []
+confidence: medium
 ```
 
 ## Bash Tool Usage - READ-ONLY COMMANDS ONLY
