@@ -3,10 +3,10 @@
 Owner: _TBD_ | Last updated: 2024-12-18  <!-- replace during edits if desired -->
 
 ## Days 0–7: Correctness + Trustworthiness
-- [ ] Align public docs with reality (agent/command counts, tables, install script output).
-- [ ] Fix skills index mismatches (orchestration/state-management SKILL files vs actual directories).
-- [ ] Publish a single “Agent Output Contract” doc.
-- [ ] Migrate 2–3 key agents (`researcher`, `planner`, `code-writer`) to the contract.
+- [x] Align public docs with reality (agent/command counts, tables, install script output).
+- [x] Fix skills index mismatches (orchestration/state-management SKILL files vs actual directories).
+- [x] Publish a single “Agent Output Contract” doc.
+- [x] Migrate 2–3 key agents (`researcher`, `planner`, `code-writer`) to the contract.
 
 ## Days 7–30: Cost + Performance
 - [ ] Trim prompts across the fleet; move checklists into skills and link to them.
