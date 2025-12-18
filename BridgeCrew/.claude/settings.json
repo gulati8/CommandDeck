@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_start\\\", \\\"tool\\\": \\\"Task\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+            "command": "AGENT_PROMPT=\"$TOOL_ARGS_prompt\"; AGENT=\"unknown\"; case \"$AGENT_PROMPT\" in *researcher*) AGENT=researcher ;; *planner*) AGENT=planner ;; *code-writer*) AGENT=code-writer ;; *code-reviewer*) AGENT=code-reviewer ;; *test-writer*) AGENT=test-writer ;; *documentation-writer*) AGENT=documentation-writer ;; *log-analyzer*) AGENT=log-analyzer ;; *debugger*) AGENT=debugger ;; *summarizer*) AGENT=summarizer ;; *feedback-coordinator*) AGENT=feedback-coordinator ;; *frontend-architect*) AGENT=frontend-architect ;; *premium-ux-designer*) AGENT=premium-ux-designer ;; *database-architect*) AGENT=database-architect ;; *api-designer*) AGENT=api-designer ;; *security-auditor*) AGENT=security-auditor ;; *performance-optimizer*) AGENT=performance-optimizer ;; *devops-engineer*) AGENT=devops-engineer ;; *product-strategy-advisor*) AGENT=product-strategy-advisor ;; *code-refactorer*) AGENT=code-refactorer ;; *git-commit-helper*) AGENT=git-commit-helper ;; esac; echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_start\\\", \\\"tool\\\": \\\"Task\\\", \\\"agent\\\": \\\"$AGENT\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
           },
           {
             "type": "command",
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_complete\\\", \\\"tool\\\": \\\"Task\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+            "command": "AGENT_PROMPT=\"$TOOL_ARGS_prompt\"; AGENT=\"unknown\"; case \"$AGENT_PROMPT\" in *researcher*) AGENT=researcher ;; *planner*) AGENT=planner ;; *code-writer*) AGENT=code-writer ;; *code-reviewer*) AGENT=code-reviewer ;; *test-writer*) AGENT=test-writer ;; *documentation-writer*) AGENT=documentation-writer ;; *log-analyzer*) AGENT=log-analyzer ;; *debugger*) AGENT=debugger ;; *summarizer*) AGENT=summarizer ;; *feedback-coordinator*) AGENT=feedback-coordinator ;; *frontend-architect*) AGENT=frontend-architect ;; *premium-ux-designer*) AGENT=premium-ux-designer ;; *database-architect*) AGENT=database-architect ;; *api-designer*) AGENT=api-designer ;; *security-auditor*) AGENT=security-auditor ;; *performance-optimizer*) AGENT=performance-optimizer ;; *devops-engineer*) AGENT=devops-engineer ;; *product-strategy-advisor*) AGENT=product-strategy-advisor ;; *code-refactorer*) AGENT=code-refactorer ;; *git-commit-helper*) AGENT=git-commit-helper ;; esac; echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_complete\\\", \\\"tool\\\": \\\"Task\\\", \\\"agent\\\": \\\"$AGENT\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
           },
           {
             "type": "command",

@@ -19,6 +19,18 @@ Generate a comprehensive cost and performance analysis.
    - List all state files in `.claude/state/`
    - Aggregate metrics across all orchestrations
    - Provide summary statistics
+3. Parse `.claude/logs/orchestration.jsonl` for `subagent_start` / `subagent_complete` pairs:
+   - Group by agent name
+   - Count invocations
+   - Compute durations (timestamp diff between sequential start/complete for same agent)
+   - Detect long-running or high-frequency agents
+
+### Log Format Reference
+Each Task invocation emits:
+```json
+{"timestamp":"2024-12-18T12:34:56-08:00","event":"subagent_start","tool":"Task","agent":"code-writer"}
+{"timestamp":"2024-12-18T12:35:22-08:00","event":"subagent_complete","tool":"Task","agent":"code-writer"}
+```
 
 ## Cost Estimation
 
@@ -71,6 +83,8 @@ Estimated Cost = (input_tokens * input_price + output_tokens * output_price) / 1
 - **Most expensive orchestration**: [task-name] ($X.XX)
 - **Most token-intensive agent**: [agent-name] (N tokens avg)
 - **Cost trend**: [Increasing/Stable/Decreasing]
+- **Longest-running agent**: [agent-name] (avg duration)
+- **Heaviest agent by count**: [agent-name] (invocations)
 
 ### Recommendations
 

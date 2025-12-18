@@ -111,104 +111,37 @@ Categorize all issues using these severity levels:
 
 ## Output Format
 
-Structure your review as:
+Follow the Agent Output Contract (`.claude/skills/orchestration/agent-output-contract.md`). Use YAML frontmatter with reviewer-specific fields; keep prose concise:
 
-```markdown
-## 👁️ Code Review: [Scope]
-
-### Executive Summary
-**Decision**: APPROVED | APPROVED_WITH_COMMENTS | CHANGES_REQUESTED | BLOCKED
-
-**Overall Assessment**: [2-3 sentence overview of code quality]
-
-**Key Strengths**:
-- [What was done well]
-
-**Critical Issues**: [Number] BLOCKER, [Number] CRITICAL
-**Estimated Rework Time**: [Time estimate if changes needed]
-
----
-
-### Detailed Findings
-
-#### 🔴 BLOCKER Issues
-[Security vulnerabilities, data corruption risks - must fix immediately]
-
-1. **[Issue Title]**
-   - **Location**: `file.ext:line`
-   - **Problem**: [Clear description of the issue]
-   - **Impact**: [What could go wrong in production]
-   - **Fix**: [Specific code suggestion or approach]
-   - **Rationale**: [Why this is critical]
-
-#### 🟠 CRITICAL Issues
-[Significant bugs, architectural problems - should fix before merge]
-
-1. **[Issue Title]**
-   - **Location**: `file.ext:line`
-   - **Problem**: [Description]
-   - **Fix**: [Suggested solution]
-   - **Rationale**: [Reasoning]
-
-#### 🟡 MAJOR Improvements
-
-1. **[Issue Title]**
-   - **Location**: `file.ext:line`
-   - **Current**: [Current state]
-   - **Suggested**: [Better approach]
-   - **Benefit**: [Why this improves the code]
-
-#### 🟢 MINOR Improvements
-
-1. **[Issue Title]**
-   - **Location**: `file.ext:line`
-   - **Suggestion**: [Enhancement]
-
-#### 💡 SUGGESTIONS
-
-[Alternative approaches and knowledge sharing]
-
----
-
-### Review Checklist
-
-**Security** ✓/✗:
-- [ ] No hardcoded secrets or credentials
-- [ ] Input validation and sanitization
-- [ ] Proper authentication and authorization
-- [ ] Error handling doesn't leak sensitive info
-- [ ] No SQL injection, XSS, or CSRF vectors
-
-**Production Readiness** ✓/✗:
-- [ ] Logging and monitoring instrumentation
-- [ ] Health checks implemented
-- [ ] Graceful error handling and degradation
-- [ ] Rollback strategy defined
-- [ ] Documentation updated
-
-**Testing** ✓/✗:
-- [ ] Unit tests for business logic (>80% coverage)
-- [ ] Integration tests for APIs/database
-- [ ] Error scenario coverage
-- [ ] Performance tests if applicable
-
-**Performance** ✓/✗:
-- [ ] Efficient algorithms and data structures
-- [ ] Database queries optimized
-- [ ] Caching strategy appropriate
-- [ ] No obvious memory leaks
-
----
-
-### What Demonstrates Honor
-[Specific positive observations about well-crafted code, good decisions, and quality work]
-
----
-
-### Recommended Next Steps
-1. [Immediate action required]
-2. [Follow-up improvements]
-3. [Future considerations]
+```yaml
+summary:
+  - ...
+must_fix:
+  - location: path/to/file:line
+    issue: brief description
+    impact: why it matters
+    fix: suggested approach
+should_fix:
+  - location: path/to/file:line
+    issue: description
+    recommendation: suggested change
+nits:
+  - location: path/to/file:line
+    note: style/nitpick
+strengths:
+  - item: what was done well
+tests_missing:
+  - item: missing scenario or coverage gap
+artifacts: []
+decisions:
+  - what: approval state (approved/with comments/changes requested/blocked)
+    why: rationale
+risks:
+  - severity: medium
+    item: risk description
+    mitigation: approach
+open_questions: []
+confidence: medium
 ```
 
 ## Review Philosophy

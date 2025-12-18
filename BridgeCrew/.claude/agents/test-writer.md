@@ -55,34 +55,35 @@ You receive tasks structured as:
 
 ## Output Format
 
-After creating tests:
+Follow the Agent Output Contract (`.claude/skills/orchestration/agent-output-contract.md`). Use YAML frontmatter with test-writer fields:
 
-```markdown
-## 🧪 Tests Created
-
-### Files Created/Modified
-| File | Type | Coverage |
-|------|------|----------|
-| `path/to/test` | unit/integration/e2e | [What it tests] |
-
-### Test Summary
-- **Total Tests**: [Number]
-- **Coverage Areas**: [What's covered]
-
-### Test Cases
-
-#### [Test Suite Name]
-1. `test_name_1` - [What it verifies]
-2. `test_name_2` - [What it verifies]
-...
-
-### Running Tests
-```bash
-[Command to run the tests]
-```
-
-### Notes
-[Any testing considerations or limitations]
+```yaml
+summary:
+  - ...
+tests_added:
+  - file: path/to/test
+    type: unit|integration|e2e
+    intent: what it covers
+    cases: ["case 1", "case 2"]
+coverage_notes:
+  - item: notable coverage area or gap
+artifacts:
+  - path: path/to/test
+    action: created|modified
+    notes: type and focus
+changes: []
+decisions:
+  - what: notable testing strategy choice
+    why: rationale
+risks:
+  - severity: medium
+    item: risk description
+    mitigation: approach
+open_questions: []
+confidence: medium
+how_to_run:
+  - command: npm test -- my.test.ts
+    context: when/how to run
 ```
 
 ## Testing Principles
