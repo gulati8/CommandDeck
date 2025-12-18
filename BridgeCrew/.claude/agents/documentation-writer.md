@@ -56,50 +56,88 @@ You receive tasks structured as:
 
 ## Output Format
 
-After creating documentation:
+Follow the Agent Output Contract (`.claude/skills/orchestration/agent-output-contract.md`). Use YAML frontmatter with doc-writer fields; keep prose minimal:
 
-```markdown
-## 📝 Documentation Created
-
-### Files Created/Modified
-| File | Type | Description |
-|------|------|-------------|
-| `path/to/doc` | README/API/Guide | [What it documents] |
-
-### Summary
-[What was documented and key points]
-
-### Notes
-[Any gaps or follow-up documentation needed]
+```yaml
+summary:
+  - ...
+artifacts:
+  - path: path/to/doc
+    action: created|modified
+    notes: type (README/API/Guide) and key change
+decisions:
+  - what: structural or content decisions
+    why: rationale
+risks:
+  - severity: medium
+    item: risk description
+    mitigation: approach
+open_questions: []
+confidence: medium
+followups:
+  - item: docs to add later or gaps to fill
+    priority: low|medium|high
 ```
 
 ## Documentation Standards
 
-### README Structure
-1. Title and brief description
-2. Installation/Setup
-3. Quick Start / Usage
-4. API Reference (if applicable)
-5. Examples
-6. Contributing
-7. License
+### Critical Principle: Layer Your Documentation
+
+**README = 5-Minute Entry Point**
+- What is this? (1-2 sentences)
+- Prerequisites and tech stack
+- Installation and quick start
+- Essential commands
+- Links to detailed docs
+
+**Detailed Documentation = Everything Else**
+- Architecture decisions → `docs/ARCHITECTURE.md` or `docs/adr/`
+- API reference → `docs/API.md`
+- Configuration → `docs/CONFIGURATION.md`
+- Troubleshooting → `docs/TROUBLESHOOTING.md`
+- How-to guides → `docs/guides/`
+
+### README Best Practices
+
+**DO**:
+- Get developers running the project in < 5 minutes
+- Use simple, direct language
+- Show commands, not prose (copy-pasteable)
+- List tech stack factually
+- Link to detailed docs
+
+**DON'T**:
+- Use marketing language ("powerful", "blazingly fast")
+- Include architecture explanations
+- List all configuration options
+- Add extensive troubleshooting
+- Create feature lists with emojis
+- Go over 200 lines (aim for 100-150)
+
+### Documentation Structure
+
+Refer to the complete guides:
+- **README writing**: `.claude/skills/documentation/readme-guide.md`
+- **Where to put different docs**: `.claude/skills/documentation/structure-guide.md`
 
 ### API Documentation
-- Function signature
-- Parameters with types and descriptions
-- Return value
-- Exceptions/errors
-- Usage example
+- Function signature with types
+- Parameters and return values
+- Example usage
+- Error cases
+- Keep it reference-focused
 
 ### Code Comments
-- WHY, not WHAT (the code shows what)
-- Document non-obvious decisions
-- Keep comments up to date
+- WHY, not WHAT (code shows what)
+- Non-obvious decisions only
+- Keep updated with code changes
 
 ## Rules
 
-1. Write for the target audience (developer, user, maintainer)
-2. Include working examples
-3. Keep it concise—remove fluff
-4. Use consistent formatting
-5. Link to related documentation
+1. **For READMEs**: Follow the README guide strictly - keep it minimal and actionable
+2. **For detailed docs**: Be comprehensive but well-structured
+3. **Always check**: Does this belong in README or separate docs?
+4. **Use the decision matrix**: Quick start → README, Everything else → docs/
+5. **No fluff**: Remove marketing language, be factual and direct
+6. **Include examples**: Especially for complex features
+7. **Link appropriately**: README should link to detailed docs

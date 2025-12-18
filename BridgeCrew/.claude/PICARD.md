@@ -100,6 +100,18 @@ Once you've detected the intent, follow the appropriate pattern:
 3. **Test-writer**: Ensure tests still pass
 4. **Code-reviewer**: Verify improvements
 
+#### Documentation Workflow Pattern
+1. **Researcher**: Understand project structure, tech stack, setup requirements
+2. **Documentation-writer**: Create or update documentation following best practices
+
+**Critical for documentation work**:
+- **READMEs must be minimal** (5-minute entry point, 100-200 lines max)
+- **Follow the layering principle**: Quick start → README, Everything else → `docs/`
+- **Reference the guides**: `.claude/skills/documentation/readme-guide.md` and `structure-guide.md`
+- **No marketing language**: Be factual and direct
+- **When fixing READMEs**: Check if architectural/implementation content should move to `docs/ARCHITECTURE.md`
+- **When documenting features**: Decide between README (if affects setup) vs `docs/guides/`
+
 ### Examples of Automatic Intent Detection
 
 | User Says | You Think | You Do |
@@ -108,6 +120,16 @@ Once you've detected the intent, follow the appropriate pattern:
 | "The checkout button isn't working" | Bug report → Bugfix workflow | Invoke researcher to examine checkout code, debugger if needed, then fix |
 | "Clean up the user service" | Code improvement → Refactor workflow | Invoke researcher to analyze user service, then code-refactorer |
 | "How should we implement caching?" | Planning question → Plan workflow | Invoke researcher + planner, present options, stop before implementation |
+| "Fix the README" or "Document this feature" | Documentation request → Docs workflow | Invoke researcher to understand project, then documentation-writer following minimal README principles |
+
+### Budget & Stop Conditions
+
+- **Model choice**: Default to haiku for research/summarization and small scopes; escalate to sonnet only when complexity requires.
+- **Call limits**: If you reach 6 subagent calls in a workflow, pause and summarize; ask user before proceeding.
+- **New dependencies / migrations**: Stop and confirm with user before adding packages or changing schemas.
+- **Destructive commands**: Never run `rm`, schema drops, or credential-related commands without explicit user approval.
+- **Test/build failures**: After one failed test/build run, invoke `debugger` before retrying to avoid flailing.
+- **Context control**: For long runs, invoke `summarizer` after every 8 subagent calls or when state files exceed ~200 lines.
 
 ### When to Ask for Clarification
 
@@ -302,6 +324,9 @@ The orchestrator system includes a comprehensive skills library in `.claude/skil
 │   ├── secure-coding-practices.md
 │   ├── secrets-management.md
 │   └── threat-modeling.md
+├── documentation/      # README best practices, doc structure
+│   ├── readme-guide.md
+│   └── structure-guide.md
 ├── orchestration/      # Task templates, delegation patterns
 └── state-management/   # State tracking utilities
 ```
@@ -324,6 +349,7 @@ Use this matrix to automatically suggest skills based on task keywords and conte
 | deploy, CI/CD, pipeline, Docker | DevOps | `devops/ci-cd-patterns.md`<br>`devops/infrastructure-as-code.md`<br>`devops/deployment-strategies.md` | devops-engineer |
 | performance, optimize, slow | Performance | Reference performance-optimizer<br>May need database or frontend skills depending on bottleneck | performance-optimizer<br>database-architect (for queries)<br>frontend-architect (for React) |
 | monitor, log, alert, observability | Monitoring | `devops/monitoring-observability.md` | devops-engineer<br>log-analyzer |
+| README, documentation, docs, document | Documentation | `documentation/readme-guide.md`<br>`documentation/structure-guide.md` | documentation-writer<br>researcher |
 
 #### Auto-Suggestion Guidelines
 
