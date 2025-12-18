@@ -37,6 +37,7 @@ claude
 
 # In Claude Code:
 /project:feature Add user authentication with JWT
+/project:frontend-feature Add profile settings UI
 /project:bugfix Users getting 500 error on upload
 /project:refactor Extract auth logic into separate module
 /project:plan Migrate to microservices architecture
@@ -44,8 +45,8 @@ claude
 
 ### What Gets Installed
 
-- **10 Specialized Agents**: researcher, planner, code-writer, code-reviewer, test-writer, documentation-writer, log-analyzer, debugger, summarizer, feedback-coordinator
-- **7 Workflow Commands**: feature, bugfix, refactor, plan, review, logs:summary, costs:report
+- **20 Specialized Agents**: core engineering crew (researcher, planner, code-writer, code-reviewer, test-writer, documentation-writer, log-analyzer, debugger, summarizer, feedback-coordinator, code-refactorer, git-commit-helper) plus domain specialists (frontend-architect, premium-ux-designer, database-architect, api-designer, security-auditor, performance-optimizer, devops-engineer, product-strategy-advisor)
+- **10 Workflow Commands**: feature, frontend-feature, bugfix, refactor, plan, review, design-system, security-audit, logs:summary, costs:report
 - **State Management**: Automatic orchestration tracking in `.claude/state/`
 - **Logging**: Activity logs in `.claude/logs/orchestration.jsonl`
 - **Skills & Templates**: Reusable task templates and utilities
@@ -59,7 +60,7 @@ The orchestrator embodies Captain Jean-Luc Picard's leadership style from Star T
 - **Autonomous Execution**: When following established patterns, the orchestrator proceeds autonomously using the 7 Levels of Delegation framework
 - **Diplomatic Escalation**: When user input is needed, requests are presented as clear, respectful briefings
 
-Each of the 10 subagents has a distinct personality inspired by TNG crew members:
+Core crew (engineering-oriented) carry TNG-inspired personas to keep interactions memorable:
 - **researcher** (Data): Curious, precise, factual analysis
 - **planner** (Geordi La Forge): Enthusiastic problem-solver
 - **code-writer** (Chief O'Brien): Pragmatic, reliable implementation
@@ -70,6 +71,8 @@ Each of the 10 subagents has a distinct personality inspired by TNG crew members
 - **debugger** (Dr. Crusher): Methodical diagnosis and recovery
 - **summarizer** (Guinan): Wise distillation of complexity
 - **feedback-coordinator** (Troi): Diplomatic mediation
+
+Domain specialists round out the crew: frontend-architect, premium-ux-designer, database-architect, api-designer, security-auditor, performance-optimizer, devops-engineer, product-strategy-advisor, code-refactorer, git-commit-helper.
 
 These personalities make interactions more natural and memorable while maintaining technical excellence.
 
@@ -83,7 +86,7 @@ This repository contains the complete orchestrator system in `BridgeCrew/.claude
 CommandDeck/
 ├── BridgeCrew/.claude/       # Source of truth - the complete orchestrator system
 │   ├── PICARD.md             # Orchestrator instructions (becomes CLAUDE.md)
-│   ├── agents/               # 10 subagent definitions
+│   ├── agents/               # 20 subagent definitions (core + domain specialists)
 │   ├── commands/             # Workflow commands
 │   ├── skills/               # Templates and utilities
 │   └── settings.json         # Hooks configuration
@@ -1300,36 +1303,45 @@ Options:
 
 ### Commands
 ```
-/project:feature <desc>          Full feature workflow
-/project:bugfix <desc>           Bug investigation & fix
-/project:refactor <desc>         Refactoring workflow
-/project:plan <desc>             Planning only
-/project:review <target>         Code review
-/project:logs:summary [n]        View logs
-/project:costs:report [file]     Cost analysis
+/project:feature <desc>               Full feature workflow
+/project:frontend-feature <desc>      Frontend feature workflow
+/project:bugfix <desc>                Bug investigation & fix
+/project:refactor <desc>              Refactoring workflow
+/project:plan <desc>                  Planning only
+/project:review <target>              Code review
+/project:design-system <name|audit>   Design system build/audit
+/project:security-audit <scope>       Security audit (auth/api/full)
+/project:logs:summary [n]             View logs
+/project:costs:report [file]          Cost analysis
 ```
 
-### Subagents (14 Total)
+### Subagents (20 Total)
 ```
 Core Development Agents:
-  researcher            Read-only exploration (haiku + bash)
-  planner               System architect & planning (sonnet)
-  code-writer           Production-ready implementation (sonnet)
-  code-refactorer       Code quality improvement (sonnet)
-  code-reviewer         Staff-level review (sonnet)
-  test-writer           Test creation (sonnet)
-  documentation-writer  User documentation (haiku)
+  researcher             Read-only exploration (haiku + bash)
+  planner                System architect & planning (sonnet)
+  code-writer            Production-ready implementation (sonnet)
+  code-refactorer        Code quality improvement (sonnet)
+  code-reviewer          Staff-level review (sonnet)
+  test-writer            Test creation (sonnet)
+  documentation-writer   User documentation (haiku)
+  git-commit-helper      Standard commit messages (haiku)
 
-Workflow & Strategy Agents:
-  git-commit-helper     Standard commit messages (haiku)
-  premium-ux-designer   Premium UI/UX design (sonnet)
+Domain Specialists:
+  frontend-architect     Frontend architecture & components (sonnet)
+  premium-ux-designer    Premium UI/UX design (sonnet)
+  database-architect     Data modeling and performance (sonnet)
+  api-designer           API contracts and versioning (sonnet)
+  security-auditor       Threat modeling & vuln analysis (sonnet)
+  performance-optimizer  Perf profiling & improvements (sonnet)
+  devops-engineer        CI/CD & infrastructure (sonnet)
   product-strategy-advisor  Strategic build/kill decisions (sonnet)
 
 Operational Agents:
-  log-analyzer          Log analysis & reporting (haiku)
-  debugger              Failure diagnosis (sonnet)
-  summarizer            Context compression (haiku)
-  feedback-coordinator  Agent feedback loops (haiku)
+  log-analyzer           Log analysis & reporting (haiku)
+  debugger               Failure diagnosis (sonnet)
+  summarizer             Context compression (haiku)
+  feedback-coordinator   Agent feedback loops (haiku)
 ```
 
 ### State Management Utilities
@@ -1355,7 +1367,7 @@ Cost Tracking:            Model & token usage analysis
 ### Key Files
 ```
 CLAUDE.md                           Orchestrator brain
-.claude/agents/                     Subagent definitions (10 agents)
+.claude/agents/                     Subagent definitions (20 agents)
 .claude/commands/                   Workflow commands
 .claude/skills/orchestration/       Templates & examples
 .claude/skills/state-management/    Utility scripts

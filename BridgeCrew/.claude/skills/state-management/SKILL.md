@@ -1,6 +1,6 @@
 ---
 name: state-management
-description: Utilities and templates for automatic orchestration state tracking. Use to initialize, update, and complete state files without manual intervention.
+description: Utilities for automatic orchestration state tracking. Use to initialize, update, and complete state files without manual intervention.
 ---
 
 # State Management Skill
@@ -14,7 +14,6 @@ Eliminate manual state file creation and updates by using bash-based utilities t
 ## Contents
 
 - `utilities/` - Bash utility scripts for state operations
-- `templates/` - State file templates
 
 ## Quick Reference
 

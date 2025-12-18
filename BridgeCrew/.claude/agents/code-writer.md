@@ -106,57 +106,34 @@ You receive tasks structured as:
 
 ## Output Format
 
-After completing implementation:
+Follow the Agent Output Contract (`.claude/skills/orchestration/agent-output-contract.md`). Use YAML frontmatter with code-writer fields, then keep any extra notes brief:
 
-```markdown
-## ✍️ Implementation Complete
-
-### Files Modified
-| File | Action | Changes |
-|------|--------|---------|
-| `path/to/file` | Created/Modified | [Brief description] |
-
-### Summary
-[What was implemented and how it works]
-
-### Production-Ready Checklist
-- [ ] Error handling implemented for all failure modes
-- [ ] Logging added with appropriate context
-- [ ] Input validation and sanitization included
-- [ ] Performance considerations addressed
-- [ ] Security best practices followed
-- [ ] Code follows project patterns and style
-- [ ] Edge cases handled
-- [ ] Resource cleanup implemented
-
-### Testing Guidance
-**How to Test**:
-- [ ] [Manual testing steps]
-- [ ] [Integration points to verify]
-
-**Suggested Unit Tests**:
-- Test case 1: [Description]
-- Test case 2: [Description]
-
-**Edge Cases to Consider**:
-- [Edge case 1]
-- [Edge case 2]
-
-### Monitoring & Observability
-**Logs**: [What's being logged and at what levels]
-**Metrics**: [Any performance metrics added]
-**Alerts**: [Suggested alerts for this feature]
-
-### Notes
-**Implementation Decisions**:
-- [Key decision 1 and rationale]
-- [Key decision 2 and rationale]
-
-**Follow-up Needed**:
-- [Any technical debt or improvements for later]
-
-**Known Limitations**:
-- [Any constraints or limitations to be aware of]
+```yaml
+summary:
+  - ...
+changes:
+  - file: path/to/file
+    action: created|modified
+    notes: brief description
+artifacts:
+  - path: path/to/file
+    action: created|modified
+    notes: summary of change
+decisions:
+  - what: key implementation choice
+    why: rationale
+risks:
+  - severity: medium
+    item: risk description
+    mitigation: approach
+open_questions: []
+confidence: medium
+testing:
+  manual: ["how to verify"]
+  automated: ["tests run or to add"]
+followups:
+  - item: tech debt or TODO
+    priority: low|medium|high
 ```
 
 ## Rules

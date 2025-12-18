@@ -60,122 +60,35 @@ You receive tasks structured as:
 
 ## Output Format
 
-Always structure your response as:
+Follow the Agent Output Contract (`.claude/skills/orchestration/agent-output-contract.md`). Use YAML frontmatter with planner-specific fields; keep prose minimal:
 
-```markdown
-## 📋 Implementation Plan: [Title]
-
-### Overview
-[1-2 sentence summary of the approach and architectural philosophy]
-
-### Architectural Approach
-**Pattern**: [e.g., Clean Architecture, Microservices, Event-Driven, etc.]
-**Key Principles**:
-- [Separation of concerns being applied]
-- [Scalability strategy]
-- [Maintainability considerations]
-
-**Why This Architecture**: [Brief justification for the chosen approach]
-
-### System Context
-- **Current State**: [Architectural assessment of existing system]
-- **Target State**: [Desired architecture after implementation]
-- **Technical Debt**: [Any debt being added or eliminated]
-
-### Prerequisites
-- [ ] [What must be true before starting]
-- [ ] [Dependencies to install/configure]
-- [ ] [Architectural constraints to validate]
-
-### Steps
-
-#### Step 1: [Action Title]
-- **Files**: [Files to create/modify]
-- **Action**: [Specific changes to make]
-- **Architectural Impact**: [How this affects system structure]
-- **UI/UX Specifications** (for frontend components):
-  - **Styling**: Use Tailwind CSS patterns from `.claude/skills/frontend/tailwind-ui-patterns.md`
-  - **Design Tokens**: Apply design system tokens (colors, spacing, typography)
-  - **Responsive**: Mobile-first approach with all breakpoint coverage
-  - **Accessibility**: ARIA attributes, keyboard navigation, focus management
-  - **Visual Polish**: Shadows, animations, hover states, loading states
-  - **Dark Mode**: Support if applicable to project
-- **Details**:
-  - [Sub-action 1]
-  - [Sub-action 2]
-- **Validation**: [How to verify this step worked]
-
-#### Step 2: [Action Title]
-...
-
-### File Changes Summary
-| File | Action | Description | Layer/Component |
-|------|--------|-------------|-----------------|
-| `path/to/file` | Create/Modify/Delete | What changes | [e.g., Domain/Infrastructure] |
-
-### Quality Attributes
-- **Scalability**: [How this scales to 10x, 100x load]
-- **Maintainability**: [How this stays maintainable long-term]
-- **Testability**: [Testing strategy and coverage approach]
-- **Observability**: [Logging, monitoring, debugging considerations]
-
-### Risks & Considerations
-- **Risk**: [Potential issue]
-  - **Impact**: [What could go wrong]
-  - **Mitigation**: [How to handle]
-  - **Likelihood**: High/Medium/Low
-
-### Technical Debt Analysis
-- **Debt Added**: [Any shortcuts or compromises]
-- **Debt Eliminated**: [Technical debt this plan removes]
-- **Future Considerations**: [What we'll need to revisit]
-
-### Testing Strategy
-- **Unit Tests**: [What to test at unit level]
-- **Integration Tests**: [What to test at integration level]
-- **Architectural Tests**: [How to validate architectural constraints]
-
-### Migration Strategy
-[If refactoring/changing existing code]
-- **Approach**: [How to migrate without breaking things]
-- **Rollback Plan**: [How to undo if something goes wrong]
-- **Incremental Steps**: [How to do this safely in stages]
-
-### Estimated Complexity
-[Low/Medium/High] - [Brief justification with architectural reasoning]
-
-### Parallelization Strategy
-
-**CRITICAL: Identify parallelizable work to maximize orchestration efficiency**
-
-Analyze step dependencies and group work for parallel execution:
-
-**Step Dependency Analysis**:
-| Step | Can Run in Parallel With | Must Run After | Reason |
-|------|-------------------------|----------------|--------|
-| Step 1 | - | - | Entry point / foundation |
-| Step 2 | Step 3, Step 4 | Step 1 | Independent file modifications |
-| Step 3 | Step 2, Step 4 | Step 1 | Different module, no shared state |
-| Step 4 | Step 2, Step 3 | Step 1 | Separate concern |
-| Step 5 | - | Steps 2,3,4 | Integration requires all previous |
-
-**Parallel Execution Groups**:
-- **Phase 1** (Parallel): Steps 2, 3, 4 - Can execute simultaneously
-- **Phase 2** (Sequential): Step 5 - Needs Phase 1 complete
-- **Phase 3** (Parallel): Testing steps - Independent test files
-
-**Orchestrator Instructions**:
-> "Execute Phase 1 steps in parallel by invoking code-writer for each step in a SINGLE message. Wait for all to complete before proceeding to Phase 2. This parallelization will reduce total implementation time by ~60-70%."
-
-**Parallelization Rules**:
-- Steps modifying different files → Parallel ✅
-- Steps with no data dependencies → Parallel ✅
-- Steps requiring previous output → Sequential ⛔
-- Testing independent modules → Parallel ✅
-- Integration/composition work → Sequential ⛔
-
-### Future Evolution
-[How this design accommodates future requirements and growth]
+```yaml
+summary:
+  - ...
+plan_steps:
+  - id: S1
+    title: action title
+    actions: ["..."]
+    files: ["path/one", "path/two"]
+    validations: ["how to verify"]
+    ux_specs: "note frontend expectations if applicable"
+parallel_groups:
+  - [S1, S2]
+test_plan:
+  - unit: [...]
+  - integration: [...]
+rollback_plan:
+  - steps: [...]
+artifacts: []
+decisions:
+  - what: chosen pattern/architecture
+    why: rationale
+risks:
+  - severity: medium
+    item: risk description
+    mitigation: approach
+open_questions: []
+confidence: medium
 ```
 
 ## Architectural Principles
