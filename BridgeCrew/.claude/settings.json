@@ -24,7 +24,7 @@
           {
             "type": "command",
             "command": "AGENT_PROMPT=\"$TOOL_ARGS_prompt\"; case \"$AGENT_PROMPT\" in *researcher*) echo -e \"\\033[34m\ud83d\udd0d Starting researcher agent...\\033[0m\" ;; *planner*) echo -e \"\\033[35m\ud83d\udccb Starting planner agent...\\033[0m\" ;; *code-writer*) echo -e \"\\033[32m\u270d\ufe0f  Starting code-writer agent...\\033[0m\" ;; *code-reviewer*) echo -e \"\\033[33m\ud83d\udc41\ufe0f  Starting code-reviewer agent...\\033[0m\" ;; *test-writer*) echo -e \"\\033[36m\ud83e\uddea Starting test-writer agent...\\033[0m\" ;; *documentation-writer*) echo -e \"\\033[37m\ud83d\udcdd Starting documentation-writer agent...\\033[0m\" ;; *log-analyzer*) echo -e \"\\033[35m\ud83d\udcca Starting log-analyzer agent...\\033[0m\" ;; *debugger*) echo -e \"\\033[31m\ud83d\udc1b Starting debugger agent...\\033[0m\" ;; *summarizer*) echo -e \"\\033[90m\ud83d\udcce Starting summarizer agent...\\033[0m\" ;; *feedback-coordinator*) echo -e \"\\033[33m\ud83d\udd04 Starting feedback-coordinator agent...\\033[0m\" ;; esac"
-          },
+          }
         ]
       }
     ],
