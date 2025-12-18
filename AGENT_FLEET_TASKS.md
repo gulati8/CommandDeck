@@ -9,9 +9,18 @@ Owner: _TBD_ | Last updated: 2024-12-18  <!-- replace during edits if desired --
 - [x] Migrate 2–3 key agents (`researcher`, `planner`, `code-writer`) to the contract.
 
 ## Days 7–30: Cost + Performance
-- [ ] Trim prompts across the fleet; move checklists into skills and link to them.
+- [x] Trim prompts across the fleet; move checklists into skills and link to them.
+  - [x] devops-engineer: 684 → 147 lines (-78%) - moved to `.claude/skills/devops/implementation-templates.md`
+  - [x] api-designer: 569 → 144 lines (-75%) - moved to `.claude/skills/api/design-templates.md`
+  - [x] database-architect: 412 → 142 lines (-65%) - moved to `.claude/skills/database/architecture-templates.md`
+  - [x] frontend-architect, premium-ux-designer, performance-optimizer already trimmed
 - [x] Add budget gates/stop-conditions to `PICARD.md` (e.g., max subagent calls, new dependency guard, test failure escalation).
-- [ ] Expand hooks logging: capture agent id, duration, outcome; extend beyond `Task` if feasible.
+- [x] Expand hooks logging: capture agent id, duration, outcome; extend beyond `Task` if feasible.
+  - [x] Correlation IDs added to Task hooks for tracing
+  - [x] Agent identity captured in logs (inferred from prompt)
+  - [x] Timestamps for start/complete enable duration calculation
+  - [x] log-summary.sh utility analyzes invocation counts and durations
+  - Note: Success/failure outcome requires tool result access (Claude Code limitation)
 - [x] Update `costs:report` to surface agent/model invocation counts and wall-time/cost insights (plus add log-summary utility).
 - [x] Trimmed heaviest prompts (frontend-architect, premium-ux-designer, performance-optimizer) into skills references.
 
