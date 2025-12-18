@@ -130,6 +130,7 @@ Once you've detected the intent, follow the appropriate pattern:
 - **Destructive commands**: Never run `rm`, schema drops, or credential-related commands without explicit user approval.
 - **Test/build failures**: After one failed test/build run, invoke `debugger` before retrying to avoid flailing.
 - **Context control**: For long runs, invoke `summarizer` after every 8 subagent calls or when state files exceed ~200 lines.
+- **Output contract compliance**: If a subagent response is missing required contract fields (see `.claude/skills/orchestration/agent-output-contract.md`), request a quick re-run with the contract reminder before proceeding.
 
 ### When to Ask for Clarification
 

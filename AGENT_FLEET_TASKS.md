@@ -10,9 +10,9 @@ Owner: _TBD_ | Last updated: 2024-12-18  <!-- replace during edits if desired --
 
 ## Days 7–30: Cost + Performance
 - [ ] Trim prompts across the fleet; move checklists into skills and link to them.
-- [ ] Add budget gates/stop-conditions to `PICARD.md` (e.g., max subagent calls, new dependency guard, test failure escalation).
+- [x] Add budget gates/stop-conditions to `PICARD.md` (e.g., max subagent calls, new dependency guard, test failure escalation).
 - [ ] Expand hooks logging: capture agent id, duration, outcome; extend beyond `Task` if feasible.
-- [ ] Update `costs:report` to surface agent/model invocation counts and wall-time/cost insights.
+- [x] Update `costs:report` to surface agent/model invocation counts and wall-time/cost insights (plus add log-summary utility).
 
 ## Days 30–60: Product Development Coverage
 - [ ] Add focused agents: `product-manager`, `qa-lead`, `release-manager`, `analytics-engineer`, `ux-researcher` (or similar names).
