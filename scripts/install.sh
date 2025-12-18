@@ -110,15 +110,19 @@ if [ -d "$TARGET_DIR/.claude" ]; then
     esac
 fi
 
-# Copy BridgeCrew structure
+# Copy/refresh BridgeCrew structure (preserve state/logs)
 echo -e "${BLUE}📁 Installing orchestrator system...${NC}"
-cp -r "$BRIDGECREW_DIR" "$TARGET_DIR/"
-echo -e "   ${GREEN}✓${NC} Copied .claude directory structure"
+mkdir -p "$TARGET_DIR/.claude"
+rsync -a --delete \
+  --exclude "state" \
+  --exclude "logs" \
+  "$BRIDGECREW_DIR/" "$TARGET_DIR/.claude/"
+echo -e "   ${GREEN}✓${NC} Synced .claude directory (preserved state/logs)"
 
-# Rename PICARD.md to CLAUDE.md (the orchestrator instructions)
+# Copy PICARD.md to CLAUDE.md (refresh orchestrator instructions)
 if [ -f "$TARGET_DIR/.claude/PICARD.md" ]; then
-    mv "$TARGET_DIR/.claude/PICARD.md" "$TARGET_DIR/CLAUDE.md"
-    echo -e "   ${GREEN}✓${NC} Created CLAUDE.md (orchestrator instructions)"
+    cp -f "$TARGET_DIR/.claude/PICARD.md" "$TARGET_DIR/CLAUDE.md"
+    echo -e "   ${GREEN}✓${NC} Updated CLAUDE.md (orchestrator instructions)"
 fi
 
 # Create empty state and logs if they don't exist
