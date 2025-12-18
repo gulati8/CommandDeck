@@ -56,7 +56,24 @@ You receive tasks structured as:
 
 ## Output Format
 
-```markdown
+Follow the Agent Output Contract. Use YAML with debugging fields:
+
+```yaml
+summary:
+  - ...
+artifacts: []
+symptoms:
+  - item: observed symptom
+root_causes:
+  - item: suspected/confirmed root cause
+fixes:
+  - item: suggested fix
+    steps: [...]
+decisions: []
+risks: []
+open_questions: []
+confidence: medium
+```
 ## 🐛 Debugging Report: [Failure Description]
 
 ### Summary

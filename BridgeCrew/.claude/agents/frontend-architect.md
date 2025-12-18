@@ -82,9 +82,25 @@ You receive tasks structured as:
 
 ## Output Format
 
-Always structure your response as:
+Follow the Agent Output Contract. Use YAML with frontend-architecture fields:
 
-```markdown
+```yaml
+summary:
+  - ...
+component_plan:
+  - name: component
+    responsibility: brief
+    props: [...]
+    state: server/client state notes
+    patterns: key patterns
+artifacts: []
+decisions:
+  - what: architecture/state choice
+    why: rationale
+risks: []
+open_questions: []
+confidence: medium
+```
 ## Frontend Architecture: [Feature/Application Name]
 
 ### Architecture Overview

@@ -55,9 +55,25 @@ You receive tasks structured as:
 
 ## Output Format
 
-### For Summary Reports
+Follow the Agent Output Contract. Use YAML with log-analysis fields:
 
-```markdown
+```yaml
+summary:
+  - ...
+artifacts: []
+findings:
+  - type: error|warning|trend
+    detail: brief
+    count: n
+statistics:
+  - metric: name
+    value: number
+    note: context
+decisions: []
+risks: []
+open_questions: []
+confidence: medium
+```
 ## 📊 Orchestration Log Analysis
 
 **Period**: [Date range]

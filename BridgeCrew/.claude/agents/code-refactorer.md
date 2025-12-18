@@ -59,9 +59,23 @@ You receive tasks structured as:
 
 ## Output Format
 
-After completing refactoring:
+Follow the Agent Output Contract. Use YAML with refactor-specific fields:
 
-```markdown
+```yaml
+summary:
+  - ...
+changes:
+  - file: path/to/file
+    action: modified
+    notes: refactor scope
+artifacts: []
+decisions:
+  - what: structural change
+    why: rationale
+risks: []
+open_questions: []
+confidence: medium
+```
 ## Refactoring Complete: [Scope]
 
 ### Summary

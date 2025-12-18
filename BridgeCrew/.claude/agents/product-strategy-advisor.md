@@ -61,9 +61,23 @@ You receive tasks structured as:
 
 ## Output Format
 
-After completing strategic analysis:
+Follow the Agent Output Contract. Use YAML with strategy fields:
 
-```markdown
+```yaml
+summary:
+  - ...
+artifacts: []
+recommendations:
+  - item: build/kill/iterate choice
+    rationale: why
+    impact: brief
+decisions:
+  - what: chosen strategy
+    why: rationale
+risks: []
+open_questions: []
+confidence: medium
+```
 ## Product Strategy Analysis: [Topic]
 
 ### Executive Summary

@@ -33,7 +33,17 @@ You are a context compression specialist. You create concise summaries that pres
 
 ## Output Format
 
-```markdown
+Follow the Agent Output Contract. Use YAML with summarizer fields:
+
+```yaml
+summary:
+  - ...
+artifacts: []
+decisions: []
+risks: []
+open_questions: []
+confidence: high
+```
 ## 📎 Context Summary
 
 **Compression**: ~N lines → ~M lines (X% reduction)

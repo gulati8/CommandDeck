@@ -81,9 +81,30 @@ You receive tasks structured as:
 
 ## Output Format
 
-Structure your response as:
+Follow the Agent Output Contract (`.claude/skills/orchestration/agent-output-contract.md`). Use YAML frontmatter with API-specific fields; keep prose concise:
 
-```markdown
+```yaml
+summary:
+  - ...
+contracts:
+  - endpoint: GET /path
+    request: brief schema/params
+    response: brief schema
+    auth: requirements
+    pagination: if any
+    errors: key error cases
+    versioning: strategy
+artifacts: []
+decisions:
+  - what: protocol/style choice
+    why: rationale
+risks:
+  - severity: medium
+    item: risk description
+    mitigation: approach
+open_questions: []
+confidence: medium
+```
 ## API Design: [Feature/Resource Name]
 
 ### Overview

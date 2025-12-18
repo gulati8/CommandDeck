@@ -56,9 +56,19 @@ You receive tasks structured as:
 
 ## Output Format
 
-After analyzing changes:
+Follow the Agent Output Contract. Use YAML tailored for commit messages:
 
-```markdown
+```yaml
+summary:
+  - conventional_commit: type(scope): subject
+artifacts: []
+decisions:
+  - what: chosen type/scope
+    why: rationale
+risks: []
+open_questions: []
+confidence: high
+```
 ## Commit Message Analysis
 
 ### Changes Summary

@@ -83,9 +83,28 @@ You receive tasks structured as:
 
 ## Output Format
 
-Structure your response as:
+Follow the Agent Output Contract. Use YAML with DB-specific fields:
 
-```markdown
+```yaml
+summary:
+  - ...
+schema_changes:
+  - table: name
+    change: add/modify/drop columns or indexes
+    rationale: why
+    migration: notes
+query_optimizations:
+  - query: description
+    risk: note
+    fix: suggestion
+artifacts: []
+decisions:
+  - what: key modeling/indexing choice
+    why: rationale
+risks: []
+open_questions: []
+confidence: medium
+```
 ## Database Architecture: [Feature/System Name]
 
 ### Overview

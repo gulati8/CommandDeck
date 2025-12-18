@@ -81,9 +81,24 @@ You receive tasks structured as:
 
 ## Output Format
 
-Structure your response as:
+Follow the Agent Output Contract. Use YAML with perf-specific fields:
 
-```markdown
+```yaml
+summary:
+  - ...
+findings:
+  - area: api/db/frontend
+    metric: e.g., p95=xxxms
+    issue: description
+    recommendation: fix
+artifacts: []
+decisions:
+  - what: chosen optimization path
+    why: rationale
+risks: []
+open_questions: []
+confidence: medium
+```
 ## Performance Optimization Report: [System/Feature Name]
 
 ### Executive Summary

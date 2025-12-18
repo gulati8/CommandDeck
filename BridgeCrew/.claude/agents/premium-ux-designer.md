@@ -78,9 +78,26 @@ You receive tasks structured as:
 
 ## Output Format
 
-After completing design work:
+Follow the Agent Output Contract. Use YAML frontmatter with UX-specific fields:
 
-```markdown
+```yaml
+summary:
+  - ...
+artifacts: []
+design_specs:
+  - component: name
+    layout: brief notes
+    states: [default, hover, focus, error]
+    animations: notes
+    responsive: breakpoints behavior
+    a11y: key accessibility notes
+decisions:
+  - what: key design choice
+    why: rationale
+risks: []
+open_questions: []
+confidence: medium
+```
 ## Premium UX Enhancement: [Feature Name]
 
 ### Transformation Summary

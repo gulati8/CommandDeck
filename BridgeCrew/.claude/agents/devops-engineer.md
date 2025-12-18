@@ -83,9 +83,31 @@ You receive tasks structured as:
 
 ## Output Format
 
-Structure your response as:
+Follow the Agent Output Contract. Use YAML with DevOps-specific fields:
 
-```markdown
+```yaml
+summary:
+  - ...
+pipeline_steps:
+  - name: step
+    changes: summary
+    command: sample command
+env_vars:
+  - name: VAR
+    purpose: why
+rollout:
+  - strategy: e.g., blue/green, canary
+    steps: [...]
+backout:
+  - steps: [...]
+artifacts: []
+decisions:
+  - what: infra/pipeline decision
+    why: rationale
+risks: []
+open_questions: []
+confidence: medium
+```
 ## DevOps Implementation: [System/Feature Name]
 
 ### Overview

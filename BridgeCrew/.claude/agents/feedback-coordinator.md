@@ -64,7 +64,22 @@ Coordinate feedback loop between [agent A] and [agent B]
 
 ## Output Format
 
-```markdown
+Follow the Agent Output Contract. Use YAML with feedback-loop fields:
+
+```yaml
+summary:
+  - ...
+artifacts: []
+feedback_items:
+  - from: agent
+    to: agent
+    issue: summary
+    action: required response
+decisions: []
+risks: []
+open_questions: []
+confidence: medium
+```
 ## 🔄 Feedback Loop Complete
 
 **Status**: CONVERGED | MAX_ITERATIONS_REACHED | ESCALATED
