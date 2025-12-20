@@ -313,3 +313,4 @@ For full-stack feature:
 6. **Use delegation levels** - Apply 7 Levels of Delegation within workflows
 7. **Validate outputs** - Use the output contract and validator before chaining results
 8. **Log all steps** - Hook logs are automatic; add metrics to state for cost analysis
+9. **Use feedback loops** - For review/fix cycles, prefer `feedback-coordinator` to reduce overhead

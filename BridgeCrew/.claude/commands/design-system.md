@@ -134,9 +134,8 @@ This workflow manages design system creation and auditing using specialized agen
    ```
 
 6. Handle feedback loops:
-   - If code review finds issues → return to Phase 4
-   - If tests reveal bugs → return to Phase 4
-   - Maximum 2 iterations per phase
+   - If code review finds issues → use `feedback-coordinator` to iterate with `code-writer` (max 3 iterations)
+   - If tests reveal bugs → use `feedback-coordinator` to iterate with `code-writer` (max 3 iterations)
 
 7. Logging and metrics:
    - Hook logs are emitted automatically (see `.claude/settings.json`)
