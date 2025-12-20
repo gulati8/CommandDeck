@@ -40,7 +40,9 @@ confidence: medium
 - **test-writer**: `tests_added` (file + intent), `coverage_notes`, `how_to_run`
 - **researcher**: `findings` (path/snippet/purpose), `gaps`
 - **security-auditor**: `findings` (severity/evidence/recommendation), `attack_surface`, `secrets`, `tests` (optional if none)
+- **privacy-auditor**: `findings`, `data_map`, `retention`, `consent`, `third_parties`, `mitigations`
 - **devops-engineer**: `pipeline_steps`, `env_vars`, `rollout`, `backout`
+- **release-manager**: `rollout_plan`, `rollback_plan`, `verification`, `dependencies`, `risk_controls`
 - **frontend-architect**: `component_plan` (name/responsibility/props/state/patterns), `state_strategy`, `routing`, `styling`
 - **premium-ux-designer**: `layouts`, `components`, `states` (loading/empty/error/success), `motion`, `a11y`, `content_notes`
 - **product-strategy-advisor**: `options` (impact/effort/risk), `recommendation`, `milestones`, `metrics`

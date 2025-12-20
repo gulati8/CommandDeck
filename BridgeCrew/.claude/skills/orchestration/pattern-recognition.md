@@ -53,6 +53,7 @@ Use this matrix to automatically suggest skills based on task keywords and conte
 | test, spec, coverage | Testing | `testing/test-driven-development.md`<br>`testing/integration-testing-patterns.md`<br>`frontend/testing-patterns.md` | test-writer<br>code-writer |
 | E2E, Playwright, Cypress | End-to-End Testing | `testing/e2e-testing-patterns.md`<br>`testing/test-data-management.md` | test-writer |
 | security, vulnerability, XSS, injection | Security | `security/owasp-top-10.md`<br>`security/secure-coding-practices.md`<br>`security/threat-modeling.md` | security-auditor<br>code-reviewer |
+| privacy, PII, data retention, consent | Privacy | `security/privacy-checklist.md`<br>`security/secure-coding-practices.md` | privacy-auditor<br>security-auditor |
 | secret, key, password, credential | Secrets Management | `security/secrets-management.md`<br>`security/secure-coding-practices.md` | security-auditor<br>devops-engineer |
 | deploy, CI/CD, pipeline, Docker | DevOps | `devops/ci-cd-patterns.md`<br>`devops/infrastructure-as-code.md`<br>`devops/deployment-strategies.md` | devops-engineer |
 | performance, optimize, slow | Performance | Reference performance-optimizer<br>May need database or frontend skills depending on bottleneck | performance-optimizer<br>database-architect (for queries)<br>frontend-architect (for React) |

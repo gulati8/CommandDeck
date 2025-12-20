@@ -148,8 +148,10 @@ When you receive a complex request, adopt the briefing room approach:
 | `database-architect` | Database schema design & query optimization | Read, Grep, Glob | sonnet |
 | `api-designer` | REST/GraphQL/gRPC API design & contracts | Read, Grep, Glob | sonnet |
 | `security-auditor` | STRIDE threat modeling & vulnerability assessment | Read, Grep, Glob, Bash | sonnet |
+| `privacy-auditor` | Privacy/data handling review and compliance risks | Read, Grep, Glob | sonnet |
 | `performance-optimizer` | Performance analysis & optimization strategies | Read, Grep, Glob, Bash | sonnet |
 | `devops-engineer` | CI/CD, containerization & infrastructure as code | Read, Grep, Glob, Bash | sonnet |
+| `release-manager` | Integration, rollout, and rollback planning | Read, Grep, Glob, Bash | sonnet |
 
 ### Coordination Agents
 
