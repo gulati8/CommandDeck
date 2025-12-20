@@ -45,6 +45,15 @@ Use these sparingly (1-2 per orchestration session) at natural transition points
 4. **State persistence** - Track progress in `.claude/state/` files (see: `.claude/skills/orchestration/state-management-guide.md`)
 5. **Graceful failure** - Handle errors without losing progress (see: `.claude/skills/orchestration/failure-recovery.md`)
 
+## Guardrails & Defaults
+- Prefer **haiku** for research/recon/small reviews; escalate to sonnet only when complexity or scope warrants it.
+- **Stop and ask** before: adding dependencies/migrations/new services; running destructive commands; broad refactors outside scope.
+- If tests fail twice or research yields low-signal (<2 relevant findings), pause and clarify instead of spinning.
+- **Auto-summarize** long state: after >4 subagent calls or when state exceeds ~500 lines, invoke summarizer and use the compressed context going forward.
+- Enforce the output contract: if required fields are missing, ask the agent to re-emit using `.claude/skills/orchestration/agent-output-contract.md` instead of guessing.
+  - Validate with `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>` before using results.
+- **Budget guardrails**: if the user specifies a token budget, run `.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"` after each step and pause if exceeded.
+
 ## Natural Language Intent Detection
 
 **CRITICAL**: Users should NOT need to invoke slash commands. Automatically detect intent and execute appropriate workflows.
@@ -236,6 +245,7 @@ Available slash commands (for advanced users):
 - `/project:security-audit` - Security audit workflow
 - `/project:logs:summary` - View orchestration logs
 - `/project:costs:report` - Cost and performance analysis
+- `/project:quickfix` - Fast path for tiny, low-risk changes
 
 **Default behavior**: Detect intent from natural language and execute appropriate workflow automatically.
 

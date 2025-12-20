@@ -1,37 +1,39 @@
 # Logging & Metrics Requirements
 
-To enable rich observability, debugging, and cost tracking, you MUST log detailed information for each subagent invocation.
+To enable rich observability, debugging, and cost tracking, subagent invocations are logged automatically via hooks in `.claude/settings.json`.
 
-## Before Invoking a Subagent
+## Automatic Hook Logs
 
-Run this bash command to log the task details:
+Each Task invocation emits two entries:
+- `subagent_start`
+- `subagent_complete`
 
-```bash
-echo "{\"timestamp\": \"$(date -Iseconds)\", \"event\": \"task_delegated\", \"agent\": \"AGENT_NAME\", \"task_summary\": \"FIRST_100_CHARS_OF_TASK\", \"step\": \"STEP_NAME\", \"model\": \"MODEL_NAME\"}" >> .claude/logs/orchestration.jsonl
-```
-
-Replace:
-- `AGENT_NAME` with the subagent name (researcher, planner, etc.)
-- `FIRST_100_CHARS_OF_TASK` with a brief task description
-- `STEP_NAME` with the current step identifier
-- `MODEL_NAME` with the model (haiku, sonnet, opus)
+These include `agent`, `model`, `task_summary`, and `id` for correlation.
 
 **Example**:
-```bash
-echo "{\"timestamp\": \"$(date -Iseconds)\", \"event\": \"task_delegated\", \"agent\": \"researcher\", \"task_summary\": \"Investigate authentication patterns in codebase\", \"step\": \"research-auth\", \"model\": \"haiku\"}" >> .claude/logs/orchestration.jsonl
+```json
+{
+  "timestamp": "2025-12-18T14:30:00Z",
+  "event": "subagent_start",
+  "tool": "Task",
+  "agent": "planner",
+  "model": "sonnet",
+  "task_summary": "Design dark mode implementation approach",
+  "id": "f00d..."
+}
 ```
 
-## After Subagent Completes
-
-Run this bash command to log the outcome:
-
-```bash
-echo "{\"timestamp\": \"$(date -Iseconds)\", \"event\": \"task_completed\", \"agent\": \"AGENT_NAME\", \"status\": \"SUCCESS|FAILURE\", \"duration_context\": \"BRIEF_SUMMARY\"}" >> .claude/logs/orchestration.jsonl
-```
-
-**Example**:
-```bash
-echo "{\"timestamp\": \"$(date -Iseconds)\", \"event\": \"task_completed\", \"agent\": \"researcher\", \"status\": \"SUCCESS\", \"duration_context\": \"Found JWT auth in src/auth/jwt.ts\"}" >> .claude/logs/orchestration.jsonl
+```json
+{
+  "timestamp": "2025-12-18T14:35:00Z",
+  "event": "subagent_complete",
+  "tool": "Task",
+  "agent": "planner",
+  "model": "sonnet",
+  "task_summary": "Design dark mode implementation approach",
+  "status": "complete",
+  "id": "f00d..."
+}
 ```
 
 **Also add metrics to state file**:
@@ -54,30 +56,34 @@ echo "{\"timestamp\": \"$(date -Iseconds)\", \"event\": \"task_failed\", \"agent
 
 ## Log Entry Types
 
-### 1. Task Delegation
+### 1. Subagent Start (Hook)
 ```json
 {
   "timestamp": "2025-12-18T14:30:00Z",
-  "event": "task_delegated",
+  "event": "subagent_start",
+  "tool": "Task",
   "agent": "planner",
+  "model": "sonnet",
   "task_summary": "Design dark mode implementation approach",
-  "step": "planning-dark-mode",
-  "model": "sonnet"
+  "id": "f00d..."
 }
 ```
 
-### 2. Task Completion
+### 2. Subagent Complete (Hook)
 ```json
 {
   "timestamp": "2025-12-18T14:35:00Z",
-  "event": "task_completed",
+  "event": "subagent_complete",
+  "tool": "Task",
   "agent": "planner",
-  "status": "SUCCESS",
-  "duration_context": "Recommended CSS variables approach with localStorage"
+  "model": "sonnet",
+  "task_summary": "Design dark mode implementation approach",
+  "status": "complete",
+  "id": "f00d..."
 }
 ```
 
-### 3. Task Failure
+### 3. Task Failure (Manual)
 ```json
 {
   "timestamp": "2025-12-18T14:40:00Z",
@@ -123,11 +129,11 @@ The log-analyzer agent will parse `orchestration.jsonl` to calculate:
 **Manual cost tracking**:
 ```bash
 # Count all task delegations
-grep "task_delegated" .claude/logs/orchestration.jsonl | wc -l
+grep "subagent_start" .claude/logs/orchestration.jsonl | wc -l
 
 # Count by model
-grep "haiku" .claude/logs/orchestration.jsonl | grep "task_delegated" | wc -l
-grep "sonnet" .claude/logs/orchestration.jsonl | grep "task_delegated" | wc -l
+grep "haiku" .claude/logs/orchestration.jsonl | grep "subagent_start" | wc -l
+grep "sonnet" .claude/logs/orchestration.jsonl | grep "subagent_start" | wc -l
 
 # Count failures
 grep "task_failed" .claude/logs/orchestration.jsonl | wc -l
@@ -197,7 +203,7 @@ tail -n 20 .claude/logs/orchestration.jsonl | jq .
 
 **Count tasks by agent**:
 ```bash
-grep "task_delegated" .claude/logs/orchestration.jsonl | jq -r .agent | sort | uniq -c
+grep "subagent_start" .claude/logs/orchestration.jsonl | jq -r .agent | sort | uniq -c
 ```
 
 **Find all failures**:
@@ -207,7 +213,7 @@ grep "task_failed" .claude/logs/orchestration.jsonl | jq .
 
 **Calculate success rate**:
 ```bash
-total=$(grep "task_delegated" .claude/logs/orchestration.jsonl | wc -l)
+total=$(grep "subagent_start" .claude/logs/orchestration.jsonl | wc -l)
 failed=$(grep "task_failed" .claude/logs/orchestration.jsonl | wc -l)
 success_rate=$(echo "scale=2; (($total - $failed) / $total) * 100" | bc)
 echo "Success rate: $success_rate%"
@@ -215,11 +221,11 @@ echo "Success rate: $success_rate%"
 
 ## Best Practices
 
-1. **Log before and after** - Every subagent invocation should have both delegation and completion logs
+1. **Rely on hooks** - `subagent_start` and `subagent_complete` are automatic; keep them enabled
 2. **Include context** - Task summaries should be descriptive enough to understand what was attempted
 3. **Log recovery attempts** - Track all failure recovery efforts for debugging
 4. **Use consistent formatting** - Follow JSON structure exactly for parsing
-5. **Don't skip logging** - Even quick/simple tasks should be logged for complete audit trail
+5. **Don't skip metrics** - Add `add-metrics.sh` entries for cost and model usage
 6. **Update state AND logs** - State file is for human reading, logs are for programmatic analysis
 7. **Timestamp everything** - Use ISO 8601 format for consistent sorting and parsing
 8. **Sanitize sensitive data** - Never log secrets, credentials, or PII

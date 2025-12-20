@@ -18,6 +18,7 @@ When the user makes a request, automatically classify it into one of these workf
 | **Planning Only** | Plan Workflow | "how would you", "what's the approach", "plan for", "design", "architecture for" |
 | **Code Review** | Review Workflow | "review", "check", "audit", "look at", "assess quality" |
 | **Documentation** | Docs Workflow | "document", "write docs", "README", "explain how to" |
+| **Quick Fix** | Quickfix Workflow | "tiny change", "small tweak", "one-line", "typo", "minor fix" |
 
 ## Automatic Workflow Execution
 
@@ -46,6 +47,7 @@ Instead, silently recognize the intent and execute the appropriate workflow:
 
 - **Model choice**: Default to haiku for research/summarization and small scopes; escalate to sonnet only when complexity requires
 - **Call limits**: If you reach 6 subagent calls in a workflow, pause and summarize; ask user before proceeding
+- **Budget cap**: If a token budget is provided and exceeded, pause and ask before continuing
 - **New dependencies / migrations**: Stop and confirm with user before adding packages or changing schemas
 - **Destructive commands**: Never run `rm`, schema drops, or credential-related commands without explicit user approval
 - **Test/build failures**: After one failed test/build run, invoke `debugger` before retrying to avoid flailing

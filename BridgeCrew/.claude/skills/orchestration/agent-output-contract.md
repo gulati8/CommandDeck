@@ -2,7 +2,7 @@
 
 Use this contract to normalize all subagent responses so they can be chained, parsed, and evaluated automatically. Keep outputs concise; prefer YAML frontmatter + markdown body, or pure JSON when structured data is required.
 
-## Core Fields (all agents)
+## Core Fields (all agents, required)
 
 - `summary` (3 bullets max)
 - `artifacts` (files, commands run, links to state/logs; empty if none)
@@ -32,15 +32,26 @@ open_questions:
 confidence: medium
 ```
 
-## Role-Specific Fields
+## Role-Specific Fields (required unless marked optional)
 
-- **planner**: `plan_steps` (ordered list), `parallel_groups` (list of step ids), `test_plan`, `rollback_plan`
-- **code-writer**: `changes` (file→summary), `testing` (how to run), `followups` (tech debt)
+- **planner**: `plan_steps` (ordered list), `parallel_groups` (list of step ids, use [] if none), `test_plan`, `rollback_plan`
+- **code-writer**: `changes` (file→summary), `testing` (how to run, even if not_run), `followups`
 - **code-reviewer**: `must_fix`, `should_fix`, `nits`, `tests_missing`
-- **test-writer**: `tests_added` (list with file + intent), `coverage_notes`, `how_to_run`
-- **researcher**: `findings` (list with path/snippet/purpose), `gaps` (what’s missing)
-- **security-auditor**: `findings` (severity, evidence, recommendation), `attack_surface`, `secrets`
+- **test-writer**: `tests_added` (file + intent), `coverage_notes`, `how_to_run`
+- **researcher**: `findings` (path/snippet/purpose), `gaps`
+- **security-auditor**: `findings` (severity/evidence/recommendation), `attack_surface`, `secrets`, `tests` (optional if none)
 - **devops-engineer**: `pipeline_steps`, `env_vars`, `rollout`, `backout`
+- **frontend-architect**: `component_plan` (name/responsibility/props/state/patterns), `state_strategy`, `routing`, `styling`
+- **premium-ux-designer**: `layouts`, `components`, `states` (loading/empty/error/success), `motion`, `a11y`, `content_notes`
+- **product-strategy-advisor**: `options` (impact/effort/risk), `recommendation`, `milestones`, `metrics`
+- **performance-optimizer**: `findings`, `hotspots`, `recommendations`, `validation`
+- **database-architect**: `schema_changes`, `migrations`, `indexes`, `queries`, `rollback_plan`
+- **api-designer**: `endpoints` (method/path/purpose/authz/payload/response/errors), `versioning`, `validation`, `testing`
+- **debugger**: `findings`, `root_cause`, `fix`, `verification`, `fallbacks` (if partial)
+- **documentation-writer**: `audience`, `sections`, `examples`, `changes_made`
+- **log-analyzer**: `activity_overview`, `agent_usage`, `failures`, `recommendations`
+- **feedback-coordinator**: `iterations`, `status` (CONVERGED|MAX_ITERATIONS|ESCALATED), `next_actions`
+- **summarizer**: `compression`, `key_decisions`, `completed`, `current_state`, `next_actions`
 
 ## Output Rules
 
@@ -48,6 +59,10 @@ confidence: medium
 2) Keep bullets terse; no prose paragraphs in `summary/decisions/risks`.
 3) When providing code diffs, link paths in `artifacts` and keep the body focused on reasoning, not full code dumps.
 4) If a field is intentionally omitted, state why (e.g., `rollback_plan: not_applicable`).
+5) Validate outputs before using them:
+   - Save agent output to a temp file (e.g., `/tmp/agent-output.md`)
+   - Run `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>`
+   - If validation fails, request a re-emit using this contract.
 
 ## Usage
 

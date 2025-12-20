@@ -21,6 +21,8 @@ See PICARD.md "7 Levels of Delegation" for guidance.
 ## Workflow Phases
 
 Execute these phases in order, updating the state file after each:
+**Output validation**: After each subagent completes, save its output to a temp file and validate with `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>`. If validation fails, request a re-emit before proceeding.
+**Budget guardrail (optional)**: If a token budget is set, run `.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"` after each step and pause if exceeded.
 
 ### Phase 1: Initialize Mission Log
 1. Run: `.claude/skills/state-management/utilities/init-state.sh "$ARGUMENTS" "$ARGUMENTS"`

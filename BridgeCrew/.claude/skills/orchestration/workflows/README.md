@@ -166,6 +166,29 @@ This document describes common workflow patterns used in orchestration. These pa
 > - documentation-writer: Add minimal setup steps to README
 > - documentation-writer: Create detailed guide in docs/authentication.md
 
+## Quick Fix Workflow
+
+**Intent triggers**: "tiny change", "small tweak", "one-line", "typo", "minor fix"
+
+**Pattern**:
+```
+1. researcher → (optional) confirm exact file/spot if unclear
+2. code-writer → Apply minimal change
+3. code-reviewer → Sanity check for regressions
+```
+
+**When to use**:
+- Very small changes (1-2 files, low risk)
+- Typo fixes or tiny logic tweaks
+
+**Example**:
+> User: "Fix this typo in the README"
+>
+> Orchestrator executes:
+> - researcher: Locate the typo (if needed)
+> - code-writer: Apply the correction
+> - code-reviewer: Confirm no collateral changes
+
 ## Frontend Feature Workflow
 
 **Intent triggers**: "UI", "component", "page", "design", "interface" (combined with feature keywords)
@@ -288,4 +311,5 @@ For full-stack feature:
 4. **End with verification** - Most workflows should include review/testing
 5. **Document as needed** - Add documentation step if feature affects setup/usage
 6. **Use delegation levels** - Apply 7 Levels of Delegation within workflows
-7. **Log all steps** - Track workflow execution for debugging and cost analysis
+7. **Validate outputs** - Use the output contract and validator before chaining results
+8. **Log all steps** - Hook logs are automatic; add metrics to state for cost analysis

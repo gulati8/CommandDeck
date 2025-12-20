@@ -102,6 +102,18 @@ Use the bash utilities in `.claude/skills/state-management/utilities/`:
 .claude/skills/state-management/utilities/add-metrics.sh "$STATE_FILE" "step-name" "haiku|sonnet|opus" "estimated-tokens"
 ```
 
+**Note**: Subagent invocation logs are emitted automatically via `.claude/settings.json` hooks. Use metrics in state files to complement those logs with token estimates and per-step summaries.
+
+## Budget Guardrails (Optional)
+
+If the user specifies a token budget, track it in the state file and check after each step:
+
+```bash
+.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" 50000
+```
+
+If the budget is exceeded, pause and ask the user before proceeding.
+
 **Mark complete**:
 ```bash
 .claude/skills/state-management/utilities/complete-state.sh "$STATE_FILE" "Final summary message"

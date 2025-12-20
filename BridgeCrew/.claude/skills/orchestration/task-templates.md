@@ -22,6 +22,7 @@ When delegating to a subagent, structure your prompt using this template to ensu
 - **Format**: [json | markdown | code | freeform]
 - **Include**: [Specific elements to include in response]
 - **Exclude**: [What to omit from response]
+  - **Contract**: Must follow `.claude/skills/orchestration/agent-output-contract.md` (YAML frontmatter preferred)
 ```
 
 ## Best Practices for Task Decomposition

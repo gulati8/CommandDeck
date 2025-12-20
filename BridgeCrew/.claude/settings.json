@@ -15,11 +15,24 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "BLOCKED='rm -rf /|rm -rf \\\\.|git reset --hard|git clean -fd|git checkout --|chmod 777 /|chown -R /|mkfs|dd if=|shutdown|reboot|poweroff|docker login|kubectl delete --all|ssh \\S+'; CMD=\"$TOOL_ARGS_command\"; if printf \"%s\" \"$CMD\" | egrep -qi \"$BLOCKED\"; then echo \"Blocked command (safety guard): $CMD\"; exit 1; fi"
+          },
+          {
+            "type": "command",
+            "command": "CMD=\"$TOOL_ARGS_command\"; ID=$(printf \"%s\" \"$CMD\" | shasum | awk '{print $1}'); echo \"{\\\"timestamp\\\":\\\"$(date -Iseconds)\\\",\\\"event\\\":\\\"bash_start\\\",\\\"tool\\\":\\\"Bash\\\",\\\"id\\\":\\\"$ID\\\",\\\"command\\\":\\\"$CMD\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+          }
+        ]
+      },
+      {
         "matcher": "Task",
         "hooks": [
           {
             "type": "command",
-            "command": "AGENT_PROMPT=\"$TOOL_ARGS_prompt\"; AGENT=\"unknown\"; case \"$AGENT_PROMPT\" in *researcher*) AGENT=researcher ;; *planner*) AGENT=planner ;; *code-writer*) AGENT=code-writer ;; *code-reviewer*) AGENT=code-reviewer ;; *test-writer*) AGENT=test-writer ;; *documentation-writer*) AGENT=documentation-writer ;; *log-analyzer*) AGENT=log-analyzer ;; *debugger*) AGENT=debugger ;; *summarizer*) AGENT=summarizer ;; *feedback-coordinator*) AGENT=feedback-coordinator ;; *frontend-architect*) AGENT=frontend-architect ;; *premium-ux-designer*) AGENT=premium-ux-designer ;; *database-architect*) AGENT=database-architect ;; *api-designer*) AGENT=api-designer ;; *security-auditor*) AGENT=security-auditor ;; *performance-optimizer*) AGENT=performance-optimizer ;; *devops-engineer*) AGENT=devops-engineer ;; *product-strategy-advisor*) AGENT=product-strategy-advisor ;; *code-refactorer*) AGENT=code-refactorer ;; *git-commit-helper*) AGENT=git-commit-helper ;; esac; ID=$(printf \"%s\" \"$AGENT_PROMPT\" | shasum | awk '{print $1}'); echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_start\\\", \\\"tool\\\": \\\"Task\\\", \\\"agent\\\": \\\"$AGENT\\\", \\\"id\\\": \\\"$ID\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+            "command": "AGENT_PROMPT=\"$TOOL_ARGS_prompt\"; AGENT=\"unknown\"; case \"$AGENT_PROMPT\" in *researcher*) AGENT=researcher ;; *planner*) AGENT=planner ;; *code-writer*) AGENT=code-writer ;; *code-reviewer*) AGENT=code-reviewer ;; *test-writer*) AGENT=test-writer ;; *documentation-writer*) AGENT=documentation-writer ;; *log-analyzer*) AGENT=log-analyzer ;; *debugger*) AGENT=debugger ;; *summarizer*) AGENT=summarizer ;; *feedback-coordinator*) AGENT=feedback-coordinator ;; *frontend-architect*) AGENT=frontend-architect ;; *premium-ux-designer*) AGENT=premium-ux-designer ;; *database-architect*) AGENT=database-architect ;; *api-designer*) AGENT=api-designer ;; *security-auditor*) AGENT=security-auditor ;; *performance-optimizer*) AGENT=performance-optimizer ;; *devops-engineer*) AGENT=devops-engineer ;; *product-strategy-advisor*) AGENT=product-strategy-advisor ;; *code-refactorer*) AGENT=code-refactorer ;; *git-commit-helper*) AGENT=git-commit-helper ;; esac; MODEL=\"sonnet\"; case \"$AGENT\" in researcher|documentation-writer|log-analyzer|summarizer|feedback-coordinator|git-commit-helper) MODEL=\"haiku\" ;; esac; ID=$(printf \"%s\" \"$AGENT_PROMPT\" | shasum | awk '{print $1}'); TASK_SUMMARY=$(printf \"%s\" \"$AGENT_PROMPT\" | tr '\\n' ' ' | cut -c1-120); echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_start\\\", \\\"tool\\\": \\\"Task\\\", \\\"agent\\\": \\\"$AGENT\\\", \\\"model\\\": \\\"$MODEL\\\", \\\"task_summary\\\": \\\"$TASK_SUMMARY\\\", \\\"id\\\": \\\"$ID\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
           },
           {
             "type": "command",
@@ -30,11 +43,20 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=\"$TOOL_ARGS_command\"; STATUS=$?; ID=$(printf \"%s\" \"$CMD\" | shasum | awk '{print $1}'); echo \"{\\\"timestamp\\\":\\\"$(date -Iseconds)\\\",\\\"event\\\":\\\"bash_complete\\\",\\\"tool\\\":\\\"Bash\\\",\\\"id\\\":\\\"$ID\\\",\\\"command\\\":\\\"$CMD\\\",\\\"status\\\":$STATUS}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+          }
+        ]
+      },
+      {
         "matcher": "Task",
         "hooks": [
           {
             "type": "command",
-            "command": "AGENT_PROMPT=\"$TOOL_ARGS_prompt\"; AGENT=\"unknown\"; case \"$AGENT_PROMPT\" in *researcher*) AGENT=researcher ;; *planner*) AGENT=planner ;; *code-writer*) AGENT=code-writer ;; *code-reviewer*) AGENT=code-reviewer ;; *test-writer*) AGENT=test-writer ;; *documentation-writer*) AGENT=documentation-writer ;; *log-analyzer*) AGENT=log-analyzer ;; *debugger*) AGENT=debugger ;; *summarizer*) AGENT=summarizer ;; *feedback-coordinator*) AGENT=feedback-coordinator ;; *frontend-architect*) AGENT=frontend-architect ;; *premium-ux-designer*) AGENT=premium-ux-designer ;; *database-architect*) AGENT=database-architect ;; *api-designer*) AGENT=api-designer ;; *security-auditor*) AGENT=security-auditor ;; *performance-optimizer*) AGENT=performance-optimizer ;; *devops-engineer*) AGENT=devops-engineer ;; *product-strategy-advisor*) AGENT=product-strategy-advisor ;; *code-refactorer*) AGENT=code-refactorer ;; *git-commit-helper*) AGENT=git-commit-helper ;; esac; ID=$(printf \"%s\" \"$AGENT_PROMPT\" | shasum | awk '{print $1}'); echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_complete\\\", \\\"tool\\\": \\\"Task\\\", \\\"agent\\\": \\\"$AGENT\\\", \\\"id\\\": \\\"$ID\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
+            "command": "AGENT_PROMPT=\"$TOOL_ARGS_prompt\"; AGENT=\"unknown\"; case \"$AGENT_PROMPT\" in *researcher*) AGENT=researcher ;; *planner*) AGENT=planner ;; *code-writer*) AGENT=code-writer ;; *code-reviewer*) AGENT=code-reviewer ;; *test-writer*) AGENT=test-writer ;; *documentation-writer*) AGENT=documentation-writer ;; *log-analyzer*) AGENT=log-analyzer ;; *debugger*) AGENT=debugger ;; *summarizer*) AGENT=summarizer ;; *feedback-coordinator*) AGENT=feedback-coordinator ;; *frontend-architect*) AGENT=frontend-architect ;; *premium-ux-designer*) AGENT=premium-ux-designer ;; *database-architect*) AGENT=database-architect ;; *api-designer*) AGENT=api-designer ;; *security-auditor*) AGENT=security-auditor ;; *performance-optimizer*) AGENT=performance-optimizer ;; *devops-engineer*) AGENT=devops-engineer ;; *product-strategy-advisor*) AGENT=product-strategy-advisor ;; *code-refactorer*) AGENT=code-refactorer ;; *git-commit-helper*) AGENT=git-commit-helper ;; esac; MODEL=\"sonnet\"; case \"$AGENT\" in researcher|documentation-writer|log-analyzer|summarizer|feedback-coordinator|git-commit-helper) MODEL=\"haiku\" ;; esac; ID=$(printf \"%s\" \"$AGENT_PROMPT\" | shasum | awk '{print $1}'); TASK_SUMMARY=$(printf \"%s\" \"$AGENT_PROMPT\" | tr '\\n' ' ' | cut -c1-120); echo \"{\\\"timestamp\\\": \\\"$(date -Iseconds)\\\", \\\"event\\\": \\\"subagent_complete\\\", \\\"tool\\\": \\\"Task\\\", \\\"agent\\\": \\\"$AGENT\\\", \\\"model\\\": \\\"$MODEL\\\", \\\"task_summary\\\": \\\"$TASK_SUMMARY\\\", \\\"status\\\": \\\"complete\\\", \\\"id\\\": \\\"$ID\\\"}\" >> .claude/logs/orchestration.jsonl 2>/dev/null || true"
           },
           {
             "type": "command",

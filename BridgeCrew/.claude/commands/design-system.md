@@ -138,11 +138,9 @@ This workflow manages design system creation and auditing using specialized agen
    - If tests reveal bugs → return to Phase 4
    - Maximum 2 iterations per phase
 
-7. Log all agent invocations with metrics:
-   - Agent name and model
-   - Task description
-   - Input/output sizes
-   - Duration
+7. Logging and metrics:
+   - Hook logs are emitted automatically (see `.claude/settings.json`)
+   - Add per-step metrics to the state file with `add-metrics.sh`
 
 8. On completion, generate summary:
    - Components created/updated
