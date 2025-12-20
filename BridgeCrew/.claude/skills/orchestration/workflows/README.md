@@ -315,3 +315,4 @@ For full-stack feature:
 8. **Log all steps** - Hook logs are automatic; add metrics to state for cost analysis
 9. **Use feedback loops** - For review/fix cycles, prefer `feedback-coordinator` to reduce overhead
 10. **Review new dependencies** - Require explicit approval and run a security/license check
+11. **Cost-sensitive mode** - Minimize subagent calls and prefer `/project:quickfix` when appropriate

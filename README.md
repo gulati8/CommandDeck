@@ -41,6 +41,7 @@ claude
 /project:bugfix Users getting 500 error on upload
 /project:refactor Extract auth logic into separate module
 /project:plan Migrate to microservices architecture
+/project:quickfix Fix README typo in install steps
 ```
 
 ### Updating to the latest orchestrator version
@@ -53,8 +54,8 @@ claude
 
 ### What Gets Installed
 
-- **20 Specialized Agents**: core engineering crew (researcher, planner, code-writer, code-reviewer, test-writer, documentation-writer, log-analyzer, debugger, summarizer, feedback-coordinator, code-refactorer, git-commit-helper) plus domain specialists (frontend-architect, premium-ux-designer, database-architect, api-designer, security-auditor, performance-optimizer, devops-engineer, product-strategy-advisor)
-- **10 Workflow Commands**: feature, frontend-feature, bugfix, refactor, plan, review, design-system, security-audit, logs:summary, costs:report
+- **22 Specialized Agents**: core engineering crew (researcher, planner, code-writer, code-reviewer, test-writer, documentation-writer, log-analyzer, debugger, summarizer, feedback-coordinator, code-refactorer, git-commit-helper) plus domain specialists (frontend-architect, premium-ux-designer, database-architect, api-designer, security-auditor, privacy-auditor, performance-optimizer, devops-engineer, product-strategy-advisor, release-manager)
+- **11 Workflow Commands**: feature, frontend-feature, bugfix, refactor, plan, review, design-system, security-audit, logs:summary, costs:report, quickfix
 - **State Management**: Automatic orchestration tracking in `.claude/state/`
 - **Logging**: Activity logs in `.claude/logs/orchestration.jsonl`
 - **Skills & Templates**: Reusable task templates and utilities
@@ -80,7 +81,7 @@ Core crew (engineering-oriented) carry TNG-inspired personas to keep interaction
 - **summarizer** (Guinan): Wise distillation of complexity
 - **feedback-coordinator** (Troi): Diplomatic mediation
 
-Domain specialists round out the crew: frontend-architect, premium-ux-designer, database-architect, api-designer, security-auditor, performance-optimizer, devops-engineer, product-strategy-advisor, code-refactorer, git-commit-helper.
+Domain specialists round out the crew: frontend-architect, premium-ux-designer, database-architect, api-designer, security-auditor, privacy-auditor, performance-optimizer, devops-engineer, product-strategy-advisor, release-manager, code-refactorer, git-commit-helper.
 
 These personalities make interactions more natural and memorable while maintaining technical excellence.
 
@@ -104,6 +105,7 @@ CommandDeck/
 ```
 
 **For contributors**: See [CLAUDE.md](CLAUDE.md) for development workflow.
+**Operator quick start**: See `BridgeCrew/.claude/OPERATOR.md`.
 
 ---
 
@@ -830,6 +832,19 @@ How to combine outputs from multiple subagents:
 
 ---
 
+### /project:quickfix
+
+**File**: `quickfix.md`
+
+**Purpose**: Fast path for tiny, low-risk changes
+
+**Usage**:
+```
+/project:quickfix Fix a typo in the README
+```
+
+---
+
 ## State Management Utilities
 
 **Location**: `.claude/skills/state-management/utilities/`
@@ -1321,9 +1336,10 @@ Options:
 /project:security-audit <scope>       Security audit (auth/api/full)
 /project:logs:summary [n]             View logs
 /project:costs:report [file]          Cost analysis
+/project:quickfix <desc>              Tiny, low-risk changes
 ```
 
-### Subagents (20 Total)
+### Subagents (22 Total)
 ```
 Core Development Agents:
   researcher             Read-only exploration (haiku + bash)
@@ -1341,9 +1357,11 @@ Domain Specialists:
   database-architect     Data modeling and performance (sonnet)
   api-designer           API contracts and versioning (sonnet)
   security-auditor       Threat modeling & vuln analysis (sonnet)
+  privacy-auditor        Privacy and data handling review (sonnet)
   performance-optimizer  Perf profiling & improvements (sonnet)
   devops-engineer        CI/CD & infrastructure (sonnet)
   product-strategy-advisor  Strategic build/kill decisions (sonnet)
+  release-manager        Integration and rollout planning (sonnet)
 
 Operational Agents:
   log-analyzer           Log analysis & reporting (haiku)

@@ -54,6 +54,7 @@ Use these sparingly (1-2 per orchestration session) at natural transition points
 - Enforce the output contract: if required fields are missing, ask the agent to re-emit using `.claude/skills/orchestration/agent-output-contract.md` instead of guessing.
   - Validate with `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>` before using results.
 - **Budget guardrails**: if the user specifies a token budget, run `.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"` after each step and pause if exceeded.
+- **Cost-sensitive mode**: when the user asks for cheap/fast work, minimize subagent calls, avoid parallelization, and prefer `/project:quickfix` for tiny changes.
 
 ## Natural Language Intent Detection
 

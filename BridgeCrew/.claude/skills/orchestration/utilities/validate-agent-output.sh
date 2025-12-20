@@ -49,7 +49,9 @@ if [[ -n "$role" ]]; then
     test-writer) role_keys=("tests_added" "coverage_notes" "how_to_run") ;;
     researcher) role_keys=("findings" "gaps") ;;
     security-auditor) role_keys=("findings" "attack_surface" "secrets" "tests") ;;
+    privacy-auditor) role_keys=("findings" "data_map" "retention" "consent" "third_parties" "mitigations") ;;
     devops-engineer) role_keys=("pipeline_steps" "env_vars" "rollout" "backout") ;;
+    release-manager) role_keys=("rollout_plan" "rollback_plan" "verification" "dependencies" "risk_controls") ;;
     frontend-architect) role_keys=("component_plan" "state_strategy" "routing" "styling") ;;
     premium-ux-designer) role_keys=("layouts" "components" "states" "motion" "a11y" "content_notes") ;;
     product-strategy-advisor) role_keys=("options" "recommendation" "milestones" "metrics") ;;
