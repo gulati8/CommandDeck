@@ -48,6 +48,7 @@ Use these sparingly (1-2 per orchestration session) at natural transition points
 ## Guardrails & Defaults
 - Prefer **haiku** for research/recon/small reviews; escalate to sonnet only when complexity or scope warrants it.
 - **Stop and ask** before: adding dependencies/migrations/new services; running destructive commands; broad refactors outside scope.
+- **Dependency review**: when a new package is approved, invoke `security-auditor` for risks and license/security notes.
 - If tests fail twice or research yields low-signal (<2 relevant findings), pause and clarify instead of spinning.
 - **Auto-summarize** long state: after >4 subagent calls or when state exceeds ~500 lines, invoke summarizer and use the compressed context going forward.
 - Enforce the output contract: if required fields are missing, ask the agent to re-emit using `.claude/skills/orchestration/agent-output-contract.md` instead of guessing.

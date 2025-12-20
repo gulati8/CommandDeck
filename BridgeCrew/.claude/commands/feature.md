@@ -52,6 +52,7 @@ Execute these phases in order, updating the state file after each:
 4. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "planning" "complete" "Plan created"`
 
 **Checkpoint**: Present the plan to the user and ask for approval before proceeding.
+**Dependency check**: If the plan introduces new dependencies, get explicit approval and invoke `security-auditor` to review risks before implementation.
 
 ### Phase 4: Engage (Parallel Execution)
 1. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "implementation" "in_progress"`
