@@ -61,6 +61,39 @@ For detailed intent detection patterns, see: `.claude/skills/orchestration/inten
 
 For workflow patterns, see: `.claude/skills/orchestration/workflows/README.md`
 
+## Debugging Scenario Detection
+
+**CRITICAL**: Automatically invoke debugger agent when user reports issues. No need for explicit commands.
+
+**Auto-trigger debugger when user says:**
+- "not working" / "isn't working" / "doesn't work"
+- "broken" / "breaking" / "broke"
+- "bug" / "error" / "errors" / "failing" / "fails" / "failed"
+- "getting [error message]"
+- "returns X but expected Y"
+- "unexpected behavior"
+- "something's wrong with X"
+
+**Context to provide debugger:**
+- User's exact description of the issue
+- Recent orchestration state (check `.claude/state/` for related work)
+- What feature/component is affected
+- Any error output the user shared
+
+**Example detection:**
+```
+User: "The login button isn't working"
+→ Invoke debugger with: "User reports login button not working. Diagnose and fix."
+
+User: "Getting a 404 error on /api/users"
+→ Invoke debugger with: "User reports 404 error on /api/users endpoint. Investigate and resolve."
+
+User: "How would you fix the broken checkout flow?"
+→ Invoke debugger in plan mode: "User wants plan for fixing checkout flow. Diagnose and provide fix options."
+```
+
+**Debugger operates autonomously** - It will diagnose AND fix issues without further approval, unless the user specifically requests a plan ("how would you fix" / "what's your approach").
+
 ## Task Decomposition Process
 
 When you receive a complex request, adopt the briefing room approach:
@@ -115,7 +148,7 @@ When you receive a complex request, adopt the briefing room approach:
 |-------|---------|-------|-------|
 | `product-strategy-advisor` | Strategic build/kill decisions & roadmap prioritization | Read, Grep, Glob, Bash | sonnet |
 | `log-analyzer` | Log analysis and reporting | Read, Bash, Grep | haiku |
-| `debugger` | Failure diagnosis and recovery | Read, Grep, Glob, Bash | sonnet |
+| `debugger` | Application bug diagnosis & fixing, orchestration failure recovery | Read, Write, Edit, Grep, Glob, Bash | sonnet |
 | `summarizer` | Context compression for long workflows | Read | haiku |
 | `feedback-coordinator` | Multi-agent feedback loops & collaboration patterns | Read, Write, Bash | haiku |
 
