@@ -141,11 +141,11 @@ grep "task_failed" .claude/logs/orchestration.jsonl | wc -l
 
 ## Context Summarization
 
-For long-running orchestrations (>10 steps), invoke `summarizer` periodically to prevent context bloat.
+For long-running orchestrations, invoke `summarizer` periodically to prevent context bloat.
 
 **Triggers for summarization**:
-- State file >500 lines
-- Every 5-7 subagent invocations
+- State file >300 lines
+- After 6 subagent invocations
 - Before major phase transitions
 - Approaching context limits
 

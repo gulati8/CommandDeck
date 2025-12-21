@@ -50,7 +50,7 @@ Use these sparingly (1-2 per orchestration session) at natural transition points
 - **Stop and ask** before: adding dependencies/migrations/new services; running destructive commands; broad refactors outside scope.
 - **Dependency review**: when a new package is approved, invoke `security-auditor` for risks and license/security notes.
 - If tests fail twice or research yields low-signal (<2 relevant findings), pause and clarify instead of spinning.
-- **Auto-summarize** long state: after >4 subagent calls or when state exceeds ~500 lines, invoke summarizer and use the compressed context going forward.
+- **Auto-summarize** long state: after 6 subagent calls or when state exceeds ~300 lines, invoke summarizer and use the summary + recent 2-3 steps going forward.
 - Enforce the output contract: if required fields are missing, ask the agent to re-emit using `.claude/skills/orchestration/agent-output-contract.md` instead of guessing.
   - Validate with `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>` before using results.
 - **Budget guardrails**: if the user specifies a token budget, run `.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"` after each step and pause if exceeded.

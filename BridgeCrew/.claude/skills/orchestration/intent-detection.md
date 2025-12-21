@@ -53,7 +53,7 @@ Instead, silently recognize the intent and execute the appropriate workflow:
 - **New dependencies / migrations**: Stop and confirm with user before adding packages or changing schemas
 - **Destructive commands**: Never run `rm`, schema drops, or credential-related commands without explicit user approval
 - **Test/build failures**: After one failed test/build run, invoke `debugger` before retrying to avoid flailing
-- **Context control**: For long runs, invoke `summarizer` after every 8 subagent calls or when state files exceed ~200 lines
+- **Context control**: For long runs, invoke `summarizer` after 6 subagent calls or when state files exceed ~300 lines; continue with summary + recent 2-3 steps
 - **Output contract compliance**: If a subagent response is missing required contract fields (see `.claude/skills/orchestration/agent-output-contract.md`), request a quick re-run with the contract reminder before proceeding
 
 ## Output Contract Validation
