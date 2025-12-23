@@ -22,7 +22,6 @@ update_gitignore() {
     # Entries to add (full ignore of orchestrator system)
     local entries=(
         ".claude/"
-        "CLAUDE.md"
     )
 
     # Create .gitignore if it doesn't exist
@@ -55,7 +54,7 @@ update_gitignore() {
     # Append new entries if any were found
     if [ "$needs_header" = true ]; then
         echo -n "$additions" >> "$gitignore_file"
-        echo -e "   ${GREEN}✓${NC} Updated .gitignore (ignoring .claude/ and CLAUDE.md)"
+        echo -e "   ${GREEN}✓${NC} Updated .gitignore (ignoring .claude/)"
     else
         echo -e "   ${GREEN}✓${NC} .gitignore already contains orchestrator exclusions"
     fi
