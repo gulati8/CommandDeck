@@ -17,7 +17,7 @@ Use When
 - Planner output exists or the change is straightforward.
 
 Reference Skills
-- `.claude/skills/frontend/*`, `.claude/skills/backend/*`, `.claude/skills/security/*`, `.claude/skills/testing/*`, `.claude/skills/devops/*`
+- `.claude/skills/frontend/*`, `.claude/skills/backend/*`, `.claude/skills/security/*`, `.claude/skills/testing/*`, `.claude/skills/playwright-mcp/*`, `.claude/skills/devops/*`
 
 Inputs Expected
 - Task + acceptance criteria.

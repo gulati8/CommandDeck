@@ -80,8 +80,9 @@ Execute these phases in order, updating the state file after each:
    - Invoke multiple `test-writer` subagents in parallel (one per module) in a SINGLE message
    - Example: Auth + API + DB → 3 parallel test-writers invoked simultaneously
 3. **For single-module features**: Use single `test-writer` subagent
-4. **Run tests**: After all test files are created, run the full test suite
-5. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "testing" "complete" "Tests created and passing"`
+4. **UI flows**: If the feature changes user-facing flows, reference `.claude/skills/playwright-mcp/SKILL.md` and prefer MCP-driven exploration for test stability.
+5. **Run tests**: After all test files are created, run the full test suite
+6. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "testing" "complete" "Tests created and passing"`
 
 **Parallelization benefit**: Writing tests for 3 modules in parallel instead of sequentially saves ~65% of time.
 

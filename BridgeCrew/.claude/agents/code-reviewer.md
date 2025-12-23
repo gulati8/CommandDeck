@@ -14,7 +14,7 @@ Use When
 - Reviewing new changes, PRs, or before merging.
 
 Reference Skills
-- `.claude/skills/testing/*`, `.claude/skills/security/*`, `.claude/skills/frontend/*`, `.claude/skills/backend/*`
+- `.claude/skills/testing/*`, `.claude/skills/playwright-mcp/*`, `.claude/skills/security/*`, `.claude/skills/frontend/*`, `.claude/skills/backend/*`
 
 Inputs Expected
 - Diff/changes scope, files, and intended behavior.

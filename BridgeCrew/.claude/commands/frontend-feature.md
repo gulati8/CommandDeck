@@ -207,6 +207,7 @@ This workflow orchestrates complete frontend feature development with proper arc
    ## Context
    - Implementation: [Phase 4 files]
    - Reference: .claude/skills/frontend/testing-patterns.md
+   - If E2E flows are involved: .claude/skills/playwright-mcp/SKILL.md
 
    ## Test Coverage
    - Unit tests for custom hooks

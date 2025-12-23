@@ -14,7 +14,7 @@ Use When
 - After code changes or when coverage gaps are identified.
 
 Reference Skills
-- `.claude/skills/testing/*`
+- `.claude/skills/testing/*`, `.claude/skills/playwright-mcp/*`
 
 Inputs Expected
 - Scope of change, expected behavior, existing test commands/frameworks, relevant files.

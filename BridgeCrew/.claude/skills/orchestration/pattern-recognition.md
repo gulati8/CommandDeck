@@ -51,7 +51,7 @@ Use this matrix to automatically suggest skills based on task keywords and conte
 | database, schema, query, migration | Database | `backend/database-patterns.md`<br>`backend/caching-strategies.md` | database-architect<br>code-writer |
 | auth, login, JWT, session | Authentication | `backend/authentication-patterns.md`<br>`security/secure-coding-practices.md`<br>`security/secrets-management.md` | security-auditor<br>api-designer<br>code-writer |
 | test, spec, coverage | Testing | `testing/test-driven-development.md`<br>`testing/integration-testing-patterns.md`<br>`frontend/testing-patterns.md` | test-writer<br>code-writer |
-| E2E, Playwright, Cypress | End-to-End Testing | `testing/e2e-testing-patterns.md`<br>`testing/test-data-management.md` | test-writer |
+| E2E, Playwright, Cypress, MCP | End-to-End Testing | `playwright-mcp/SKILL.md`<br>`testing/e2e-testing-patterns.md`<br>`testing/test-data-management.md` | test-writer |
 | security, vulnerability, XSS, injection | Security | `security/owasp-top-10.md`<br>`security/secure-coding-practices.md`<br>`security/threat-modeling.md` | security-auditor<br>code-reviewer |
 | privacy, PII, data retention, consent | Privacy | `security/privacy-checklist.md`<br>`security/secure-coding-practices.md` | privacy-auditor<br>security-auditor |
 | secret, key, password, credential | Secrets Management | `security/secrets-management.md`<br>`security/secure-coding-practices.md` | security-auditor<br>devops-engineer |
