@@ -96,9 +96,11 @@ if [ -d "$TARGET_DIR/.claude" ]; then
 
     case $choice in
         1)
-            BACKUP_NAME=".claude.backup.$(date +%Y%m%d_%H%M%S)"
-            echo -e "${BLUE}Creating backup: $BACKUP_NAME${NC}"
-            mv "$TARGET_DIR/.claude" "$TARGET_DIR/$BACKUP_NAME"
+            BACKUP_DIR="$TARGET_DIR/tmp"
+            BACKUP_NAME="claude.backup.$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+            echo -e "${BLUE}Creating backup: $BACKUP_DIR/$BACKUP_NAME${NC}"
+            mv "$TARGET_DIR/.claude" "$BACKUP_DIR/$BACKUP_NAME"
             ;;
         2)
             echo -e "${BLUE}Merging with existing .claude directory...${NC}"
