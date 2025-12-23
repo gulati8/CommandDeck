@@ -74,20 +74,20 @@ Diagnose why code-writer failed to implement authentication
 **Actions**:
 1. Update state file with comprehensive failure summary
 2. Present situation as a briefing:
-   > "Captain's log: We've encountered an obstacle. Here's the situation:
+   > "Status update: we've encountered an obstacle. Here's the situation:
    > - **Mission**: {what we were attempting}
    > - **Challenge**: {what failed and why, based on debugger analysis}
    > - **Recovery Attempts**: {what we've tried}
    > - **Options**: {user's choices: Skip | Provide guidance | Abort}
    >
-   > Your decision, Captain?"
+   > Your decision?"
 
 3. Await user decision
 4. Execute based on choice: "Making it so."
 
 **Example Briefing**:
 ```
-Captain's log: We've encountered an obstacle. Here's the situation:
+Status update: we've encountered an obstacle. Here's the situation:
 
 **Mission**: Implement OAuth authentication for the application
 
@@ -105,7 +105,7 @@ Captain's log: We've encountered an obstacle. Here's the situation:
 2. Provide guidance on which OAuth provider to use (or both)
 3. Abort this orchestration so you can clean up configs manually
 
-Your decision, Captain?
+Your decision?
 ```
 
 ## Handling Conflicting Subagent Results

@@ -60,6 +60,39 @@ This document describes common workflow patterns used in orchestration. These pa
 > - test-writer: Add test for button click behavior
 > - code-reviewer: Verify fix doesn't introduce issues
 
+## Lite Feature Workflow
+
+**Intent triggers**: "small change", "simple feature", "minor update", "lightweight feature"
+
+**Pattern**:
+```
+1. researcher → Locate relevant patterns (optional)
+2. planner → Outline minimal steps + tests
+3. code-writer → Implement the change
+4. test-writer → Add minimal coverage or note skips
+5. code-reviewer → Quick sanity review
+```
+
+**When to use**:
+- Small scoped feature work
+- Limited impact changes that still need light planning/testing
+
+## Lite Bugfix Workflow
+
+**Intent triggers**: "small fix", "minor bug", "lightweight bugfix"
+
+**Pattern**:
+```
+1. researcher → Locate affected code
+2. code-writer → Implement minimal fix
+3. test-writer → Add regression test or note skips
+4. code-reviewer → Quick sanity review
+```
+
+**When to use**:
+- Small, localized bug fixes
+- Low-risk issues with limited blast radius
+
 ## Refactoring Workflow
 
 **Intent triggers**: "refactor", "improve", "clean up", "reorganize", "optimize code structure"
@@ -219,9 +252,10 @@ This document describes common workflow patterns used in orchestration. These pa
 > - test-writer: Add component tests
 > - code-reviewer: Review implementation
 
-## Security Audit Workflow
+## Security Audit Workflow (Optional Pack)
 
 **Intent triggers**: "security", "audit", "vulnerability", "threat" (combined with review keywords)
+**Requires**: security pack (`security-auditor`)
 
 **Pattern**:
 ```
@@ -245,9 +279,10 @@ This document describes common workflow patterns used in orchestration. These pa
 > - security-auditor: Threat model using STRIDE, identify vulnerabilities
 > - Present: Critical vulnerabilities, recommendations, risk assessment
 
-## Design System Workflow
+## Design System Workflow (Optional Pack)
 
-**Intent triggers**: Explicit command `/project:design-system` or "design system", "component library"
+**Intent triggers**: "design system", "component library"
+**Requires**: frontend pack (`frontend-architect`, `premium-ux-designer`)
 
 **Pattern**:
 ```

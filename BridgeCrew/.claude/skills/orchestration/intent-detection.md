@@ -19,6 +19,7 @@ When the user makes a request, automatically classify it into one of these workf
 | **Code Review** | Review Workflow | "review", "check", "audit", "look at", "assess quality" |
 | **Documentation** | Docs Workflow | "document", "write docs", "README", "explain how to" |
 | **Quick Fix** | Quickfix Workflow | "tiny change", "small tweak", "one-line", "typo", "minor fix" |
+| **Lite Scope** | Lite Feature/Bugfix Workflow | "small change", "simple fix", "lightweight", "minor update" |
 | **Cost-Sensitive** | Prefer Quickfix / Minimal Workflow | "cheap", "budget", "fast", "cost-sensitive", "lightweight" |
 
 ## Automatic Workflow Execution
@@ -56,7 +57,7 @@ Instead, silently recognize the intent and execute the appropriate workflow:
 - **Context control**: For long runs, invoke `summarizer` after 6 subagent calls or when state files exceed ~300 lines; continue with summary + recent 2-3 steps
 - **Output contract compliance**: If a subagent response is missing required contract fields (see `.claude/skills/orchestration/agent-output-contract.md`), request a quick re-run with the contract reminder before proceeding
 - **Delegation trigger**: If research identifies 2+ independent target areas, require planner to define `parallel_groups`.
-- **Parallelization trigger**: If planner returns `parallel_groups`, execute them in parallel unless cost-sensitive mode is active.
+- **Parallelization trigger**: Execute `parallel_groups` only when the planner explicitly marks tasks as independent and non-overlapping, and cost-sensitive mode is not active.
 
 ## Output Contract Validation
 

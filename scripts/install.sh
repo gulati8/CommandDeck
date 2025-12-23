@@ -121,10 +121,29 @@ rsync -a --delete \
   "$BRIDGECREW_DIR/" "$TARGET_DIR/.claude/"
 echo -e "   ${GREEN}✓${NC} Synced .claude directory (preserved state/logs)"
 
-# Copy PICARD.md to CLAUDE.md (refresh orchestrator instructions)
-if [ -f "$TARGET_DIR/.claude/PICARD.md" ]; then
-    cp -f "$TARGET_DIR/.claude/PICARD.md" "$TARGET_DIR/CLAUDE.md"
-    echo -e "   ${GREEN}✓${NC} Updated CLAUDE.md (orchestrator instructions)"
+# Ensure CLAUDE.md references the orchestrator instructions
+if [ -f "$TARGET_DIR/.claude/ORCHESTRATOR.md" ]; then
+    CLAUDE_FILE="$TARGET_DIR/CLAUDE.md"
+    ORCH_BLOCK_START="# CommandDeck Orchestrator"
+    ORCH_BLOCK_END="# End CommandDeck Orchestrator"
+    ORCH_BLOCK_CONTENT="$ORCH_BLOCK_START
+
+Follow the orchestration instructions in:
+- .claude/ORCHESTRATOR.md
+
+$ORCH_BLOCK_END"
+
+    if [ ! -f "$CLAUDE_FILE" ]; then
+        echo "$ORCH_BLOCK_CONTENT" > "$CLAUDE_FILE"
+        echo -e "   ${GREEN}✓${NC} Created CLAUDE.md (orchestrator reference)"
+    else
+        if ! grep -q "$ORCH_BLOCK_START" "$CLAUDE_FILE"; then
+            printf "\n%s\n" "$ORCH_BLOCK_CONTENT" >> "$CLAUDE_FILE"
+            echo -e "   ${GREEN}✓${NC} Appended orchestrator reference to CLAUDE.md"
+        else
+            echo -e "   ${GREEN}✓${NC} CLAUDE.md already references ORCHESTRATOR.md"
+        fi
+    fi
 fi
 
 # Create empty state and logs if they don't exist
@@ -140,8 +159,8 @@ echo ""
 echo -e "${GREEN}✅ Installation complete!${NC}"
 echo ""
 echo -e "${BLUE}📊 Installed:${NC}"
-echo "   • 22 specialized agents (core + domain specialists)"
-echo "   • 11 workflow commands (/project:feature, /project:bugfix, /project:frontend-feature, etc.)"
+echo "   • Core agents + packs (installed by default)"
+echo "   • Workflow commands (/project:feature, /project:bugfix, /project:refactor, /project:plan, /project:review, /project:quickfix, /project:lite-feature, /project:lite-bugfix, etc.)"
 echo "   • State management utilities"
 echo "   • Skills and templates"
 echo ""
@@ -151,7 +170,7 @@ echo "   claude"
 echo "   /project:feature <description>"
 echo ""
 echo -e "${BLUE}📖 Documentation:${NC}"
-echo "   • CLAUDE.md - Orchestrator instructions (for Claude)"
+echo "   • CLAUDE.md - Project instructions with orchestrator reference"
 echo "   • .claude/agents/ - Agent definitions"
 echo "   • .claude/commands/ - Workflow commands"
 echo ""

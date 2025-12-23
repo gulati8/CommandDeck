@@ -24,7 +24,7 @@ cd /path/to/your/project
 
 This creates:
 - `.claude/` directory with all orchestrator components
-- `CLAUDE.md` with orchestrator instructions
+- `CLAUDE.md` with a reference to `.claude/ORCHESTRATOR.md` (project content preserved)
 - Ready-to-use workflow commands
 
 ### Usage
@@ -37,11 +37,12 @@ claude
 
 # In Claude Code:
 /project:feature Add user authentication with JWT
-/project:frontend-feature Add profile settings UI
 /project:bugfix Users getting 500 error on upload
 /project:refactor Extract auth logic into separate module
 /project:plan Migrate to microservices architecture
 /project:quickfix Fix README typo in install steps
+/project:lite-feature Add profile settings UI
+/project:lite-bugfix Fix 500 error on upload
 ```
 
 ### Updating to the latest orchestrator version
@@ -49,41 +50,17 @@ claude
   ```bash
   /path/to/CommandDeck/scripts/install.sh .
   ```
-- `CLAUDE.md` will be refreshed from the latest `PICARD.md`.
+- `CLAUDE.md` will be created or updated to reference `.claude/ORCHESTRATOR.md` (project-specific content is preserved).
 - Existing `.claude/state/` and `.claude/logs/` are left intact.
 
 ### What Gets Installed
 
-- **22 Specialized Agents**: core engineering crew (researcher, planner, code-writer, code-reviewer, test-writer, documentation-writer, log-analyzer, debugger, summarizer, feedback-coordinator, code-refactorer, git-commit-helper) plus domain specialists (frontend-architect, premium-ux-designer, database-architect, api-designer, security-auditor, privacy-auditor, performance-optimizer, devops-engineer, product-strategy-advisor, release-manager)
-- **11 Workflow Commands**: feature, frontend-feature, bugfix, refactor, plan, review, design-system, security-audit, logs:summary, costs:report, quickfix
+- **Core agents**: researcher, planner, code-writer, code-reviewer, test-writer, debugger, summarizer
+- **Packs (installed by default)**: frontend, backend, security, infra, quality, devex, product, ops
+- **Workflow commands**: feature, bugfix, refactor, plan, review, quickfix, lite-feature, lite-bugfix, logs:summary, costs:report
 - **State Management**: Automatic orchestration tracking in `.claude/state/`
 - **Logging**: Activity logs in `.claude/logs/orchestration.jsonl`
 - **Skills & Templates**: Reusable task templates and utilities
-
-### Command Philosophy
-
-The orchestrator embodies Captain Jean-Luc Picard's leadership style from Star Trek: The Next Generation:
-
-- **Thoughtful Delegation**: The orchestrator trusts specialized agents (the "crew") to excel in their domains
-- **Briefing Room Approach**: For complex decisions, the orchestrator gathers perspectives from specialists before deciding
-- **Autonomous Execution**: When following established patterns, the orchestrator proceeds autonomously using the 7 Levels of Delegation framework
-- **Diplomatic Escalation**: When user input is needed, requests are presented as clear, respectful briefings
-
-Core crew (engineering-oriented) carry TNG-inspired personas to keep interactions memorable:
-- **researcher** (Data): Curious, precise, factual analysis
-- **planner** (Geordi La Forge): Enthusiastic problem-solver
-- **code-writer** (Chief O'Brien): Pragmatic, reliable implementation
-- **code-reviewer** (Worf): Uncompromising on quality and security
-- **test-writer** (Riker): Confident, thorough coverage
-- **documentation-writer** (Counselor Troi): Empathetic, user-focused
-- **log-analyzer** (Lt. Barclay): Detail-oriented pattern finding
-- **debugger** (Dr. Crusher): Methodical diagnosis and recovery
-- **summarizer** (Guinan): Wise distillation of complexity
-- **feedback-coordinator** (Troi): Diplomatic mediation
-
-Domain specialists round out the crew: frontend-architect, premium-ux-designer, database-architect, api-designer, security-auditor, privacy-auditor, performance-optimizer, devops-engineer, product-strategy-advisor, release-manager, code-refactorer, git-commit-helper.
-
-These personalities make interactions more natural and memorable while maintaining technical excellence.
 
 ---
 
@@ -94,8 +71,8 @@ This repository contains the complete orchestrator system in `BridgeCrew/.claude
 ```
 CommandDeck/
 ├── BridgeCrew/.claude/       # Source of truth - the complete orchestrator system
-│   ├── PICARD.md             # Orchestrator instructions (becomes CLAUDE.md)
-│   ├── agents/               # 20 subagent definitions (core + domain specialists)
+│   ├── ORCHESTRATOR.md       # Orchestrator instructions (referenced by CLAUDE.md)
+│   ├── agents/               # Core agents + packs (installed by default)
 │   ├── commands/             # Workflow commands
 │   ├── skills/               # Templates and utilities
 │   └── settings.json         # Hooks configuration
@@ -178,11 +155,11 @@ CommandDeck/
 
 ## CLAUDE.md - The Orchestrator Brain
 
-**Location**: Project root (`./CLAUDE.md`) - created during installation from `BridgeCrew/.claude/PICARD.md`
+**Location**: Project root (`./CLAUDE.md`) - created or appended during installation to reference `BridgeCrew/.claude/ORCHESTRATOR.md`
 
 This file instructs the main Claude session how to behave as an orchestrator. Claude reads this at the start of every session.
 
-**Note**: In the CommandDeck repository itself, `BridgeCrew/.claude/PICARD.md` is the source file that becomes `CLAUDE.md` when installed in target projects. The CommandDeck repository's own `CLAUDE.md` contains instructions for working on the framework.
+**Note**: In the CommandDeck repository itself, `BridgeCrew/.claude/ORCHESTRATOR.md` is the source file referenced by `CLAUDE.md` when installed in target projects. The CommandDeck repository's own `CLAUDE.md` contains instructions for working on the framework.
 
 ### Key Sections
 
@@ -226,7 +203,9 @@ How to combine outputs from multiple subagents:
 
 ## Subagents
 
-**Location**: `.claude/agents/`
+**Location**:
+- Core: `.claude/agents/core/`
+- Packs: `.claude/agents/packs/<pack>/`
 
 ### researcher.md
 
@@ -1190,7 +1169,7 @@ If a session is interrupted:
 
 ### Adding a New Subagent
 
-1. Create `.claude/agents/{name}.md`
+1. Create `.claude/agents/core/{name}.md` for core agents, or `.claude/agents/packs/<pack>/{name}.md` for packs
 2. Use this structure:
 
 ```markdown
@@ -1274,7 +1253,7 @@ Options:
 
 **Fix**: 
 1. Check CLAUDE.md is in project root
-2. Verify agent file exists in `.claude/agents/`
+2. Verify agent file exists in `.claude/agents/core/` or `.claude/agents/packs/<pack>/`
 3. Make description more specific with "Use proactively" language
 4. Explicitly request: "Use the {name} subagent to..."
 
@@ -1327,47 +1306,37 @@ Options:
 ### Commands
 ```
 /project:feature <desc>               Full feature workflow
-/project:frontend-feature <desc>      Frontend feature workflow
 /project:bugfix <desc>                Bug investigation & fix
 /project:refactor <desc>              Refactoring workflow
 /project:plan <desc>                  Planning only
 /project:review <target>              Code review
-/project:design-system <name|audit>   Design system build/audit
-/project:security-audit <scope>       Security audit (auth/api/full)
 /project:logs:summary [n]             View logs
 /project:costs:report [file]          Cost analysis
 /project:quickfix <desc>              Tiny, low-risk changes
+/project:lite-feature <desc>          Lightweight feature workflow
+/project:lite-bugfix <desc>           Lightweight bugfix workflow
 ```
 
-### Subagents (22 Total)
+### Subagents
 ```
-Core Development Agents:
+Core Agents:
   researcher             Read-only exploration (haiku + bash)
-  planner                System architect & planning (sonnet)
+  planner                Implementation planning (sonnet)
   code-writer            Production-ready implementation (sonnet)
-  code-refactorer        Code quality improvement (sonnet)
   code-reviewer          Staff-level review (sonnet)
   test-writer            Test creation (sonnet)
-  documentation-writer   User documentation (haiku)
-  git-commit-helper      Standard commit messages (haiku)
-
-Domain Specialists:
-  frontend-architect     Frontend architecture & components (sonnet)
-  premium-ux-designer    Premium UI/UX design (sonnet)
-  database-architect     Data modeling and performance (sonnet)
-  api-designer           API contracts and versioning (sonnet)
-  security-auditor       Threat modeling & vuln analysis (sonnet)
-  privacy-auditor        Privacy and data handling review (sonnet)
-  performance-optimizer  Perf profiling & improvements (sonnet)
-  devops-engineer        CI/CD & infrastructure (sonnet)
-  product-strategy-advisor  Strategic build/kill decisions (sonnet)
-  release-manager        Integration and rollout planning (sonnet)
-
-Operational Agents:
-  log-analyzer           Log analysis & reporting (haiku)
   debugger               Failure diagnosis (sonnet)
   summarizer             Context compression (haiku)
-  feedback-coordinator   Agent feedback loops (haiku)
+
+Packs (installed by default):
+  frontend               frontend-architect, premium-ux-designer
+  backend                database-architect, api-designer
+  security               security-auditor, privacy-auditor
+  infra                  devops-engineer, release-manager
+  quality                code-refactorer, performance-optimizer
+  devex                  documentation-writer, git-commit-helper
+  product                product-strategy-advisor
+  ops                    log-analyzer, feedback-coordinator
 ```
 
 ### State Management Utilities
@@ -1393,7 +1362,8 @@ Cost Tracking:            Model & token usage analysis
 ### Key Files
 ```
 CLAUDE.md                           Orchestrator brain
-.claude/agents/                     Subagent definitions (20 agents)
+.claude/agents/core/                Core agents
+.claude/agents/packs/               Optional packs
 .claude/commands/                   Workflow commands
 .claude/skills/orchestration/       Templates & examples
 .claude/skills/state-management/    Utility scripts
