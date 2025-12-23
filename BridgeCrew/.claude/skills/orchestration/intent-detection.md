@@ -55,6 +55,8 @@ Instead, silently recognize the intent and execute the appropriate workflow:
 - **Test/build failures**: After one failed test/build run, invoke `debugger` before retrying to avoid flailing
 - **Context control**: For long runs, invoke `summarizer` after 6 subagent calls or when state files exceed ~300 lines; continue with summary + recent 2-3 steps
 - **Output contract compliance**: If a subagent response is missing required contract fields (see `.claude/skills/orchestration/agent-output-contract.md`), request a quick re-run with the contract reminder before proceeding
+- **Delegation trigger**: If research identifies 2+ independent target areas, require planner to define `parallel_groups`.
+- **Parallelization trigger**: If planner returns `parallel_groups`, execute them in parallel unless cost-sensitive mode is active.
 
 ## Output Contract Validation
 

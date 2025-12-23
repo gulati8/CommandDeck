@@ -50,6 +50,8 @@ Use these sparingly (1-2 per orchestration session) at natural transition points
 - **Stop and ask** before: adding dependencies/migrations/new services; running destructive commands; broad refactors outside scope.
 - **Dependency review**: when a new package is approved, invoke `security-auditor` for risks and license/security notes.
 - Apply shared policy in `common-orchestration-rules.md`.
+- **Delegation default**: delegate when specialized expertise is needed, scope spans >2 files, or requirements are ambiguous. Avoid delegation for tiny or single-file changes.
+- **Parallelization gate**: only parallelize when tasks are independent (no shared artifacts or ordering dependencies). In cost-sensitive mode, keep sequential unless parallelization is clearly required.
 - If tests/build fail once or research yields low-signal (<2 relevant findings), pause and clarify instead of spinning.
 - **Auto-summarize** long state: after 6 subagent calls or when state exceeds ~300 lines, invoke summarizer and use the summary + recent 2-3 steps going forward.
 - Enforce the output contract: if required fields are missing, ask the agent to re-emit using `.claude/skills/orchestration/agent-output-contract.md` instead of guessing.

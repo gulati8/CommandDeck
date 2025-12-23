@@ -29,5 +29,9 @@ These rules apply to all workflows and exist to keep cost, quality, and context 
   - Avoid parallelization unless required for scope or safety
   - Skip optional steps unless explicitly requested
 
+## Delegation and Parallelization
+- Delegate when specialized expertise is needed, scope spans >2 files, or requirements are ambiguous.
+- Parallelize only for independent tasks with no shared artifacts or ordering dependencies.
+
 ## Safety Stops
 - Stop and ask before: new deps, migrations, new services, destructive commands
