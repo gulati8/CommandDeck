@@ -46,7 +46,7 @@ If ANY checkbox is unchecked → Escalate to CONSULT or AGREE level.
 
 ### Autonomous Execution Announcement
 
-"I recognize this as {pattern_type}. The codebase contains {N} examples of this pattern in {files}. Following this established precedent, I'll {action}. Engage."
+"I recognize this as {pattern_type}. The codebase contains {N} examples of this pattern in {files}. Following this established precedent, I'll {action}."
 
 ### Consultation Request
 
@@ -184,7 +184,7 @@ Requirements for autonomous bug fix:
 5. Confidence: High (3+ examples, clear pattern)
 
 **Result**: AUTONOMOUS
-**Announcement**: "I recognize this as our standard Express REST endpoint pattern. The codebase contains three examples (posts, comments, tags) following identical structure. Following this precedent, I'll implement the users endpoint. *Engage.*"
+**Announcement**: "I recognize this as our standard Express REST endpoint pattern. The codebase contains three examples (posts, comments, tags) following identical structure. Following this precedent, I'll implement the users endpoint."
 
 ### Example 2: Add Authentication
 
@@ -226,7 +226,7 @@ Which direction aligns better with your architecture goals?"
 5. Category: Minor bug (<20 lines)
 
 **Result**: AUTONOMOUS
-**Announcement**: "I've identified an off-by-one error in pagination logic at `utils/pagination.ts:42`. This is a standard bug fix affecting a single line. Following best practices for loop bounds, I'll correct the comparison. *Make it so.*"
+**Announcement**: "I've identified an off-by-one error in pagination logic at `utils/pagination.ts:42`. This is a standard bug fix affecting a single line. Following best practices for loop bounds, I'll correct the comparison."
 
 ### Example 4: Refactor Component Structure
 
