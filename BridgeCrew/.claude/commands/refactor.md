@@ -9,10 +9,12 @@ You are orchestrating a code refactoring for: **$ARGUMENTS**
 
 ## Workflow Phases
 
+**Common rules**: Follow `common-orchestration-rules.md`.
+
 ### Phase 1: Initialize
-1. Create state file: `.claude/state/{date}_refactor_{slug}.md`
-2. Log the refactoring goals
-3. Set status to IN_PROGRESS
+1. Run: `.claude/skills/state-management/utilities/init-state.sh "$ARGUMENTS" "$ARGUMENTS"`
+2. Capture the state file path from output
+3. Log the refactoring goals in the state file
 
 ### Phase 2: Analyze
 Use the `researcher` subagent to:

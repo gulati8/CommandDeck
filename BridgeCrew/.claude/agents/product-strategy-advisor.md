@@ -33,4 +33,4 @@ Rules
 Output (must follow `.claude/skills/orchestration/agent-output-contract.md`)
 - Core fields plus strategy fields: `options` (with impact/effort/risk), `recommendation`, `milestones` (phased delivery), `metrics`.
 - Be concise; highlight what to stop/avoid as well as what to do.
-- Populate `open_questions` when data is missing rather than guessing.*** End Patch
+- Populate `open_questions` when data is missing rather than guessing.

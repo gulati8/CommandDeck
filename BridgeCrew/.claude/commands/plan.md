@@ -11,6 +11,8 @@ This is a planning-only workflow. No implementation will occur.
 
 ## Workflow Phases
 
+**Common rules**: Follow `common-orchestration-rules.md`.
+
 ### Phase 1: Research
 Use the `researcher` subagent to:
 - Understand the codebase context

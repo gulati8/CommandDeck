@@ -11,6 +11,8 @@ This workflow orchestrates complete frontend feature development with proper arc
 
 **Goal**: Deliver a fully implemented, tested, and polished frontend feature.
 
+**Common rules**: Follow `common-orchestration-rules.md`.
+
 **Key Agents**:
 - `researcher` - Explore existing frontend patterns and codebase
 - `frontend-architect` - Design component hierarchy and state management

@@ -52,7 +52,7 @@ Include the summarizer-specific fields:
 Summarize the following state file and recent notes for continuation.
 Compression target: max 120 lines or 80% reduction.
 Source:
-- .claude/state/2025-12-18_add-auth.md
+- .claude/state/YYYY-MM-DD_add-auth.md
 Recent notes:
 - Failing tests: auth.spec.ts (refresh token mismatch)
 ```

@@ -31,4 +31,4 @@ Use these frameworks to keep product-strategy outputs consistent and actionable.
 ## Output Tips
 - Provide 2–3 clear options with trade-offs; pick a recommendation.
 - Surface metrics to watch (leading indicators) and milestone checkpoints.
-- Capture assumptions and `open_questions` rather than guessing.*** End Patch
+- Capture assumptions and `open_questions` rather than guessing.

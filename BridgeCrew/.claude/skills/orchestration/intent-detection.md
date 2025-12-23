@@ -47,7 +47,7 @@ Instead, silently recognize the intent and execute the appropriate workflow:
 ## Budget & Stop Conditions
 
 - **Model choice**: Default to haiku for research/summarization and small scopes; escalate to sonnet only when complexity requires
-- **Call limits**: If you reach 6 subagent calls in a workflow, pause and summarize; ask user before proceeding
+- **Call limits**: If you reach 6 subagent calls in a workflow, summarize and continue with the summary + recent 2-3 steps
 - **Budget cap**: If a token budget is provided and exceeded, pause and ask before continuing
 - **Cost-sensitive mode**: Reduce subagent count, avoid parallelization, and skip optional steps unless required
 - **New dependencies / migrations**: Stop and confirm with user before adding packages or changing schemas

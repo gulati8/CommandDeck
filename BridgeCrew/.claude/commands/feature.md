@@ -21,12 +21,11 @@ See PICARD.md "7 Levels of Delegation" for guidance.
 ## Workflow Phases
 
 Execute these phases in order, updating the state file after each:
-**Output validation**: After each subagent completes, save its output to a temp file and validate with `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>`. If validation fails, request a re-emit before proceeding.
-**Budget guardrail (optional)**: If a token budget is set, run `.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"` after each step and pause if exceeded.
+**Common rules**: Follow `common-orchestration-rules.md`.
 
 ### Phase 1: Initialize Mission Log
 1. Run: `.claude/skills/state-management/utilities/init-state.sh "$ARGUMENTS" "$ARGUMENTS"`
-2. Capture the state file path from output (e.g., `.claude/state/2025-12-13_feature-name.md`)
+2. Capture the state file path from output (e.g., `.claude/state/YYYY-MM-DD_feature-name.md`)
 3. Store this path in a variable for subsequent updates
 
 ### Phase 2: Reconnaissance
@@ -71,11 +70,11 @@ Execute these phases in order, updating the state file after each:
    - If all succeed: Continue to next parallel group or sequential step
 5. On complete: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "implementation" "complete" "Files modified"`
 
-**Key Rule**: NEVER execute independent steps sequentially. Always parallelize when the plan identifies safe parallel groups.
+**Key Rule**: Default to parallelize independent steps. If cost-sensitive mode is active, prefer sequential execution unless parallelization is required to meet scope or safety.
 
 ### Phase 5: Verify Systems (Parallel Testing)
 1. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "testing" "in_progress"`
-2. **Parallel test creation**: If multiple independent modules/components were implemented:
+2. **Parallel test creation**: If multiple independent modules/components were implemented and cost-sensitive mode is not active:
    - Identify modules that need separate test files (e.g., Auth module, API module, DB module)
    - Invoke multiple `test-writer` subagents in parallel (one per module) in a SINGLE message
    - Example: Auth + API + DB → 3 parallel test-writers invoked simultaneously

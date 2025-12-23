@@ -9,7 +9,7 @@ Use this workflow for small, low-risk changes where a full feature pipeline woul
 
 ## Workflow Phases
 
-**Output validation**: After each subagent completes, save its output to a temp file and validate with `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>`. If validation fails, request a re-emit before proceeding.
+**Common rules**: Follow `common-orchestration-rules.md`.
 
 ### Phase 1: Initialize
 1. Run: `.claude/skills/state-management/utilities/init-state.sh "$ARGUMENTS" "$ARGUMENTS"`

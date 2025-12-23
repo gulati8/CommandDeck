@@ -11,13 +11,12 @@ A ship encounters anomalies—our duty is to diagnose, treat, and prevent recurr
 
 ## Workflow Phases
 
-**Output validation**: After each subagent completes, save its output to a temp file and validate with `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>`. If validation fails, request a re-emit before proceeding.
-**Budget guardrail (optional)**: If a token budget is set, run `.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"` after each step and pause if exceeded.
+**Common rules**: Follow `common-orchestration-rules.md`.
 
 ### Phase 1: Initialize
-1. Create state file: `.claude/state/{date}_bugfix_{slug}.md`
-2. Log the bug report/description
-3. Set status to IN_PROGRESS
+1. Run: `.claude/skills/state-management/utilities/init-state.sh "$ARGUMENTS" "$ARGUMENTS"`
+2. Capture the state file path from output
+3. Log the bug report/description in the state file
 
 ### Phase 2: Investigate
 Use the `researcher` subagent to:

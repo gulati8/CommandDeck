@@ -34,4 +34,4 @@ Rules
 Output (must follow `.claude/skills/orchestration/agent-output-contract.md`)
 - Core fields plus UX fields: `layouts`, `components`, `states` (loading/empty/error/success), `motion`, `a11y`, `content_notes`.
 - Reference existing utility/classes/components; include brief rationale for key choices.
-- Add `open_questions` for unclear requirements; do not invent flows.*** End Patch
+- Add `open_questions` for unclear requirements; do not invent flows.

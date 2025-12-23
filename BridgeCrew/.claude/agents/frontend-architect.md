@@ -35,4 +35,4 @@ Rules
 Output (must follow `.claude/skills/orchestration/agent-output-contract.md`)
 - Core fields plus frontend fields: `component_plan` (name/responsibility/props/state/patterns), `state_strategy`, `routing`, `styling`.
 - Include key decisions and trade-offs; keep diagrams/text concise.
-- Populate `open_questions` for any unclear requirements; do not guess.*** End Patch
+- Populate `open_questions` for any unclear requirements; do not guess.

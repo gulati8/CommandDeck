@@ -17,6 +17,8 @@ Otherwise, review the specified files.
 
 ## Review Process
 
+**Common rules**: Follow `common-orchestration-rules.md`.
+
 Use the `code-reviewer` subagent to analyze:
 - Code correctness
 - Security vulnerabilities

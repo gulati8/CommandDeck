@@ -6,6 +6,8 @@ This is a short handbook for running the orchestrator with minimal overhead.
 - Prefer intent-based requests; slash commands are optional.
 - Use `/project:quickfix` for tiny changes (1-2 files).
 - For larger work, start with a clear goal and acceptance criteria.
+- Apply shared policy in `common-orchestration-rules.md`.
+- Prefer clear structure and naming over comments; add comments/docs only for complex decisions.
 
 ## Cost-Sensitive Mode
 - If the user asks for a cheap/fast run, set **cost-sensitive mode**:
@@ -25,7 +27,7 @@ This is a short handbook for running the orchestrator with minimal overhead.
   ```
 
 ## Recovery
-- If tests fail twice, invoke `debugger` before retrying.
+- If tests/build fail once, invoke `debugger` before retrying.
 - If review finds critical issues, use `feedback-coordinator`.
 
 ## Logs & State

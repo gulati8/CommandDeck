@@ -52,7 +52,7 @@ Diagnose why code-writer failed to implement authentication
 ## Context
 - **Failed Task**: "Implement user authentication with JWT"
 - **Error Output**: "Could not determine which authentication library to use"
-- **State File**: .claude/state/2025-12-18_add-auth.md
+- **State File**: .claude/state/YYYY-MM-DD_add-auth.md
 - **Logs**: Last 5 entries from orchestration.jsonl
 
 ## Expected Output

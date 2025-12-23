@@ -30,6 +30,8 @@ This workflow manages design system creation and auditing using specialized agen
 
 ## Workflow Phases
 
+**Common rules**: Follow `common-orchestration-rules.md`.
+
 ### Phase 1: Discovery and Analysis
 **Agent**: researcher (model: haiku)
 **Task**: Analyze existing design system structure

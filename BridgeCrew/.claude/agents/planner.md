@@ -34,4 +34,4 @@ Rules
 Output (must follow `.claude/skills/orchestration/agent-output-contract.md`)
 - Core fields plus planner fields: `plan_steps`, `parallel_groups`, `test_plan`, `rollback_plan`.
 - Steps should be concise, ordered, and checkable; include files/areas per step.
-- Keep `risks` and `open_questions` populated; avoid filler prose.*** End Patch
+- Keep `risks` and `open_questions` populated; avoid filler prose.

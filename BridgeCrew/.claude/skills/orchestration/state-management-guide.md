@@ -17,9 +17,9 @@ Create state files using this naming pattern:
 **Format**: `.claude/state/{YYYY-MM-DD}_{task-slug}.md`
 
 **Examples**:
-- `.claude/state/2025-12-18_add-dark-mode.md`
-- `.claude/state/2025-12-18_fix-checkout-bug.md`
-- `.claude/state/2025-12-18_refactor-auth-service.md`
+- `.claude/state/YYYY-MM-DD_add-dark-mode.md`
+- `.claude/state/YYYY-MM-DD_fix-checkout-bug.md`
+- `.claude/state/YYYY-MM-DD_refactor-auth-service.md`
 
 ## State File Structure Template
 
@@ -89,7 +89,7 @@ Use the bash utilities in `.claude/skills/state-management/utilities/`:
 
 **Initialize state**:
 ```bash
-.claude/skills/state-management/utilities/init-state.sh "task-slug" "Task Name" "User request"
+.claude/skills/state-management/utilities/init-state.sh "Task Name" "User request"
 ```
 
 **Update step status**:
@@ -129,7 +129,7 @@ If the budget is exceeded, pause and ask the user before proceeding.
 ```markdown
 # Orchestration: Add Dark Mode Toggle
 
-**Started**: 2025-12-18T14:30:00Z
+**Started**: YYYY-MM-DDTHH:MM:SSZ
 **Status**: IN_PROGRESS
 
 ## Original Request

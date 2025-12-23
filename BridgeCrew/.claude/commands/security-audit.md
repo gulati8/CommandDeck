@@ -31,6 +31,8 @@ This workflow performs a systematic security audit using threat modeling, vulner
 
 ## Workflow Phases
 
+**Common rules**: Follow `common-orchestration-rules.md`.
+
 ### Phase 1: Codebase Reconnaissance
 **Agent**: researcher (model: haiku)
 **Task**: Map security-critical components

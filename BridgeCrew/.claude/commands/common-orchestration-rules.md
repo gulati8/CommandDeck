@@ -1,0 +1,33 @@
+# Common Orchestration Rules
+
+These rules apply to all workflows and exist to keep cost, quality, and context stable.
+
+## Output Validation
+- After each subagent completes, save output to `/tmp/agent-output.md`
+- Validate before chaining:
+  ```bash
+  .claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>
+  ```
+- If validation fails, request a re-emit using the Agent Output Contract.
+
+## Budget Guardrails (Optional)
+- If a token budget is set, check after each step:
+  ```bash
+  .claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"
+  ```
+
+## Debugger Trigger
+- If tests/build fail once, invoke `debugger` before retrying.
+
+## Context Summarization
+- After 6 subagent calls or when state exceeds ~300 lines, invoke `summarizer`
+- Continue with the summary + recent 2-3 steps
+
+## Cost-Sensitive Mode
+- If the user asks for cheap/fast work:
+  - Minimize subagent calls
+  - Avoid parallelization unless required for scope or safety
+  - Skip optional steps unless explicitly requested
+
+## Safety Stops
+- Stop and ask before: new deps, migrations, new services, destructive commands
