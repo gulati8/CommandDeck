@@ -25,6 +25,8 @@ cd /path/to/your/project
 This creates:
 - `.claude/` directory with all orchestrator components
 - `CLAUDE.md` with a reference to `.claude/ORCHESTRATOR.md` (project content preserved)
+- `.codex/` directory with Codex-friendly orchestration assets
+- `AGENTS.md` with a reference to `.codex/ORCHESTRATOR_CODEX.md` (project content preserved)
 - Ready-to-use workflow commands
 
 ### Usage
@@ -47,12 +49,25 @@ claude
 /project:lite-bugfix Fix 500 error on upload
 ```
 
+### Codex Usage
+
+Use the Codex workflow scripts in your target project:
+
+```bash
+cd /path/to/your/project
+.codex/scripts/codex-feature.sh "Add user authentication with JWT"
+.codex/scripts/codex-bugfix.sh "Users getting 500 error on upload"
+```
+
+Codex uses a single-agent, phase-based workflow described in `.codex/ORCHESTRATOR_CODEX.md`.
+
 ### Updating to the latest orchestrator version
-- Re-run the installer in your project root to sync `.claude/` (state/logs are preserved):
+- Re-run the installer in your project root to sync `.claude/` and `.codex/` (state/logs are preserved):
   ```bash
   /path/to/CommandDeck/scripts/install.sh .
   ```
 - `CLAUDE.md` will be created or updated to reference `.claude/ORCHESTRATOR.md` (project-specific content is preserved).
+- `AGENTS.md` will be created or updated to reference `.codex/ORCHESTRATOR_CODEX.md` (project-specific content is preserved).
 - Existing `.claude/state/` and `.claude/logs/` are left intact.
 
 ### What Gets Installed
@@ -63,12 +78,13 @@ claude
 - **State Management**: Automatic orchestration tracking in `.claude/state/`
 - **Logging**: Activity logs in `.claude/logs/orchestration.jsonl`
 - **Skills & Templates**: Reusable task templates and utilities
+- **Codex Assets**: `.codex/ORCHESTRATOR_CODEX.md` plus helper scripts in `.codex/scripts/`
 
 ---
 
 ## Repository Structure
 
-This repository contains the complete orchestrator system in `BridgeCrew/.claude/`:
+This repository contains the complete orchestrator system in `BridgeCrew/.claude/` and Codex assets in `BridgeCrew/.codex/`:
 
 ```
 CommandDeck/
@@ -78,7 +94,10 @@ CommandDeck/
 │   ├── commands/             # Workflow commands
 │   ├── skills/               # Templates and utilities
 │   └── settings.json         # Hooks configuration
+├── BridgeCrew/.codex/        # Codex-friendly orchestration assets
+│   └── ORCHESTRATOR_CODEX.md # Codex workflow instructions (referenced by AGENTS.md)
 ├── scripts/install.sh        # Installation script
+├── scripts/codex-*.sh         # Codex workflow helpers (installed to .codex/scripts/)
 ├── README.md                 # This reference guide
 └── CLAUDE.md                 # Instructions for working on this framework
 ```
