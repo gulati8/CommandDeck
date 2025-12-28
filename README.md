@@ -40,6 +40,8 @@ claude
 /project:bugfix Users getting 500 error on upload
 /project:refactor Extract auth logic into separate module
 /project:plan Migrate to microservices architecture
+/project:discovery Turn an idea into requirements and tickets
+/project:spec Draft a multi-document product spec pack
 /project:quickfix Fix README typo in install steps
 /project:lite-feature Add profile settings UI
 /project:lite-bugfix Fix 500 error on upload
@@ -57,7 +59,7 @@ claude
 
 - **Core agents**: researcher, planner, code-writer, code-reviewer, test-writer, debugger, summarizer
 - **Packs (installed by default)**: frontend, backend, security, infra, quality, devex, product, ops
-- **Workflow commands**: feature, bugfix, refactor, plan, review, quickfix, lite-feature, lite-bugfix, logs:summary, costs:report
+- **Workflow commands**: feature, bugfix, refactor, plan, discovery, spec, review, quickfix, lite-feature, lite-bugfix, logs:summary, costs:report
 - **State Management**: Automatic orchestration tracking in `.claude/state/`
 - **Logging**: Activity logs in `.claude/logs/orchestration.jsonl`
 - **Skills & Templates**: Reusable task templates and utilities
@@ -640,33 +642,67 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### product-strategy-advisor.md
+### product-manager.md
 
-**Purpose**: Strategic build/kill decisions & roadmap prioritization
+**Purpose**: Requirements discovery & testable product definition
 
-**Model**: sonnet (strategic analysis)
+**Model**: sonnet (structured reasoning)
 
 **Tools**: Read, Grep, Glob, Bash
 
 **When to use**:
-- Making build/kill feature decisions
-- Prioritizing product roadmap
-- Analyzing product-market fit
-- Strategic planning and resource allocation
-- Evaluating feature strategic value
+- Turning ideas into clear requirements
+- Eliciting missing details and constraints
+- Producing acceptance criteria and non-functional requirements
+- Defining scope boundaries for implementation and testing
 
 **Output format**:
 ```markdown
-## Product Strategy Analysis
+## Product Requirements
 
-### Build / Kill / Enhance Decisions
-[Clear recommendations with rationale]
+### Problem & Goals
+[Problem statement, success metrics]
 
-### Priority Matrix & Roadmap
-[What to build next, ranked by impact]
+### Users & Stories
+[Personas and user stories]
 
-### Risk Assessment
-[Competitive threats and strategic gaps]
+### Acceptance Criteria
+[Testable criteria]
+
+### Non-Functional Requirements
+[Performance, security, compliance]
+
+### Out of Scope
+[Explicit exclusions]
+```
+
+---
+
+### product-spec-writer.md
+
+**Purpose**: Draft multi-document product/UX/QA spec packs
+
+**Model**: sonnet (multi-doc synthesis)
+
+**Tools**: Read, Write, Edit, Grep, Glob
+
+**When to use**:
+- Producing a full spec pack from a brief
+- Writing product vision, feature specs, UX flows, and QA strategy together
+- Creating a file map for documentation suites
+
+**Output format**:
+```markdown
+## Spec Pack
+
+### File Map
+[Doc name → path]
+
+### Documents Created
+[List of docs with purpose]
+
+### Assumptions
+[Missing inputs or risks]
 ```
 
 ---
@@ -757,6 +793,26 @@ How to combine outputs from multiple subagents:
 **Usage**:
 ```
 /project:plan Microservices architecture migration
+```
+
+---
+
+### /project:discovery
+
+**File**: `discovery.md`
+
+**Purpose**: Product discovery → requirements → UX → architecture → tickets
+
+**Phases**:
+1. Requirements discovery (product-manager)
+2. UX iteration (frontend-architect + premium-ux-designer)
+3. Architecture proposal (planner + api-designer)
+4. Work breakdown (code-writer + test-writer)
+5. GitHub Issues + Project board creation
+
+**Usage**:
+```
+/project:discovery New onboarding experience for SMB customers
 ```
 
 ---
@@ -1309,6 +1365,8 @@ Options:
 /project:bugfix <desc>                Bug investigation & fix
 /project:refactor <desc>              Refactoring workflow
 /project:plan <desc>                  Planning only
+/project:discovery <desc>             Product discovery & requirements
+/project:spec <desc>                  Multi-document spec pack
 /project:review <target>              Code review
 /project:logs:summary [n]             View logs
 /project:costs:report [file]          Cost analysis
@@ -1335,7 +1393,7 @@ Packs (installed by default):
   infra                  devops-engineer, release-manager
   quality                code-refactorer, performance-optimizer
   devex                  documentation-writer, git-commit-helper
-  product                product-strategy-advisor
+  product                product-manager, product-spec-writer
   ops                    log-analyzer, feedback-coordinator
 ```
 

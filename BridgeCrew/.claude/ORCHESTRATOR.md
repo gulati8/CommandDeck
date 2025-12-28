@@ -165,7 +165,8 @@ When you receive a complex request, use the decision loop:
 - `git-commit-helper`
 
 **Product pack**
-- `product-strategy-advisor`
+- `product-manager`
+- `product-spec-writer`
 
 **Ops pack**
 - `log-analyzer`
@@ -249,6 +250,7 @@ Available slash commands (for advanced users):
 - `/project:bugfix` - Bug investigation workflow
 - `/project:refactor` - Code improvement workflow
 - `/project:plan` - Planning only workflow
+- `/project:discovery` - Product discovery workflow
 - `/project:review` - Code review workflow
 - `/project:logs:summary` - View orchestration logs
 - `/project:costs:report` - Cost and performance analysis

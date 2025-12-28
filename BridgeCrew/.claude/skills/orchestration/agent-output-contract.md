@@ -45,7 +45,8 @@ confidence: medium
 - **release-manager**: `rollout_plan`, `rollback_plan`, `verification`, `dependencies`, `risk_controls`
 - **frontend-architect**: `component_plan` (name/responsibility/props/state/patterns), `state_strategy`, `routing`, `styling`
 - **premium-ux-designer**: `layouts`, `components`, `states` (loading/empty/error/success), `motion`, `a11y`, `content_notes`
-- **product-strategy-advisor**: `options` (impact/effort/risk), `recommendation`, `milestones`, `metrics`
+- **product-manager**: `problem`, `target_users`, `user_stories`, `acceptance_criteria`, `non_functional_requirements`, `success_metrics`, `out_of_scope`, `assumptions`
+- **product-spec-writer**: `file_map`, `docs_created`, `assumptions`
 - **performance-optimizer**: `findings`, `hotspots`, `recommendations`, `validation`
 - **database-architect**: `schema_changes`, `migrations`, `indexes`, `queries`, `rollback_plan`
 - **api-designer**: `endpoints` (method/path/purpose/authz/payload/response/errors), `versioning`, `validation`, `testing`

@@ -143,6 +143,51 @@ This document describes common workflow patterns used in orchestration. These pa
 > - planner: Design caching strategy with trade-offs
 > - Present plan to user, await decision on implementation
 
+## Product Discovery Workflow
+
+**Intent triggers**: "product idea", "requirements", "discovery", "scope", "PRD", "wireframes"
+
+**Pattern**:
+```
+1. product-manager → Elicit requirements and define scope
+2. frontend-architect → Map flows and component needs
+3. premium-ux-designer → Produce annotated wireframes
+4. planner → Create technical architecture proposal
+5. api-designer → Define API surface
+6. code-writer → Break work into tickets
+7. test-writer → Define test coverage per ticket
+```
+
+**When to use**:
+- Turning an idea into requirements and design
+- Aligning UX with technical architecture
+- Preparing work items for a kanban board
+
+**Example**:
+> User: "I have an idea for an onboarding flow"
+>
+> Orchestrator executes:
+> - product-manager: Ask questions and draft requirements
+> - frontend-architect: Outline flows and components
+> - premium-ux-designer: Create annotated wireframes
+> - planner + api-designer: Propose architecture and API needs
+> - code-writer + test-writer: Create tickets and test plan
+
+## Product Spec Pack Workflow
+
+**Intent triggers**: "product spec", "spec pack", "product definition", "strategy brief", "roadmap options"
+
+**Pattern**:
+```
+1. product-manager → Requirements and scope framing
+2. product-spec-writer → Draft multi-doc spec pack (product/UX/QA)
+3. documentation-writer → Optional cleanup and index updates
+```
+
+**When to use**:
+- Generating a reusable documentation pack from a brief
+- Producing strategy + requirements + testing coverage in one pass
+
 ## Code Review Workflow
 
 **Intent triggers**: "review", "check", "audit", "look at", "assess quality"

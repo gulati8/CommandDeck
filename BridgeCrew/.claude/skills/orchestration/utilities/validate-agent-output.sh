@@ -54,7 +54,8 @@ if [[ -n "$role" ]]; then
     release-manager) role_keys=("rollout_plan" "rollback_plan" "verification" "dependencies" "risk_controls") ;;
     frontend-architect) role_keys=("component_plan" "state_strategy" "routing" "styling") ;;
     premium-ux-designer) role_keys=("layouts" "components" "states" "motion" "a11y" "content_notes") ;;
-    product-strategy-advisor) role_keys=("options" "recommendation" "milestones" "metrics") ;;
+    product-manager) role_keys=("problem" "target_users" "user_stories" "acceptance_criteria" "non_functional_requirements" "success_metrics" "out_of_scope" "assumptions") ;;
+    product-spec-writer) role_keys=("file_map" "docs_created" "assumptions") ;;
     performance-optimizer) role_keys=("findings" "hotspots" "recommendations" "validation") ;;
     database-architect) role_keys=("schema_changes" "migrations" "indexes" "queries" "rollback_plan") ;;
     api-designer) role_keys=("endpoints" "versioning" "validation" "testing") ;;

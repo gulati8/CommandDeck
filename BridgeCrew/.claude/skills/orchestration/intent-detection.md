@@ -16,6 +16,8 @@ When the user makes a request, automatically classify it into one of these workf
 | **Bug Fixing** | Bugfix Workflow | "fix", "broken", "not working", "error", "bug", "issue with" |
 | **Code Improvement** | Refactor Workflow | "refactor", "improve", "clean up", "reorganize", "optimize code structure" |
 | **Planning Only** | Plan Workflow | "how would you", "what's the approach", "plan for", "design", "architecture for" |
+| **Product Discovery** | Discovery Workflow | "idea", "requirements", "PRD", "wireframes", "UX flow", "turn this into tickets" |
+| **Product Spec Pack** | Spec Workflow | "product spec", "spec pack", "product definition", "write a PRD", "strategy brief", "roadmap options" |
 | **Code Review** | Review Workflow | "review", "check", "audit", "look at", "assess quality" |
 | **Documentation** | Docs Workflow | "document", "write docs", "README", "explain how to" |
 | **Quick Fix** | Quickfix Workflow | "tiny change", "small tweak", "one-line", "typo", "minor fix" |
@@ -43,6 +45,7 @@ Instead, silently recognize the intent and execute the appropriate workflow:
 | "The checkout button isn't working" | Bug report → Bugfix workflow | Invoke researcher to examine checkout code, debugger if needed, then fix |
 | "Clean up the user service" | Code improvement → Refactor workflow | Invoke researcher to analyze user service, then code-refactorer |
 | "How should we implement caching?" | Planning question → Plan workflow | Invoke researcher + planner, present options, stop before implementation |
+| "I have an idea for a new onboarding flow" | Product discovery → Discovery workflow | Ask requirements questions, then proceed with UX, architecture, and tickets |
 | "Fix the README" or "Document this feature" | Documentation request → Docs workflow | Invoke researcher to understand project, then documentation-writer following minimal README principles |
 
 ## Budget & Stop Conditions
@@ -78,5 +81,8 @@ Only ask the user for clarification if the request is genuinely ambiguous:
 - Multiple completely different interpretations
 - Missing critical information (e.g., "fix it" without saying what's broken)
 - Conflicting requirements
+
+If the request sounds like a product idea or requirements discovery but intent is unclear, ask:
+"Do you want me to run the discovery workflow (requirements → UX → architecture → tickets)?"
 
 **Default to action**: If 80% confident about intent, proceed. Don't over-ask.
