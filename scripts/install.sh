@@ -7,6 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 BRIDGECREW_DIR="$REPO_ROOT/BridgeCrew/.claude"
+CODEX_DIR="$REPO_ROOT/BridgeCrew/.codex"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -22,6 +23,7 @@ update_gitignore() {
     # Entries to add (full ignore of orchestrator system)
     local entries=(
         ".claude/"
+        ".codex/"
     )
 
     # Create .gitignore if it doesn't exist
@@ -120,6 +122,18 @@ rsync -a --delete \
   "$BRIDGECREW_DIR/" "$TARGET_DIR/.claude/"
 echo -e "   ${GREEN}✓${NC} Synced .claude directory (preserved state/logs)"
 
+if [ -d "$CODEX_DIR" ]; then
+    echo -e "${BLUE}📁 Installing Codex assets...${NC}"
+    mkdir -p "$TARGET_DIR/.codex"
+    rsync -a --delete "$CODEX_DIR/" "$TARGET_DIR/.codex/"
+    if ls "$REPO_ROOT/scripts"/codex-*.sh >/dev/null 2>&1; then
+        mkdir -p "$TARGET_DIR/.codex/scripts"
+        cp "$REPO_ROOT/scripts"/codex-*.sh "$TARGET_DIR/.codex/scripts/"
+        chmod +x "$TARGET_DIR/.codex/scripts/"codex-*.sh
+    fi
+    echo -e "   ${GREEN}✓${NC} Synced .codex directory"
+fi
+
 # Ensure CLAUDE.md references the orchestrator instructions
 if [ -f "$TARGET_DIR/.claude/ORCHESTRATOR.md" ]; then
     CLAUDE_FILE="$TARGET_DIR/CLAUDE.md"
@@ -151,6 +165,31 @@ mkdir -p "$TARGET_DIR/.claude/logs"
 touch "$TARGET_DIR/.claude/logs/orchestration.jsonl"
 echo -e "   ${GREEN}✓${NC} Initialized state and log directories"
 
+# Ensure AGENTS.md references the Codex orchestrator instructions
+if [ -f "$TARGET_DIR/.codex/ORCHESTRATOR_CODEX.md" ]; then
+    AGENTS_FILE="$TARGET_DIR/AGENTS.md"
+    CODEX_BLOCK_START="# CommandDeck Codex"
+    CODEX_BLOCK_END="# End CommandDeck Codex"
+    CODEX_BLOCK_CONTENT="$CODEX_BLOCK_START
+
+Follow Codex orchestration instructions in:
+- .codex/ORCHESTRATOR_CODEX.md
+
+$CODEX_BLOCK_END"
+
+    if [ ! -f "$AGENTS_FILE" ]; then
+        echo "$CODEX_BLOCK_CONTENT" > "$AGENTS_FILE"
+        echo -e "   ${GREEN}✓${NC} Created AGENTS.md (Codex reference)"
+    else
+        if ! grep -q "$CODEX_BLOCK_START" "$AGENTS_FILE"; then
+            printf "\n%s\n" "$CODEX_BLOCK_CONTENT" >> "$AGENTS_FILE"
+            echo -e "   ${GREEN}✓${NC} Appended Codex reference to AGENTS.md"
+        else
+            echo -e "   ${GREEN}✓${NC} AGENTS.md already references ORCHESTRATOR_CODEX.md"
+        fi
+    fi
+fi
+
 # Update .gitignore to exclude orchestrator files
 update_gitignore "$TARGET_DIR"
 
@@ -170,8 +209,10 @@ echo "   /project:feature <description>"
 echo ""
 echo -e "${BLUE}📖 Documentation:${NC}"
 echo "   • CLAUDE.md - Project instructions with orchestrator reference"
+echo "   • AGENTS.md - Codex instructions with orchestrator reference"
 echo "   • .claude/agents/ - Agent definitions"
 echo "   • .claude/commands/ - Workflow commands"
+echo "   • .codex/ - Codex-friendly workflow assets"
 echo ""
 echo -e "${BLUE}🔌 Optional MCP Setup:${NC}"
 echo "   • Playwright MCP manifest: .claude/mcp.manifest.json"

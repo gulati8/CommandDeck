@@ -8,7 +8,9 @@ This is **CommandDeck** - a Claude Code orchestrator agent system framework. It'
 
 The repository contains:
 - `BridgeCrew/.claude/` - The complete orchestrator system (source of truth)
+- `BridgeCrew/.codex/` - Codex-friendly orchestration assets
 - `scripts/install.sh` - Installation script for deploying to target projects
+- `scripts/codex-*.sh` - Codex workflow helpers (installed to target `.codex/scripts/`)
 - `README.md` - Detailed reference documentation for the orchestrator architecture
 
 ## Key Architecture Concepts
@@ -90,6 +92,9 @@ This creates in the target project:
 - `.claude/logs/` - Activity logs
 - `.claude/settings.json` - Hooks configuration
 - `CLAUDE.md` - Project instructions with reference to ORCHESTRATOR.md
+- `.codex/ORCHESTRATOR_CODEX.md` - Codex workflow instructions
+- `.codex/scripts/` - Codex workflow helpers
+- `AGENTS.md` - Codex instructions with reference to ORCHESTRATOR_CODEX.md
 
 ## Core Subagents
 
@@ -255,8 +260,11 @@ CommandDeck/
 │       ├── settings.json         # Hooks configuration
 │       ├── state/                # (empty, created on install)
 │       └── logs/                 # (empty, created on install)
+│   └── .codex/
+│       └── ORCHESTRATOR_CODEX.md # Codex workflow instructions (→ AGENTS.md)
 ├── scripts/
 │   └── install.sh                # Installation script
+│   └── codex-*.sh                 # Codex workflow helpers
 └── .claude/                      # Local testing (gitignored)
 ```
 
