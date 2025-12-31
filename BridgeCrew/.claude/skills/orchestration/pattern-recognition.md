@@ -17,6 +17,8 @@ The orchestrator system includes a comprehensive skills library in `.claude/skil
 │   ├── authentication-patterns.md
 │   ├── database-patterns.md
 │   └── caching-strategies.md
+├── api/                # API design templates
+├── database/           # Database architecture templates
 ├── testing/            # TDD, integration, E2E, test data
 │   ├── test-driven-development.md
 │   ├── integration-testing-patterns.md
@@ -27,15 +29,21 @@ The orchestrator system includes a comprehensive skills library in `.claude/skil
 │   ├── infrastructure-as-code.md
 │   ├── monitoring-observability.md
 │   └── deployment-strategies.md
+├── docker/             # Docker patterns and templates
 ├── security/           # OWASP, secure coding, secrets, threat modeling
 │   ├── owasp-top-10.md
 │   ├── secure-coding-practices.md
 │   ├── secrets-management.md
 │   └── threat-modeling.md
+├── product-spec/       # Product requirements and specs
+├── ux-spec/            # UX writing and flows
+├── qa-spec/            # QA writing and test strategy
+├── debugging/          # Debugging workflows and templates
 ├── documentation/      # README best practices, doc structure
 │   ├── readme-guide.md
 │   └── structure-guide.md
 ├── orchestration/      # Task templates, delegation patterns
+├── playwright-mcp/     # MCP setup and UI testing
 └── state-management/   # State tracking utilities
 ```
 
