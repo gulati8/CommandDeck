@@ -68,6 +68,8 @@ Use this matrix to automatically suggest skills based on task keywords and conte
 | rollout, release, integration, sequencing | Integration | `devops/deployment-strategies.md`<br>`devops/monitoring-observability.md` | integration-coordinator<br>release-manager |
 | performance, optimize, slow | Performance | Reference performance-optimizer<br>May need database or frontend skills depending on bottleneck | performance-optimizer<br>database-architect (for queries)<br>frontend-architect (for React) |
 | monitor, log, alert, observability | Monitoring | `devops/monitoring-observability.md` | devops-engineer<br>log-analyzer |
+| logs, metrics, cost, spend | Observability | `devops/monitoring-observability.md` | log-analyzer<br>devops-engineer |
+| budget, state, retry, orchestration | Orchestration Ops | `orchestration/task-templates.md`<br>`state-management/SKILL.md` | planner<br>summarizer |
 | README, documentation, docs, document | Documentation | `documentation/readme-guide.md`<br>`documentation/structure-guide.md` | documentation-writer<br>researcher |
 | product spec, PRD, requirements doc, product definition, strategy, prioritization, roadmap | Product Spec | `product-spec/spec-writing.md`<br>`ux-spec/ux-writing.md`<br>`qa-spec/qa-writing.md` | product-manager<br>product-spec-writer |
 
