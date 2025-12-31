@@ -4,16 +4,17 @@ To enable rich observability, debugging, and cost tracking, subagent invocations
 
 ## Automatic Hook Logs
 
-Each Task invocation emits two entries:
+Each Task invocation emits two entries (schema versioned):
 - `subagent_start`
 - `subagent_complete`
 
-These include `agent`, `model`, `task_summary`, and `id` for correlation.
+These include `schema_version`, `agent`, `model`, `task_summary`, and `id` for correlation.
 
 **Example**:
 ```json
 {
   "timestamp": "2025-12-18T14:30:00Z",
+  "schema_version": 1,
   "event": "subagent_start",
   "tool": "Task",
   "agent": "planner",
@@ -26,6 +27,7 @@ These include `agent`, `model`, `task_summary`, and `id` for correlation.
 ```json
 {
   "timestamp": "2025-12-18T14:35:00Z",
+  "schema_version": 1,
   "event": "subagent_complete",
   "tool": "Task",
   "agent": "planner",
@@ -60,6 +62,7 @@ echo "{\"timestamp\": \"$(date -Iseconds)\", \"event\": \"task_failed\", \"agent
 ```json
 {
   "timestamp": "2025-12-18T14:30:00Z",
+  "schema_version": 1,
   "event": "subagent_start",
   "tool": "Task",
   "agent": "planner",
@@ -73,6 +76,7 @@ echo "{\"timestamp\": \"$(date -Iseconds)\", \"event\": \"task_failed\", \"agent
 ```json
 {
   "timestamp": "2025-12-18T14:35:00Z",
+  "schema_version": 1,
   "event": "subagent_complete",
   "tool": "Task",
   "agent": "planner",
@@ -80,6 +84,32 @@ echo "{\"timestamp\": \"$(date -Iseconds)\", \"event\": \"task_failed\", \"agent
   "task_summary": "Design dark mode implementation approach",
   "status": "complete",
   "id": "f00d..."
+}
+```
+
+### 2b. Bash Start/Complete (Hook)
+```json
+{
+  "timestamp": "2025-12-18T14:31:00Z",
+  "schema_version": 1,
+  "event": "bash_start",
+  "tool": "Bash",
+  "id": "abc123",
+  "command": "npm test",
+  "tool_args": "npm test"
+}
+```
+
+```json
+{
+  "timestamp": "2025-12-18T14:33:00Z",
+  "schema_version": 1,
+  "event": "bash_complete",
+  "tool": "Bash",
+  "id": "abc123",
+  "command": "npm test",
+  "tool_args": "npm test",
+  "status": 0
 }
 ```
 
@@ -125,6 +155,9 @@ The log-analyzer agent will parse `orchestration.jsonl` to calculate:
 - Estimated token usage per orchestration
 - Average tokens per agent type
 - Cost projections based on usage patterns
+
+**Failure detection**:
+- A `subagent_start` with no matching `subagent_complete` (same `id`) is treated as a failure or interruption.
 
 **Manual cost tracking**:
 ```bash

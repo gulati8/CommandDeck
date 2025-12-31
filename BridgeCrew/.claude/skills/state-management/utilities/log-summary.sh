@@ -25,7 +25,7 @@ with open(path) as f:
         except json.JSONDecodeError:
             continue
 
-starts = collections.defaultdict(list)
+starts = {}
 stats = collections.defaultdict(lambda: {"invocations": 0, "durations": []})
 
 for ev in events:
@@ -37,15 +37,18 @@ for ev in events:
     except Exception:
         continue
     agent = ev.get("agent", "unknown")
+    event_id = ev.get("id")
     event = ev.get("event")
     if event == "subagent_start":
-        starts[agent].append(ts)
+        if event_id:
+            starts[event_id] = (agent, ts)
     elif event == "subagent_complete":
         stats[agent]["invocations"] += 1
-        if starts[agent]:
-            t0 = starts[agent].pop(0)
-            dur = (ts - t0).total_seconds()
-            stats[agent]["durations"].append(dur)
+        if event_id and event_id in starts:
+            start_agent, t0 = starts.pop(event_id)
+            if start_agent == agent:
+                dur = (ts - t0).total_seconds()
+                stats[agent]["durations"].append(dur)
 
 def fmt_dur(values):
     if not values:
