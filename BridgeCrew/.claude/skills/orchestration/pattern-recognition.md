@@ -54,8 +54,10 @@ Use this matrix to automatically suggest skills based on task keywords and conte
 | E2E, Playwright, Cypress, MCP | End-to-End Testing | `playwright-mcp/SKILL.md`<br>`testing/e2e-testing-patterns.md`<br>`testing/test-data-management.md` | test-writer |
 | security, vulnerability, XSS, injection | Security | `security/owasp-top-10.md`<br>`security/secure-coding-practices.md`<br>`security/threat-modeling.md` | security-auditor<br>code-reviewer |
 | privacy, PII, data retention, consent | Privacy | `security/privacy-checklist.md`<br>`security/secure-coding-practices.md` | privacy-auditor<br>security-auditor |
+| governance, retention, lifecycle, data export | Data Governance | `security/privacy-checklist.md`<br>`security/secure-coding-practices.md` | data-governance-auditor<br>privacy-auditor |
 | secret, key, password, credential | Secrets Management | `security/secrets-management.md`<br>`security/secure-coding-practices.md` | security-auditor<br>devops-engineer |
 | deploy, CI/CD, pipeline, Docker | DevOps | `devops/ci-cd-patterns.md`<br>`devops/infrastructure-as-code.md`<br>`devops/deployment-strategies.md` | devops-engineer |
+| rollout, release, integration, sequencing | Integration | `devops/deployment-strategies.md`<br>`devops/monitoring-observability.md` | integration-coordinator<br>release-manager |
 | performance, optimize, slow | Performance | Reference performance-optimizer<br>May need database or frontend skills depending on bottleneck | performance-optimizer<br>database-architect (for queries)<br>frontend-architect (for React) |
 | monitor, log, alert, observability | Monitoring | `devops/monitoring-observability.md` | devops-engineer<br>log-analyzer |
 | README, documentation, docs, document | Documentation | `documentation/readme-guide.md`<br>`documentation/structure-guide.md` | documentation-writer<br>researcher |
@@ -64,6 +66,8 @@ Use this matrix to automatically suggest skills based on task keywords and conte
 ## Auto-Suggestion Guidelines
 
 When delegating tasks, **automatically include skill references** in your task templates:
+
+**Routing precedence**: When multiple agents apply, follow the precedence rules in `.claude/ORCHESTRATOR.md` to avoid conflicts.
 
 **Example 1: Frontend Component Task**
 ```markdown
