@@ -52,6 +52,7 @@ if [[ -n "$role" ]]; then
     privacy-auditor) role_keys=("findings" "data_map" "retention" "consent" "third_parties" "mitigations") ;;
     devops-engineer) role_keys=("pipeline_steps" "env_vars" "rollout" "backout") ;;
     release-manager) role_keys=("rollout_plan" "rollback_plan" "verification" "dependencies" "risk_controls") ;;
+    integration-coordinator) role_keys=("integration_plan" "release_checks" "rollout_plan" "rollback_plan" "dependencies" "verification") ;;
     frontend-architect) role_keys=("component_plan" "state_strategy" "routing" "styling") ;;
     premium-ux-designer) role_keys=("layouts" "components" "states" "motion" "a11y" "content_notes") ;;
     product-manager) role_keys=("problem" "target_users" "user_stories" "acceptance_criteria" "non_functional_requirements" "success_metrics" "out_of_scope" "assumptions") ;;

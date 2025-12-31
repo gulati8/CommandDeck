@@ -1390,7 +1390,7 @@ Packs (installed by default):
   frontend               frontend-architect, premium-ux-designer
   backend                database-architect, api-designer
   security               security-auditor, privacy-auditor
-  infra                  devops-engineer, release-manager
+  infra                  devops-engineer, release-manager, integration-coordinator
   quality                code-refactorer, performance-optimizer
   devex                  documentation-writer, git-commit-helper
   product                product-manager, product-spec-writer

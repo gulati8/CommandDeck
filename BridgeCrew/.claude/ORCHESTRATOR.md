@@ -156,6 +156,7 @@ When you receive a complex request, use the decision loop:
 **Infra pack**
 - `devops-engineer`
 - `release-manager`
+- `integration-coordinator`
 
 **Quality pack**
 - `code-refactorer`
