@@ -54,7 +54,7 @@ Execute these phases in order, updating the state file after each:
    - File changes list
    - Risk assessment
    - Testing strategy
-4. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "planning" "complete" "Plan created"`
+6. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "planning" "complete" "Plan created"`
 
 **Checkpoint**: Present the plan to the user and ask for approval before proceeding.
 **Dependency check**: If the plan introduces new dependencies, get explicit approval and (if the security pack is installed) invoke `security-auditor` to review risks before implementation.
