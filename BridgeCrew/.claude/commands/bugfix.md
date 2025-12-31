@@ -58,7 +58,7 @@ Use the `code-reviewer` subagent to:
 - Review the fix
 - Confirm it addresses root cause (not just symptoms)
 - Check for unintended side effects
-If critical issues are found, use `feedback-coordinator` to iterate between `code-reviewer` and `code-writer` (max 3 iterations).
+If `must_fix` is non-empty, use `feedback-coordinator` to iterate between `code-reviewer` and `code-writer` (max 3 iterations).
 
 ### Phase 8: Complete
 1. Update state file status to COMPLETED

@@ -76,7 +76,7 @@ Execute these phases in order, updating the state file after each:
 2. Use the `code-reviewer` subagent to:
    - Review all changes made
    - Identify any issues
-   - If critical issues found, use `feedback-coordinator` to iterate between `code-reviewer` and `code-writer` (max 3 iterations)
+   - If `must_fix` is non-empty, use `feedback-coordinator` to iterate between `code-reviewer` and `code-writer` (max 3 iterations)
 3. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "review" "complete" "Review status"`
 
 ### Phase 7: Documentation

@@ -23,6 +23,7 @@ Use `code-writer` to apply the minimal change (1-2 files only).
 
 ### Phase 4: Review
 Use `code-reviewer` for a quick sanity check.
+If `must_fix` is non-empty, use `feedback-coordinator` to iterate between `code-reviewer` and `code-writer` (max 3 iterations).
 
 ### Phase 5: Verify (Optional)
 Run the smallest relevant test or note why tests were not run.

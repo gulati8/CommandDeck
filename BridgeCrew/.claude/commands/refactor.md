@@ -49,6 +49,7 @@ Use the `code-reviewer` subagent to:
 - Verify refactoring goals were met
 - Check for regressions
 - Confirm code quality improved
+If `must_fix` is non-empty, use `feedback-coordinator` to iterate between `code-reviewer` and `code-writer` (max 3 iterations).
 
 ### Phase 7: Complete
 1. Update state file status to COMPLETED

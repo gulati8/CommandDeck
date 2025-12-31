@@ -31,6 +31,7 @@ Use `test-writer` for minimal coverage or note why tests are skipped.
 
 ### Phase 6: Review
 Use `code-reviewer` for a quick sanity check.
+If `must_fix` is non-empty, use `feedback-coordinator` to iterate between `code-reviewer` and `code-writer` (max 3 iterations).
 
 ### Phase 7: Complete
 Run: `.claude/skills/state-management/utilities/complete-state.sh "$STATE_FILE" "Lite feature completed"`
