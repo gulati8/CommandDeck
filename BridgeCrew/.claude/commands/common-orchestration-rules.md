@@ -32,6 +32,10 @@ These rules apply to all workflows and exist to keep cost, quality, and context 
 - After 6 subagent calls or when state exceeds ~300 lines, invoke `summarizer`
 - Continue with the summary + recent 2-3 steps
 
+## Context Gate
+- Pass only essential files, summaries, and constraints to subagents.
+- Avoid full-file dumps unless explicitly required for correctness.
+
 ## Cost-Sensitive Mode
 - If the user asks for cheap/fast work:
   - Minimize subagent calls

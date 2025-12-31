@@ -12,6 +12,10 @@ When delegating to a subagent, structure your prompt using this template to ensu
 - **Files**: [List of relevant file paths]
 - **Information**: [Background details needed for this task]
 - **Prior Results**: [Relevant output from previous steps, if any]
+- **Context Checklist**:
+  - Only include files and snippets that are required to complete the task.
+  - Summarize long content; avoid full-file dumps.
+  - Exclude unrelated history or prior decisions.
 
 ## Constraints
 - **Scope**: [What to focus on]
