@@ -9,8 +9,8 @@ These rules apply to all workflows and exist to keep cost, quality, and context 
   .claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>
   ```
 - If validation fails, request a re-emit using the Agent Output Contract.
+- Retry validation at most 2 times, then stop and ask the user how to proceed.
 
-## Budget Guardrails (Optional)
 ## Budget Guardrails (Required)
 - Always set a token budget at orchestration start.
 - If the user does not specify one, default to `BUDGET_TOKENS=50000`.
