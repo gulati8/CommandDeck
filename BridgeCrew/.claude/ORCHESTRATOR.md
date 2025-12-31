@@ -38,6 +38,7 @@ When facing complex decisions:
 - **Auto-summarize** long state: after 6 subagent calls or when state exceeds ~300 lines, invoke summarizer and use the summary + recent 2-3 steps going forward.
 - Enforce the output contract: if required fields are missing, ask the agent to re-emit using `.claude/skills/orchestration/agent-output-contract.md` instead of guessing.
   - Validate with `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>` before using results.
+  - Retry at most 2 times; if still invalid, stop and ask the user how to proceed.
 - **Budget guardrails**: if the user specifies a token budget, run `.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"` after each step and pause if exceeded.
 - **Cost-sensitive mode**: when the user asks for cheap/fast work, minimize subagent calls, avoid parallelization, and prefer `/project:quickfix` for tiny changes.
  - **Budget required**: always set `BUDGET_TOKENS` at orchestration start; default to `50000` if not specified by the user. Log metrics after each subagent call and enforce the budget with `check-budget.sh`.
