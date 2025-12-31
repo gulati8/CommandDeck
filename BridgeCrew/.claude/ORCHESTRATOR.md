@@ -40,6 +40,7 @@ When facing complex decisions:
   - Validate with `.claude/skills/orchestration/utilities/validate-agent-output.sh /tmp/agent-output.md <role>` before using results.
 - **Budget guardrails**: if the user specifies a token budget, run `.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"` after each step and pause if exceeded.
 - **Cost-sensitive mode**: when the user asks for cheap/fast work, minimize subagent calls, avoid parallelization, and prefer `/project:quickfix` for tiny changes.
+ - **Budget required**: always set `BUDGET_TOKENS` at orchestration start; default to `50000` if not specified by the user. Log metrics after each subagent call and enforce the budget with `check-budget.sh`.
 
 ## Natural Language Intent Detection
 

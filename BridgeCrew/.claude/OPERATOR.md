@@ -20,6 +20,7 @@ This is a short handbook for running the orchestrator with minimal overhead.
   ```bash
   .claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"
   ```
+ - If no budget is provided, default to `BUDGET_TOKENS=50000` and enforce the same check.
 
 ## Output Contract Enforcement
 - Save subagent output to `/tmp/agent-output.md`

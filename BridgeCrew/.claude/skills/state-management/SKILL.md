@@ -47,6 +47,20 @@ Status: `pending`, `in_progress`, `complete`, `failed`
 
 Returns the current state file content for orchestrator reference.
 
+## Budget Enforcement (Required)
+
+Always set a budget at orchestration start:
+- If user provides a budget, use it.
+- Otherwise default to `BUDGET_TOKENS=50000`.
+
+After each subagent call:
+```bash
+.claude/skills/state-management/utilities/add-metrics.sh "$STATE_FILE" "STEP_NAME" "MODEL_NAME" "ESTIMATED_TOKENS"
+.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"
+```
+
+Stop and ask for guidance if the budget is exceeded.
+
 ## Usage in Workflows
 
 Workflows should call these utilities instead of manually creating/updating state files:

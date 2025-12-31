@@ -11,10 +11,19 @@ These rules apply to all workflows and exist to keep cost, quality, and context 
 - If validation fails, request a re-emit using the Agent Output Contract.
 
 ## Budget Guardrails (Optional)
-- If a token budget is set, check after each step:
-  ```bash
-  .claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"
-  ```
+## Budget Guardrails (Required)
+- Always set a token budget at orchestration start.
+- If the user does not specify one, default to `BUDGET_TOKENS=50000`.
+- After each subagent call:
+  1. Log estimated tokens:
+     ```bash
+     .claude/skills/state-management/utilities/add-metrics.sh "$STATE_FILE" "STEP_NAME" "MODEL_NAME" "ESTIMATED_TOKENS"
+     ```
+  2. Enforce the budget:
+     ```bash
+     .claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"
+     ```
+- If the budget is exceeded, stop and ask for guidance before continuing.
 
 ## Debugger Trigger
 - If tests/build fail once, invoke `debugger` before retrying.
