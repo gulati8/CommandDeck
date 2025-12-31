@@ -13,19 +13,27 @@ This is a planning-only workflow. No implementation will occur.
 
 **Common rules**: Follow `common-orchestration-rules.md`.
 
+### Phase 0: Initialize
+1. Run: `.claude/skills/state-management/utilities/init-state.sh "$ARGUMENTS" "$ARGUMENTS"`
+2. Capture the state file path from output
+
 ### Phase 1: Research
-Use the `researcher` subagent to:
+1. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "research" "in_progress"`
+2. Use the `researcher` subagent to:
 - Understand the codebase context
 - Identify relevant files and patterns
 - Gather constraints and dependencies
+3. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "research" "complete" "Research complete"`
 
 ### Phase 2: Plan
-Use the `planner` subagent to create a comprehensive plan including:
+1. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "planning" "in_progress"`
+2. Use the `planner` subagent to create a comprehensive plan including:
 - Step-by-step implementation approach
 - File changes summary
 - Risk assessment
 - Testing strategy
 - Time/complexity estimate
+3. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "planning" "complete" "Plan drafted"`
 
 ### Phase 3: Present
 Present the complete plan to the user with:
@@ -39,6 +47,9 @@ The user can then:
 - Request modifications to the plan
 - Archive for later
 
+### Phase 4: Complete
+Run: `.claude/skills/state-management/utilities/complete-state.sh "$STATE_FILE" "Plan delivered"`
+
 ## Begin
 
-Start research and planning for: **$ARGUMENTS**
+Start with Phase 0 for: **$ARGUMENTS**
