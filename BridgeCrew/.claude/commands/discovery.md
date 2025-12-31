@@ -68,7 +68,9 @@ Execute these phases in order, updating the state file after each:
    - Create or reuse a Project board titled from the product idea
    - Create issues for each ticket and apply labels
    - Add issues to the Project board columns (Backlog, Ready, In Progress, In Review, Done)
-3. If `gh` is unavailable or unauthenticated, provide manual commands and export a CSV/JSON file.
+3. If `gh` is unavailable or unauthenticated, provide manual commands and export a CSV/JSON file:
+   - Write `./.claude/state/${STATE_FILE##*/}_tickets.json` with fields: `title`, `body`, `labels`, `priority`, `estimate`.
+   - Write `./.claude/state/${STATE_FILE##*/}_tickets.csv` with headers: `title,body,labels,priority,estimate`.
 4. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "github" "complete" "Issues and board updated"`
 
 ### Phase 7: Complete
