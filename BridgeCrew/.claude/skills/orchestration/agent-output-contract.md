@@ -41,6 +41,7 @@ confidence: medium
 - **researcher**: `findings` (path/snippet/purpose), `gaps`
 - **security-auditor**: `findings` (severity/evidence/recommendation), `attack_surface`, `secrets`, `tests` (optional if none)
 - **privacy-auditor**: `findings`, `data_map`, `retention`, `consent`, `third_parties`, `mitigations`
+- **data-governance-auditor**: `findings`, `data_inventory`, `access_controls`, `retention`, `lifecycle`, `compliance_notes`, `mitigations`
 - **devops-engineer**: `pipeline_steps`, `env_vars`, `rollout`, `backout`
 - **release-manager**: `rollout_plan`, `rollback_plan`, `verification`, `dependencies`, `risk_controls`
 - **integration-coordinator**: `integration_plan`, `release_checks`, `rollout_plan`, `rollback_plan`, `dependencies`, `verification`

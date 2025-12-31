@@ -50,6 +50,7 @@ if [[ -n "$role" ]]; then
     researcher) role_keys=("findings" "gaps") ;;
     security-auditor) role_keys=("findings" "attack_surface" "secrets" "tests") ;;
     privacy-auditor) role_keys=("findings" "data_map" "retention" "consent" "third_parties" "mitigations") ;;
+    data-governance-auditor) role_keys=("findings" "data_inventory" "access_controls" "retention" "lifecycle" "compliance_notes" "mitigations") ;;
     devops-engineer) role_keys=("pipeline_steps" "env_vars" "rollout" "backout") ;;
     release-manager) role_keys=("rollout_plan" "rollback_plan" "verification" "dependencies" "risk_controls") ;;
     integration-coordinator) role_keys=("integration_plan" "release_checks" "rollout_plan" "rollback_plan" "dependencies" "verification") ;;

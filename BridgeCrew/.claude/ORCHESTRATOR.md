@@ -152,6 +152,7 @@ When you receive a complex request, use the decision loop:
 **Security pack**
 - `security-auditor`
 - `privacy-auditor`
+- `data-governance-auditor`
 
 **Infra pack**
 - `devops-engineer`
