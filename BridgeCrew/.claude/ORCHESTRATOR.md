@@ -204,6 +204,16 @@ When delegating tasks, automatically suggest relevant skills from `.claude/skill
 
 For complete pattern recognition matrix and skill suggestions, see: `.claude/skills/orchestration/pattern-recognition.md`
 
+## Routing Precedence (Overlap Resolution)
+
+When multiple specialists could apply, use this precedence to avoid ambiguity:
+
+- **Product framing**: `product-manager` leads requirements/discovery; hand off to `product-spec-writer` for multi-doc specs.
+- **Implementation planning**: `planner` owns execution plans and testing strategy.
+- **Frontend architecture**: `frontend-architect` defines component/state architecture; `premium-ux-designer` defines visual UX specs.
+- **Cross-system integration**: `integration-coordinator` owns sequencing, rollout, and rollback when multiple systems change.
+- **Security/privacy/data**: `security-auditor` for threats, `privacy-auditor` for PII handling, `data-governance-auditor` for lifecycle/retention.
+
 ## Task Execution Process
 
 1. **Detect intent** - Classify user request into workflow type (see: `.claude/skills/orchestration/intent-detection.md`)
