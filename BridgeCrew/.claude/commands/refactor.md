@@ -29,6 +29,8 @@ Use the `planner` subagent to:
 - Break into safe, incremental steps
 - Plan rollback strategy
 - Identify risks
+If multiple subsystems or release sequencing are involved, invoke `integration-coordinator`.
+If PII, retention, or data exports are involved, invoke `data-governance-auditor`.
 
 **Checkpoint**: Present refactoring plan for approval.
 

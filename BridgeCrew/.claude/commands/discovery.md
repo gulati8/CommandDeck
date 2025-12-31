@@ -49,7 +49,9 @@ Execute these phases in order, updating the state file after each:
 2. Use the `planner` and `api-designer` subagents to:
    - Produce a technical architecture proposal using `.claude/skills/orchestration/templates/architecture-proposal.md`
    - Define API surface, data flows, and risks
-3. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "architecture" "complete" "Architecture proposal drafted"`
+3. If multiple subsystems or release sequencing are involved, invoke `integration-coordinator`.
+4. If PII, retention, or data exports are involved, invoke `data-governance-auditor`.
+5. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "architecture" "complete" "Architecture proposal drafted"`
 
 ### Phase 5: Work Breakdown
 1. Update state: `.claude/skills/state-management/utilities/update-step.sh "$STATE_FILE" "tickets" "in_progress"`

@@ -33,6 +33,8 @@ Based on research, formulate:
 - **Recommended treatment** - The fix approach
 
 Use the `debugger` subagent if root cause is unclear.
+If multiple subsystems or release sequencing are involved, invoke `integration-coordinator`.
+If PII, retention, or data exports are involved, invoke `data-governance-auditor`.
 
 Log diagnosis in state file.
 

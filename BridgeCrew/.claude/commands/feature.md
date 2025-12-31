@@ -42,7 +42,13 @@ Execute these phases in order, updating the state file after each:
 2. **Detect frontend work**: If the feature involves UI components, pages, or user-facing interfaces:
    - If the frontend pack is installed, invoke `premium-ux-designer` for visual specs
    - Provide UX output as context to the planner
-3. Use the `planner` subagent to create:
+3. **Detect cross-system or release sequencing**: If multiple subsystems or deployments are involved:
+   - Invoke `integration-coordinator` for sequencing, rollout, and rollback guidance
+   - Provide its output as context to the planner
+4. **Detect data governance**: If PII, retention, or data exports are involved:
+   - Invoke `data-governance-auditor` for lifecycle risks and mitigations
+   - Provide its output as context to the planner
+5. Use the `planner` subagent to create:
    - Detailed implementation plan (must include UI/UX specifications for frontend work)
    - Parallelization strategy (only if there are independent steps)
    - File changes list
