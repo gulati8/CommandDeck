@@ -22,6 +22,11 @@ cd /path/to/your/project
 /path/to/CommandDeck/scripts/install.sh .
 ```
 
+Installer flags:
+- `--interactive` to enable prompts.
+- `--merge` to keep an existing `.claude/` directory.
+- `--backup` to move an existing `.claude/` into `tmp/` (default).
+
 This creates:
 - `.claude/` directory with all orchestrator components
 - `CLAUDE.md` with a reference to `.claude/ORCHESTRATOR.md` (project content preserved)

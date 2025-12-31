@@ -14,6 +14,32 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+NON_INTERACTIVE=true
+ON_EXISTING="backup"
+
+while [[ "${1:-}" == --* ]]; do
+    case "$1" in
+        --interactive)
+            NON_INTERACTIVE=false
+            ;;
+        --merge)
+            ON_EXISTING="merge"
+            ;;
+        --backup)
+            ON_EXISTING="backup"
+            ;;
+        --help|-h)
+            echo "Usage: $0 [--interactive] [--merge|--backup] [target-dir]"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
 # Function to update .gitignore with orchestrator exclusions
 update_gitignore() {
     local target_dir="$1"
@@ -64,19 +90,24 @@ echo -e "${BLUE}🚀 CommandDeck - Orchestrator Installation${NC}"
 echo ""
 
 # Determine target directory
-if [ -z "$1" ]; then
+if [ -z "${1:-}" ]; then
     TARGET_DIR="$(pwd)"
     echo -e "${YELLOW}No target directory specified, using current directory${NC}"
 else
     TARGET_DIR="$1"
     if [ ! -d "$TARGET_DIR" ]; then
-        echo -e "${YELLOW}Target directory does not exist. Create it? (y/n)${NC}"
-        read -r response
-        if [[ "$response" =~ ^[Yy]$ ]]; then
+        if [ "$NON_INTERACTIVE" = true ]; then
+            echo -e "${YELLOW}Target directory does not exist. Creating it...${NC}"
             mkdir -p "$TARGET_DIR"
         else
-            echo "Installation cancelled."
-            exit 1
+            echo -e "${YELLOW}Target directory does not exist. Create it? (y/n)${NC}"
+            read -r response
+            if [[ "$response" =~ ^[Yy]$ ]]; then
+                mkdir -p "$TARGET_DIR"
+            else
+                echo "Installation cancelled."
+                exit 1
+            fi
         fi
     fi
 fi
@@ -87,28 +118,43 @@ echo ""
 # Check if .claude already exists
 if [ -d "$TARGET_DIR/.claude" ]; then
     echo -e "${YELLOW}⚠️  .claude directory already exists in target.${NC}"
-    echo "Do you want to:"
-    echo "  1) Backup and replace"
-    echo "  2) Merge (keep existing, add new)"
-    echo "  3) Cancel"
-    read -r choice
+    if [ "$NON_INTERACTIVE" = true ]; then
+        case "$ON_EXISTING" in
+            backup)
+                BACKUP_DIR="$TARGET_DIR/tmp"
+                BACKUP_NAME="claude.backup.$(date +%Y%m%d_%H%M%S)"
+                mkdir -p "$BACKUP_DIR"
+                echo -e "${BLUE}Creating backup: $BACKUP_DIR/$BACKUP_NAME${NC}"
+                mv "$TARGET_DIR/.claude" "$BACKUP_DIR/$BACKUP_NAME"
+                ;;
+            merge)
+                echo -e "${BLUE}Merging with existing .claude directory...${NC}"
+                ;;
+        esac
+    else
+        echo "Do you want to:"
+        echo "  1) Backup and replace"
+        echo "  2) Merge (keep existing, add new)"
+        echo "  3) Cancel"
+        read -r choice
 
-    case $choice in
-        1)
-            BACKUP_DIR="$TARGET_DIR/tmp"
-            BACKUP_NAME="claude.backup.$(date +%Y%m%d_%H%M%S)"
-            mkdir -p "$BACKUP_DIR"
-            echo -e "${BLUE}Creating backup: $BACKUP_DIR/$BACKUP_NAME${NC}"
-            mv "$TARGET_DIR/.claude" "$BACKUP_DIR/$BACKUP_NAME"
-            ;;
-        2)
-            echo -e "${BLUE}Merging with existing .claude directory...${NC}"
-            ;;
-        *)
-            echo "Installation cancelled."
-            exit 0
-            ;;
-    esac
+        case $choice in
+            1)
+                BACKUP_DIR="$TARGET_DIR/tmp"
+                BACKUP_NAME="claude.backup.$(date +%Y%m%d_%H%M%S)"
+                mkdir -p "$BACKUP_DIR"
+                echo -e "${BLUE}Creating backup: $BACKUP_DIR/$BACKUP_NAME${NC}"
+                mv "$TARGET_DIR/.claude" "$BACKUP_DIR/$BACKUP_NAME"
+                ;;
+            2)
+                echo -e "${BLUE}Merging with existing .claude directory...${NC}"
+                ;;
+            *)
+                echo "Installation cancelled."
+                exit 0
+                ;;
+        esac
+    fi
 fi
 
 # Copy/refresh BridgeCrew structure (preserve state/logs)
