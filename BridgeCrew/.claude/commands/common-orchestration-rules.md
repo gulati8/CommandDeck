@@ -48,3 +48,7 @@ These rules apply to all workflows and exist to keep cost, quality, and context 
 
 ## Safety Stops
 - Stop and ask before: new deps, migrations, new services, destructive commands
+
+## Testing Policy
+- Tests are required for behavior changes unless explicitly skipped.
+- If skipped, document the rationale in the state file and final summary.
