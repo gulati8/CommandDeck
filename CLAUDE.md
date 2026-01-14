@@ -84,7 +84,7 @@ If `CLAUDE.md` already contains the CommandDeck Orchestrator block, do not add i
 
 This creates in the target project:
 - `.claude/agents/` - Core agents + packs (installed by default)
-- `.claude/commands/` - Workflow commands (/project:feature, /project:bugfix, /project:refactor, /project:plan, /project:review, /project:quickfix, /project:lite-feature, /project:lite-bugfix, etc.)
+- `.claude/commands/` - Workflow commands (/feature, /bugfix, /refactor, /plan, /review, /project:quickfix, /lite-feature, /lite-bugfix, etc.)
 - `.claude/skills/` - Templates and utilities
 - `.claude/state/` - Orchestration state tracking
 - `.claude/logs/` - Activity logs
@@ -117,15 +117,18 @@ This creates in the target project:
 ## Workflow Commands
 
 The system includes pre-built workflow commands:
-- `/project:feature <description>` - Full feature development workflow
-- `/project:bugfix <description>` - Bug investigation and fix
-- `/project:refactor <description>` - Code refactoring workflow
-- `/project:plan <description>` - Planning only (no execution)
-- `/project:review <target>` - Code review
-- `/project:logs:summary [n]` - View orchestration logs
-- `/project:costs:report [file]` - Cost and performance analysis
-- `/project:lite-feature <description>` - Lightweight feature workflow
-- `/project:lite-bugfix <description>` - Lightweight bugfix workflow
+- `/feature <description>` - Full feature development workflow
+- `/bugfix <description>` - Bug investigation and fix
+- `/refactor <description>` - Code refactoring workflow
+- `/plan <description>` - Planning only (no execution)
+- `/review <target>` - Code review
+- `/discovery <description>` - Product discovery to requirements workflow
+- `/spec <description>` - Multi-document specification pack
+- `/quickfix <description>` - Fast path for tiny, low-risk changes
+- `/lite-feature <description>` - Lightweight feature workflow
+- `/lite-bugfix <description>` - Lightweight bugfix workflow
+- `/logs:summary [n]` - View orchestration logs
+- `/costs:report [file]` - Cost and performance analysis
 
 ## Making Changes To The System
 
@@ -207,6 +210,8 @@ The bash utility scripts are in `BridgeCrew/.claude/skills/state-management/util
 - `complete-state.sh` - Mark orchestration complete
 - `add-metrics.sh` - Add performance metrics
 - `get-state.sh` - Retrieve state content
+- `check-budget.sh` - Check token budget against limits
+- `log-summary.sh` - Generate log summary report
 
 Edit these scripts directly to customize behavior.
 
@@ -230,7 +235,7 @@ cd /tmp/test-orchestrator
 claude
 
 # Try a workflow
-/project:plan Add user authentication
+/plan Add user authentication
 ```
 
 ## Repository Structure
@@ -299,5 +304,5 @@ vim BridgeCrew/.claude/commands/feature.md
 # Test with the workflow
 ./scripts/install.sh /tmp/test
 cd /tmp/test && claude
-/project:feature <test case>
+/feature <test case>
 ```

@@ -41,15 +41,15 @@ cd /path/to/your/project
 claude
 
 # In Claude Code:
-/project:feature Add user authentication with JWT
-/project:bugfix Users getting 500 error on upload
-/project:refactor Extract auth logic into separate module
-/project:plan Migrate to microservices architecture
-/project:discovery Turn an idea into requirements and tickets
-/project:spec Draft a multi-document product spec pack
-/project:quickfix Fix README typo in install steps
-/project:lite-feature Add profile settings UI
-/project:lite-bugfix Fix 500 error on upload
+/feature Add user authentication with JWT
+/bugfix Users getting 500 error on upload
+/refactor Extract auth logic into separate module
+/plan Migrate to microservices architecture
+/discovery Turn an idea into requirements and tickets
+/spec Draft a multi-document product spec pack
+/quickfix Fix README typo in install steps
+/lite-feature Add profile settings UI
+/lite-bugfix Fix 500 error on upload
 ```
 
 ### Updating to the latest orchestrator version
@@ -120,7 +120,7 @@ CommandDeck/
 │                    (The Orchestrator)                           │
 │                                                                 │
 │  Guided by: CLAUDE.md                                           │
-│  Entry points: /project:feature, /project:bugfix, etc.          │
+│  Entry points: /feature, /bugfix, etc.          │
 │  State tracking: .claude/state/{task}.md (automated)            │
 │  Logging: .claude/logs/orchestration.jsonl (automatic)          │
 └─────────────────────────────────────────────────────────────────┘
@@ -396,7 +396,7 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### documentation-writer.md
+### documentation-writer.md (DevEx Pack)
 
 **Purpose**: Documentation creation
 
@@ -411,7 +411,7 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### log-analyzer.md
+### log-analyzer.md (Ops Pack)
 
 **Purpose**: Log analysis and reporting
 
@@ -525,7 +525,7 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### feedback-coordinator.md
+### feedback-coordinator.md (Ops Pack)
 
 **Purpose**: Manages agent-to-agent feedback loops
 
@@ -557,7 +557,7 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### code-refactorer.md
+### code-refactorer.md (Quality Pack)
 
 **Purpose**: Code quality improvement & technical debt reduction
 
@@ -588,7 +588,7 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### git-commit-helper.md
+### git-commit-helper.md (DevEx Pack)
 
 **Purpose**: Standard commit message generation (Conventional Commits)
 
@@ -616,7 +616,7 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### premium-ux-designer.md
+### premium-ux-designer.md (Frontend Pack)
 
 **Purpose**: Premium UI/UX design & user experience optimization
 
@@ -647,7 +647,7 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### product-manager.md
+### product-manager.md (Product Pack)
 
 **Purpose**: Requirements discovery & testable product definition
 
@@ -683,7 +683,7 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### product-spec-writer.md
+### product-spec-writer.md (Product Pack)
 
 **Purpose**: Draft multi-document product/UX/QA spec packs
 
@@ -716,7 +716,7 @@ How to combine outputs from multiple subagents:
 
 **Location**: `.claude/commands/`
 
-### /project:feature
+### /feature
 
 **File**: `feature.md`
 
@@ -734,12 +734,12 @@ How to combine outputs from multiple subagents:
 
 **Usage**:
 ```
-/project:feature Add user authentication with JWT tokens
+/feature Add user authentication with JWT tokens
 ```
 
 ---
 
-### /project:bugfix
+### /bugfix
 
 **File**: `bugfix.md`
 
@@ -757,12 +757,12 @@ How to combine outputs from multiple subagents:
 
 **Usage**:
 ```
-/project:bugfix Users getting 500 error on file upload over 10MB
+/bugfix Users getting 500 error on file upload over 10MB
 ```
 
 ---
 
-### /project:refactor
+### /refactor
 
 **File**: `refactor.md`
 
@@ -779,12 +779,12 @@ How to combine outputs from multiple subagents:
 
 **Usage**:
 ```
-/project:refactor Extract authentication logic into separate module
+/refactor Extract authentication logic into separate module
 ```
 
 ---
 
-### /project:plan
+### /plan
 
 **File**: `plan.md`
 
@@ -797,12 +797,12 @@ How to combine outputs from multiple subagents:
 
 **Usage**:
 ```
-/project:plan Microservices architecture migration
+/plan Microservices architecture migration
 ```
 
 ---
 
-### /project:discovery
+### /discovery
 
 **File**: `discovery.md`
 
@@ -817,12 +817,12 @@ How to combine outputs from multiple subagents:
 
 **Usage**:
 ```
-/project:discovery New onboarding experience for SMB customers
+/discovery New onboarding experience for SMB customers
 ```
 
 ---
 
-### /project:review
+### /review
 
 **File**: `review.md`
 
@@ -830,13 +830,13 @@ How to combine outputs from multiple subagents:
 
 **Usage**:
 ```
-/project:review recent           # Review uncommitted changes
-/project:review src/auth/        # Review specific directory
+/review recent           # Review uncommitted changes
+/review src/auth/        # Review specific directory
 ```
 
 ---
 
-### /project:logs:summary
+### /logs:summary
 
 **File**: `logs/summary.md`
 
@@ -844,13 +844,13 @@ How to combine outputs from multiple subagents:
 
 **Usage**:
 ```
-/project:logs:summary        # Last 10 entries
-/project:logs:summary 25     # Last 25 entries
+/logs:summary        # Last 10 entries
+/logs:summary 25     # Last 25 entries
 ```
 
 ---
 
-### /project:costs:report
+### /costs:report
 
 **File**: `costs/report.md`
 
@@ -858,9 +858,9 @@ How to combine outputs from multiple subagents:
 
 **Usage**:
 ```
-/project:costs:report                  # All orchestrations
-/project:costs:report all              # All orchestrations
-/project:costs:report <state-file>     # Specific orchestration
+/costs:report                  # All orchestrations
+/costs:report all              # All orchestrations
+/costs:report <state-file>     # Specific orchestration
 ```
 
 **Output**:
@@ -872,7 +872,7 @@ How to combine outputs from multiple subagents:
 
 ---
 
-### /project:quickfix
+### /quickfix
 
 **File**: `quickfix.md`
 
@@ -880,7 +880,7 @@ How to combine outputs from multiple subagents:
 
 **Usage**:
 ```
-/project:quickfix Fix a typo in the README
+/quickfix Fix a typo in the README
 ```
 
 ---
@@ -968,6 +968,38 @@ echo "State file: $STATE_FILE"
 **Usage**:
 ```bash
 .claude/skills/state-management/utilities/get-state.sh "$STATE_FILE"
+```
+
+---
+
+### check-budget.sh
+
+**Purpose**: Check token budget against limits
+
+**Usage**:
+```bash
+.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "$BUDGET_TOKENS"
+```
+
+**Example**:
+```bash
+.claude/skills/state-management/utilities/check-budget.sh "$STATE_FILE" "50000"
+```
+
+---
+
+### log-summary.sh
+
+**Purpose**: Generate log summary report
+
+**Usage**:
+```bash
+.claude/skills/state-management/utilities/log-summary.sh [number-of-entries]
+```
+
+**Example**:
+```bash
+.claude/skills/state-management/utilities/log-summary.sh 10
 ```
 
 ---
@@ -1102,37 +1134,76 @@ When subagents fail, the orchestrator uses a three-level recovery strategy:
 
 ## Skills
 
-**Location**: `.claude/skills/orchestration/`
+**Location**: `.claude/skills/`
 
-### SKILL.md
+The skills library contains reusable patterns, templates, and reference materials organized by domain.
 
-The main skill file provides:
-- Quick reference for task template structure
-- Subagent selection guide
-- Links to templates and examples
+### Orchestration Skills (`orchestration/`)
 
-### Templates (6 files)
+Core orchestration guides and templates:
+
+| File | Purpose |
+|------|---------|
+| `SKILL.md` | Main skill overview and quick reference |
+| `intent-detection.md` | Natural language intent pattern matching |
+| `delegation-guide.md` | 7 Levels of Delegation framework |
+| `task-templates.md` | Task template formats and best practices |
+| `state-management-guide.md` | State file format and utilities |
+| `failure-recovery.md` | Multi-level error recovery strategy |
+| `conditional-patterns.md` | IF/THEN, WHILE loop patterns |
+| `parallel-execution.md` | Parallel task coordination |
+| `observability.md` | Logging and cost tracking |
+| `agent-output-contract.md` | Output validation spec |
+| `pattern-recognition.md` | Skill library pattern matching |
+
+**Templates** (`orchestration/templates/`):
 
 | Template | Purpose |
 |----------|---------|
 | `research-task.md` | Template for researcher subagent |
 | `planning-task.md` | Template for planner subagent |
-| `implementation-task.md` | Template for code-writer subagent |
-| `review-task.md` | Template for code-reviewer subagent |
-| `testing-task.md` | Template for test-writer subagent |
-| `documentation-task.md` | Template for documentation-writer subagent |
+| `summarization-task.md` | Template for summarizer subagent |
+| `feedback-loop.md` | Template for feedback coordination loops |
+| `requirements-doc.md` | Requirements documentation template |
+| `architecture-proposal.md` | Architecture proposal template |
+| `annotated-wireframes.md` | UX wireframe annotation template |
+| `ticket-breakdown.md` | Work ticket breakdown template |
 
-Each template includes:
-- The template structure
-- Field explanations
-- Concrete example
+### State Management Skills (`state-management/`)
 
-### Examples (2 files)
+| File | Purpose |
+|------|---------|
+| `SKILL.md` | State management overview |
+| `utilities/*.sh` | 7 bash utility scripts (see State Management Utilities) |
 
-| Example | Purpose |
-|---------|---------|
-| `feature-decomposition.md` | Shows how to break down a feature request |
-| `bugfix-decomposition.md` | Shows how to decompose a bug investigation |
+### Domain Skills
+
+| Directory | Contents |
+|-----------|----------|
+| `backend/` | API design, authentication, caching, database patterns |
+| `frontend/` | Component architecture, React, Tailwind, testing patterns |
+| `security/` | OWASP, privacy checklist, secrets management, threat modeling |
+| `testing/` | TDD, integration, e2e, test data management |
+| `devops/` | CI/CD, deployment strategies, IaC, monitoring |
+| `docker/` | Dockerfile templates, compose, patterns, reference guides |
+| `debugging/` | Methodology, diagnosis templates, fix workflows |
+| `documentation/` | README and structure guides |
+| `api/` | API design templates |
+| `database/` | Architecture templates |
+
+### Specification Skills
+
+| Directory | Contents |
+|-----------|----------|
+| `product-spec/` | Product vision, feature specs, strategy, metrics templates |
+| `ux-spec/` | User flows, accessibility templates |
+| `qa-spec/` | Test strategy templates |
+
+### Integration Skills
+
+| Directory | Contents |
+|-----------|----------|
+| `playwright-mcp/` | Playwright MCP setup, workflows, CI integration, troubleshooting |
 
 ---
 
@@ -1170,7 +1241,7 @@ cat .claude/logs/orchestration.jsonl | jq .
 grep "subagent_start" .claude/logs/orchestration.jsonl | jq .
 
 # Use the command
-/project:logs:summary
+/logs:summary
 ```
 
 ---
@@ -1366,18 +1437,18 @@ Options:
 
 ### Commands
 ```
-/project:feature <desc>               Full feature workflow
-/project:bugfix <desc>                Bug investigation & fix
-/project:refactor <desc>              Refactoring workflow
-/project:plan <desc>                  Planning only
-/project:discovery <desc>             Product discovery & requirements
-/project:spec <desc>                  Multi-document spec pack
-/project:review <target>              Code review
-/project:logs:summary [n]             View logs
-/project:costs:report [file]          Cost analysis
-/project:quickfix <desc>              Tiny, low-risk changes
-/project:lite-feature <desc>          Lightweight feature workflow
-/project:lite-bugfix <desc>           Lightweight bugfix workflow
+/feature <desc>               Full feature workflow
+/bugfix <desc>                Bug investigation & fix
+/refactor <desc>              Refactoring workflow
+/plan <desc>                  Planning only
+/discovery <desc>             Product discovery & requirements
+/spec <desc>                  Multi-document spec pack
+/review <target>              Code review
+/logs:summary [n]             View logs
+/costs:report [file]          Cost analysis
+/quickfix <desc>              Tiny, low-risk changes
+/lite-feature <desc>          Lightweight feature workflow
+/lite-bugfix <desc>           Lightweight bugfix workflow
 ```
 
 ### Subagents
@@ -1409,6 +1480,8 @@ update-step.sh        Update step status
 complete-state.sh     Mark orchestration complete
 add-metrics.sh        Add performance metrics
 get-state.sh          Retrieve state content
+check-budget.sh       Check token budget against limits
+log-summary.sh        Generate log summary report
 ```
 
 ### Advanced Features
