@@ -4,8 +4,8 @@ This is a short handbook for running the orchestrator with minimal overhead.
 
 ## Daily Use
 - Prefer intent-based requests; slash commands are optional.
-- Use `/project:quickfix` for tiny changes (1-2 files).
-- Use `/project:lite-feature` or `/project:lite-bugfix` for small scoped work that still needs light planning/testing.
+- Use `/quickfix` for tiny changes (1-2 files).
+- Use `/lite-feature` or `/lite-bugfix` for small scoped work that still needs light planning/testing.
 - If you don’t choose a workflow, the orchestrator auto-routes to quickfix/lite/full based on scope and risk.
 - For larger work, start with a clear goal and acceptance criteria.
 - Apply shared policy in `common-orchestration-rules.md`.
