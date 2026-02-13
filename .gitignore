@@ -1,21 +1,4 @@
-# Local testing directory
-/.claude/
-
-# Backup files
-*.backup
-*-backup.sh
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Logs
+node_modules/
+.env
 *.log
 tmp/

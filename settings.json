@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "bash $HOME/.commanddeck/scripts/session-start.sh"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "bash $HOME/.commanddeck/scripts/pre-write-guard.sh",
+        "toolNames": ["Write", "Edit"]
+      },
+      {
+        "type": "command",
+        "command": "bash $HOME/.commanddeck/scripts/pre-bash-guard.sh",
+        "toolNames": ["Bash"]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "bash $HOME/.commanddeck/scripts/post-edit.sh",
+        "toolNames": ["Write", "Edit"]
+      }
+    ],
+    "PreCompact": [
+      {
+        "type": "command",
+        "command": "bash $HOME/.commanddeck/scripts/pre-compact.sh"
+      }
+    ],
+    "Stop": [
+      {
+        "type": "prompt",
+        "prompt": "Before stopping: if any files were modified, run `git add -A && git commit -m 'checkpoint: {brief description}'` and append a brief status line to the captains-log. If no files were modified, do nothing."
+      }
+    ]
+  }
+}

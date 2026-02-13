@@ -1,0 +1,22 @@
+{
+  "name": "commanddeck",
+  "version": "3.0.0",
+  "description": "Multi-agent development orchestration system for Claude Code",
+  "main": "q.js",
+  "bin": {
+    "commanddeck": "./cli.js"
+  },
+  "scripts": {
+    "start": "node q.js",
+    "cli": "node cli.js"
+  },
+  "dependencies": {
+    "@slack/bolt": "^4.1.0",
+    "@slack/socket-mode": "^2.0.0",
+    "commander": "^12.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "private": true
+}
