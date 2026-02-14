@@ -2,11 +2,11 @@
 
 const { App } = require('@slack/bolt');
 
-const { Mission } = require('./lib/mission');
-const state = require('./lib/state');
-const learn = require('./lib/learn');
 const health = require('./lib/health');
 const slack = require('./lib/slack');
+const service = require('./lib/service');
+const learn = require('./lib/learn');
+const { logEvent } = require('./lib/observability');
 
 // Active missions tracked for health patrol
 const activeMissions = new Map();
@@ -14,18 +14,26 @@ const activeMissions = new Map();
 // --- Core entry points (shared by Slack and CLI) ---
 
 async function runMission(repo, prompt, context) {
-  const mission = new Mission(repo, prompt, context);
-  const result = await mission.start();
-  activeMissions.set(result.mission_id, result);
+  const result = await service.startMission(repo, prompt, {
+    ...context,
+    onMissionCreated: (missionState) => {
+      activeMissions.set(missionState.mission_id, {
+        mission_id: missionState.mission_id,
+        repo: missionState.repo
+      });
+      logEvent('mission.active', missionState);
+    }
+  });
+  activeMissions.delete(result.mission_id);
   return result;
 }
 
 async function runLearn(text, context) {
-  return learn.propose(text, context);
+  return service.proposeLearning(text, context);
 }
 
 async function runStatus(missionId, context) {
-  const result = await state.getMissionStatus(missionId, context);
+  const result = await service.getMissionStatus(missionId);
   const message = slack.formatStatusMessage(result);
   await context.reporter.post(message);
   return result;
@@ -71,8 +79,8 @@ function startSlackApp() {
     }
 
     // Status command
-    if (prompt.match(/^status\s/i)) {
-      const missionId = prompt.replace(/^status\s*/i, '').trim();
+    if (prompt.match(/^status\b/i)) {
+      const missionId = prompt.replace(/^status\b\s*/i, '').trim();
       await runStatus(missionId, { channel, threadTs, reporter });
       return;
     }
@@ -96,7 +104,11 @@ function startSlackApp() {
       return;
     }
 
-    await runMission(repo, task, { channel, threadTs, reporter });
+    try {
+      await runMission(repo, task, { channel, threadTs, reporter });
+    } catch (err) {
+      await reporter.post(`Mission failed to start: ${err.message}`);
+    }
   });
 
   // Handle governance reactions
@@ -125,7 +137,9 @@ function startSlackApp() {
     {
       post: async (msg) => {
         // Post health alerts to each mission's Slack thread
-        for (const mission of activeMissions.values()) {
+        for (const ref of activeMissions.values()) {
+          const mission = await service.getMissionStatus(ref.mission_id);
+          if (!mission) continue;
           if (mission.slack_channel && mission.slack_thread_ts) {
             try {
               await app.client.chat.postMessage({

@@ -2,6 +2,8 @@
 'use strict';
 
 const { program } = require('commander');
+const { spawnSync } = require('child_process');
+const path = require('path');
 const { runMission, runLearn, runStatus } = require('./q');
 const { consoleReporter } = require('./lib/slack');
 const learn = require('./lib/learn');
@@ -100,18 +102,23 @@ program
 
 program
   .command('status [mission-id]')
-  .description('Check mission status')
+  .description('Check mission status (latest active mission if omitted)')
   .action(async (missionId) => {
     try {
-      if (!missionId) {
-        console.log('Usage: commanddeck status <mission-id>');
-        return;
-      }
       await runStatus(missionId, { reporter });
     } catch (err) {
       console.error(`Status check failed: ${err.message}`);
       process.exit(1);
     }
+  });
+
+program
+  .command('scaffold <org-repo>')
+  .description('Scaffold a project for CommandDeck')
+  .action(async (repoRef) => {
+    const scriptPath = path.join(__dirname, 'scaffold.sh');
+    const result = spawnSync('bash', [scriptPath, repoRef], { stdio: 'inherit' });
+    process.exit(result.status || 0);
   });
 
 program.parse();
