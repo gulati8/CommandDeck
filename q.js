@@ -15,8 +15,53 @@ const activeMissions = new Map();
 
 async function runMission(repo, prompt, context) {
   const mission = new Mission(repo, prompt, context);
-  const result = await mission.start();
-  activeMissions.set(result.mission_id, result);
+
+  // Register mission state immediately so health patrol can monitor from the start.
+  // mission.start() creates the state internally, but we need a handle for the Map.
+  // We wrap start() and register before awaiting execution.
+  const startPromise = mission.start();
+
+  // Poll briefly until missionId is set (happens synchronously at start of mission.start)
+  await new Promise(resolve => {
+    const check = () => {
+      if (mission.missionId) return resolve();
+      setTimeout(check, 50);
+    };
+    check();
+  });
+
+  // Register for health patrol as soon as we have the mission ID
+  activeMissions.set(mission.missionId, {
+    mission_id: mission.missionId,
+    repo,
+    slack_channel: context.channel || null,
+    slack_thread_ts: context.threadTs || null,
+    mission // keep reference for resume
+  });
+
+  const result = await startPromise;
+
+  // Update the tracked entry with final state
+  activeMissions.set(result.mission_id, {
+    ...activeMissions.get(result.mission_id),
+    ...result
+  });
+
+  return result;
+}
+
+async function runResume(repo, missionId, context) {
+  const mission = new Mission(repo, '', context);
+  mission.missionId = missionId;
+  mission.repo = repo;
+
+  const result = await mission.resume();
+
+  activeMissions.set(result.mission_id, {
+    ...activeMissions.get(result.mission_id),
+    ...result
+  });
+
   return result;
 }
 
@@ -70,10 +115,30 @@ function startSlackApp() {
       return;
     }
 
-    // Status command
-    if (prompt.match(/^status\s/i)) {
-      const missionId = prompt.replace(/^status\s*/i, '').trim();
+    // Status command — supports "status" (latest) or "status <id>"
+    if (prompt.match(/^status(\s|$)/i)) {
+      const missionId = prompt.replace(/^status\s*/i, '').trim() || null;
       await runStatus(missionId, { channel, threadTs, reporter });
+      return;
+    }
+
+    // Resume command
+    if (prompt.match(/^(resume|continue)(\s|$)/i)) {
+      const missionId = prompt.replace(/^(resume|continue)\s*/i, '').trim();
+      if (!missionId) {
+        await say({ text: 'Usage: @CommandDeck resume <mission-id>', thread_ts: threadTs });
+        return;
+      }
+
+      // Find the repo for this mission from active missions or state
+      const tracked = activeMissions.get(missionId);
+      const repo = tracked?.repo;
+      if (!repo) {
+        await say({ text: `Mission ${missionId} not found in active missions.`, thread_ts: threadTs });
+        return;
+      }
+
+      await runResume(repo, missionId, { channel, threadTs, reporter });
       return;
     }
 
@@ -162,7 +227,7 @@ async function main() {
 }
 
 // Export for CLI usage
-module.exports = { runMission, runLearn, runStatus };
+module.exports = { runMission, runResume, runLearn, runStatus };
 
 // Run if executed directly
 if (require.main === module) {
