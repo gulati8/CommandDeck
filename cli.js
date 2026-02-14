@@ -8,6 +8,7 @@ const { runMission, runResume, runLearn, runStatus } = require('./q');
 const { consoleReporter } = require('./lib/slack');
 const learn = require('./lib/learn');
 const state = require('./lib/state');
+const { validateRepoName } = require('./lib/validate');
 
 const reporter = consoleReporter();
 
@@ -21,6 +22,7 @@ program
   .description('Start a new mission')
   .action(async (repo, prompt) => {
     try {
+      validateRepoName(repo);
       const result = await runMission(repo, prompt, { reporter });
       if (result.pr?.url) {
         console.log(`\nPR: ${result.pr.url}`);

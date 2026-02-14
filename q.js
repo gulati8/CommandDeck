@@ -7,6 +7,8 @@ const state = require('./lib/state');
 const learn = require('./lib/learn');
 const health = require('./lib/health');
 const slack = require('./lib/slack');
+const { validateRepoName } = require('./lib/validate');
+const { logEvent } = require('./lib/observability');
 
 // Active missions tracked for health patrol
 const activeMissions = new Map();
@@ -14,6 +16,7 @@ const activeMissions = new Map();
 // --- Core entry points (shared by Slack and CLI) ---
 
 async function runMission(repo, prompt, context) {
+  validateRepoName(repo);
   const mission = new Mission(repo, prompt, context);
 
   // Register mission state immediately so health patrol can monitor from the start.

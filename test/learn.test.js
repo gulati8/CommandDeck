@@ -140,6 +140,25 @@ describe('learn', () => {
       const result = learn.reject('/nonexistent/path.md');
       assert.equal(result.success, false);
     });
+
+    it('should reject approve with path outside proposed/', () => {
+      const result = learn.approve('/etc/passwd', '/tmp', 'passwd');
+      assert.equal(result.success, false);
+      assert.ok(result.message.includes('Invalid'));
+    });
+
+    it('should reject reject with path outside proposed/', () => {
+      const result = learn.reject('/etc/passwd');
+      assert.equal(result.success, false);
+      assert.ok(result.message.includes('Invalid'));
+    });
+
+    it('should reject path traversal attempts', () => {
+      const traversalPath = path.join(TEST_STATE_DIR, 'proposed', '..', '..', 'etc', 'passwd');
+      const result = learn.approve(traversalPath, '/tmp', 'passwd');
+      assert.equal(result.success, false);
+      assert.ok(result.message.includes('Invalid'));
+    });
   });
 
   describe('listPending', () => {

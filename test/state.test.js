@@ -300,6 +300,60 @@ describe('state', () => {
     });
   });
 
+  describe('version and updated_at tracking', () => {
+    it('should start with version 0 in createMission', async () => {
+      const mission = await state.createMission('version-repo', {
+        description: 'Version test',
+        slackChannel: null,
+        slackThreadTs: null
+      });
+
+      // After writeMission in createMission, version should be bumped to 1
+      const read = await state.readMission('version-repo', mission.mission_id);
+      assert.ok(read.version >= 1);
+      assert.ok(read.updated_at);
+    });
+
+    it('should increment version on writeMission', async () => {
+      const mission = await state.createMission('version-write-repo', {
+        description: 'Write version test',
+        slackChannel: null,
+        slackThreadTs: null
+      });
+
+      const read1 = await state.readMission('version-write-repo', mission.mission_id);
+      const v1 = read1.version;
+
+      read1.status = 'in_progress';
+      await state.writeMission('version-write-repo', mission.mission_id, read1);
+
+      const read2 = await state.readMission('version-write-repo', mission.mission_id);
+      assert.ok(read2.version > v1);
+      assert.ok(read2.updated_at);
+    });
+
+    it('should increment version on withMissionLock', async () => {
+      const mission = await state.createMission('version-lock-repo', {
+        description: 'Lock version test',
+        slackChannel: null,
+        slackThreadTs: null
+      });
+
+      const read1 = await state.readMission('version-lock-repo', mission.mission_id);
+      const v1 = read1.version;
+
+      await state.withMissionLock('version-lock-repo', mission.mission_id, (s) => {
+        s.status = 'merging';
+        return s;
+      });
+
+      const read2 = await state.readMission('version-lock-repo', mission.mission_id);
+      assert.ok(read2.version > v1);
+      assert.equal(read2.status, 'merging');
+      assert.ok(read2.updated_at);
+    });
+  });
+
   describe('appendCaptainsLog', () => {
     it('should append text to the captains log', async () => {
       const mission = await state.createMission('log-append-repo', {
