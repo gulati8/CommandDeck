@@ -24,14 +24,15 @@ async function runMission(repo, prompt, context) {
   // We wrap start() and register before awaiting execution.
   const startPromise = mission.start();
 
-  // Poll briefly until missionId is set (happens synchronously at start of mission.start)
-  await new Promise(resolve => {
-    const check = () => {
-      if (mission.missionId) return resolve();
-      setTimeout(check, 50);
-    };
-    check();
-  });
+  // Wait for mission ID to become available, but fail fast if start() errors.
+  await Promise.race([
+    startPromise.then(() => undefined),
+    waitForMissionId(mission, 5000)
+  ]);
+
+  if (!mission.missionId) {
+    throw new Error('Mission failed before initialization completed');
+  }
 
   // Register for health patrol as soon as we have the mission ID
   activeMissions.set(mission.missionId, {
@@ -135,9 +136,13 @@ function startSlackApp() {
 
       // Find the repo for this mission from active missions or state
       const tracked = activeMissions.get(missionId);
-      const repo = tracked?.repo;
+      let repo = tracked?.repo;
       if (!repo) {
-        await say({ text: `Mission ${missionId} not found in active missions.`, thread_ts: threadTs });
+        const missionState = await state.getMissionStatus(missionId);
+        repo = missionState?.repo || null;
+      }
+      if (!repo) {
+        await say({ text: `Mission ${missionId} not found.`, thread_ts: threadTs });
         return;
       }
 
@@ -227,6 +232,20 @@ async function main() {
 
   await app.start();
   console.log('🖖 CommandDeck Q is online. Listening for commands...');
+}
+
+function waitForMissionId(mission, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const check = () => {
+      if (mission.missionId) return resolve();
+      if (Date.now() - started >= timeoutMs) {
+        return reject(new Error('Timed out waiting for mission initialization'));
+      }
+      setTimeout(check, 50);
+    };
+    check();
+  });
 }
 
 // Export for CLI usage
