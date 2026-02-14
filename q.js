@@ -7,6 +7,8 @@ const state = require('./lib/state');
 const learn = require('./lib/learn');
 const health = require('./lib/health');
 const slack = require('./lib/slack');
+const { validateRepoName } = require('./lib/validate');
+const { logEvent } = require('./lib/observability');
 
 // Active missions tracked for health patrol
 const activeMissions = new Map();
@@ -14,9 +16,56 @@ const activeMissions = new Map();
 // --- Core entry points (shared by Slack and CLI) ---
 
 async function runMission(repo, prompt, context) {
+  validateRepoName(repo);
   const mission = new Mission(repo, prompt, context);
-  const result = await mission.start();
-  activeMissions.set(result.mission_id, result);
+
+  // Register mission state immediately so health patrol can monitor from the start.
+  // mission.start() creates the state internally, but we need a handle for the Map.
+  // We wrap start() and register before awaiting execution.
+  const startPromise = mission.start();
+
+  // Wait for mission ID to become available, but fail fast if start() errors.
+  await Promise.race([
+    startPromise.then(() => undefined),
+    waitForMissionId(mission, 5000)
+  ]);
+
+  if (!mission.missionId) {
+    throw new Error('Mission failed before initialization completed');
+  }
+
+  // Register for health patrol as soon as we have the mission ID
+  activeMissions.set(mission.missionId, {
+    mission_id: mission.missionId,
+    repo,
+    slack_channel: context.channel || null,
+    slack_thread_ts: context.threadTs || null,
+    mission // keep reference for resume
+  });
+
+  const result = await startPromise;
+
+  // Update the tracked entry with final state
+  activeMissions.set(result.mission_id, {
+    ...activeMissions.get(result.mission_id),
+    ...result
+  });
+
+  return result;
+}
+
+async function runResume(repo, missionId, context) {
+  const mission = new Mission(repo, '', context);
+  mission.missionId = missionId;
+  mission.repo = repo;
+
+  const result = await mission.resume();
+
+  activeMissions.set(result.mission_id, {
+    ...activeMissions.get(result.mission_id),
+    ...result
+  });
+
   return result;
 }
 
@@ -70,10 +119,34 @@ function startSlackApp() {
       return;
     }
 
-    // Status command
-    if (prompt.match(/^status\s/i)) {
-      const missionId = prompt.replace(/^status\s*/i, '').trim();
+    // Status command — supports "status" (latest) or "status <id>"
+    if (prompt.match(/^status(\s|$)/i)) {
+      const missionId = prompt.replace(/^status\s*/i, '').trim() || null;
       await runStatus(missionId, { channel, threadTs, reporter });
+      return;
+    }
+
+    // Resume command
+    if (prompt.match(/^(resume|continue)(\s|$)/i)) {
+      const missionId = prompt.replace(/^(resume|continue)\s*/i, '').trim();
+      if (!missionId) {
+        await say({ text: 'Usage: @CommandDeck resume <mission-id>', thread_ts: threadTs });
+        return;
+      }
+
+      // Find the repo for this mission from active missions or state
+      const tracked = activeMissions.get(missionId);
+      let repo = tracked?.repo;
+      if (!repo) {
+        const missionState = await state.getMissionStatus(missionId);
+        repo = missionState?.repo || null;
+      }
+      if (!repo) {
+        await say({ text: `Mission ${missionId} not found.`, thread_ts: threadTs });
+        return;
+      }
+
+      await runResume(repo, missionId, { channel, threadTs, reporter });
       return;
     }
 
@@ -161,8 +234,22 @@ async function main() {
   console.log('🖖 CommandDeck Q is online. Listening for commands...');
 }
 
+function waitForMissionId(mission, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const check = () => {
+      if (mission.missionId) return resolve();
+      if (Date.now() - started >= timeoutMs) {
+        return reject(new Error('Timed out waiting for mission initialization'));
+      }
+      setTimeout(check, 50);
+    };
+    check();
+  });
+}
+
 // Export for CLI usage
-module.exports = { runMission, runLearn, runStatus };
+module.exports = { runMission, runResume, runLearn, runStatus };
 
 // Run if executed directly
 if (require.main === module) {

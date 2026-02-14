@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node q.js",
-    "cli": "node cli.js"
+    "cli": "node cli.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@slack/bolt": "^4.1.0",
