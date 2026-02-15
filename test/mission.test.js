@@ -35,6 +35,60 @@ describe('shouldOpenPR', () => {
   });
 });
 
+describe('decompose retry', () => {
+  it('should retry readMission when work_items is initially empty', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-decompose-'));
+    const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
+    try {
+      process.env.COMMANDDECK_STATE_DIR = tempDir;
+
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/mission')];
+      delete require.cache[require.resolve('../lib/worker')];
+      delete require.cache[require.resolve('../lib/worktree')];
+      const stateModule = require('../lib/state');
+      const { Mission } = require('../lib/mission');
+
+      const missionState = await stateModule.createMission('retry-repo', {
+        description: 'retry test',
+        slackChannel: null,
+        slackThreadTs: null
+      });
+
+      const mission = new Mission('retry-repo', 'test task', {
+        reporter: { post: async () => {} }
+      });
+
+      // Stub decompose to simulate Picard writing work_items after a delay.
+      // The delay simulates filesystem sync lag after Picard writes.
+      // Use mission.missionId (set by start() before decompose is called).
+      mission.decompose = async () => {
+        setTimeout(async () => {
+          await stateModule.withMissionLock('retry-repo', mission.missionId, (s) => {
+            s.work_items = [
+              { id: 'obj-1', title: 'Test', status: 'ready', depends_on: [], phase: 1 }
+            ];
+            return s;
+          });
+        }, 200);
+      };
+
+      // Stub other lifecycle methods
+      mission.reportPlan = async () => {};
+      mission.setStatus = async (status) => { mission.state.status = status; };
+      mission.ensureIntegrationBranch = () => {};
+      mission.workLoop = async () => 'done';
+
+      await mission.start();
+
+      // Verify that the retry found the work_items
+      assert.ok(mission.state.work_items.length > 0, 'Should have found work_items after retry');
+    } finally {
+      process.env.COMMANDDECK_STATE_DIR = oldStateDir;
+    }
+  });
+});
+
 describe('resume', () => {
   it('should persist checkpoint objective completion to mission state', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-mission-'));

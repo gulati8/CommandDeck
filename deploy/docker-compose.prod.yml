@@ -1,0 +1,23 @@
+services:
+  commanddeck:
+    image: ghcr.io/gulati8/commanddeck:latest
+    container_name: commanddeck
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - commanddeck-state:/home/commanddeck/.commanddeck
+      - commanddeck-projects:/home/commanddeck/projects
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /srv:/srv:rw
+    group_add:
+      - "${DOCKER_GID:-993}"
+    networks:
+      - proxy
+
+volumes:
+  commanddeck-state:
+  commanddeck-projects:
+
+networks:
+  proxy:
+    external: true

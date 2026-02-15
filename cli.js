@@ -2,12 +2,12 @@
 'use strict';
 
 const { program } = require('commander');
-const { execFileSync } = require('child_process');
 const path = require('path');
 const { runMission, runResume, runLearn, runStatus } = require('./q');
 const { consoleReporter } = require('./lib/slack');
 const learn = require('./lib/learn');
 const state = require('./lib/state');
+const scaffold = require('./lib/scaffold');
 const { validateRepoName } = require('./lib/validate');
 
 const reporter = consoleReporter();
@@ -137,14 +137,45 @@ program
   });
 
 program
-  .command('scaffold <repo>')
-  .description('Set up a project for CommandDeck')
-  .action(async (repo) => {
-    const scriptPath = path.join(__dirname, 'scaffold.sh');
+  .command('create <name>')
+  .description('Create a new project with full scaffolding')
+  .option('-d, --description <desc>', 'Project description')
+  .option('-p, --port <port>', 'Default port', '3000')
+  .action(async (name, options) => {
     try {
-      execFileSync('bash', [scriptPath, repo], { stdio: 'inherit' });
+      console.log(`🚀 Creating project "${name}"...`);
+      const result = await scaffold.createProject(name, {
+        description: options.description || '',
+        port: parseInt(options.port, 10)
+      });
+
+      for (const step of result.steps) {
+        const icon = step.status === 'ok' ? '✅' : '❌';
+        console.log(`  ${icon} ${step.step}${step.error ? ': ' + step.error : ''}`);
+      }
+
+      console.log(`\n🖖 Project "${name}" created!`);
     } catch (err) {
-      console.error(`Scaffold failed with exit code ${err.status}`);
+      console.error(`Create failed: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('scaffold <repo>')
+  .description('Set up a project for CommandDeck (legacy)')
+  .action(async (repo) => {
+    // Delegate to create command
+    try {
+      console.log(`🚀 Scaffolding project "${repo}"...`);
+      const result = await scaffold.createProject(repo, {});
+
+      for (const step of result.steps) {
+        const icon = step.status === 'ok' ? '✅' : '❌';
+        console.log(`  ${icon} ${step.step}${step.error ? ': ' + step.error : ''}`);
+      }
+    } catch (err) {
+      console.error(`Scaffold failed: ${err.message}`);
       process.exit(1);
     }
   });

@@ -7,6 +7,8 @@ const state = require('./lib/state');
 const learn = require('./lib/learn');
 const health = require('./lib/health');
 const slack = require('./lib/slack');
+const auth = require('./lib/auth');
+const scaffold = require('./lib/scaffold');
 const { validateRepoName } = require('./lib/validate');
 const { logEvent } = require('./lib/observability');
 
@@ -21,17 +23,16 @@ async function runMission(repo, prompt, context) {
 
   // Register mission state immediately so health patrol can monitor from the start.
   // mission.start() creates the state internally, but we need a handle for the Map.
-  // We wrap start() and register before awaiting execution.
+  // Attach .catch() to prevent unhandled rejection, then await separately.
   const startPromise = mission.start();
+  startPromise.catch(() => {}); // prevent unhandled rejection
 
-  // Wait for mission ID to become available, but fail fast if start() errors.
-  await Promise.race([
-    startPromise.then(() => undefined),
-    waitForMissionId(mission, 5000)
-  ]);
+  // Wait for mission ID to become available
+  await waitForMissionId(mission, 5000).catch(() => {});
 
   if (!mission.missionId) {
-    throw new Error('Mission failed before initialization completed');
+    // If we still have no ID, the start promise failed — rethrow
+    await startPromise; // will throw the original error
   }
 
   // Register for health patrol as soon as we have the mission ID
@@ -150,6 +151,42 @@ function startSlackApp() {
       return;
     }
 
+    // Create project command
+    const createMatch = prompt.match(/^(?:create|build me|new project)\s+(?:project\s+)?(\S+)(?:\s*[:]\s*(.+))?$/i);
+    if (createMatch) {
+      const projectName = createMatch[1];
+      const description = createMatch[2]?.trim() || '';
+
+      await say({
+        text: `🚀 Creating project "${projectName}"...`,
+        thread_ts: threadTs
+      });
+
+      try {
+        const result = await scaffold.createProject(projectName, {
+          description,
+          slackApp: app
+        });
+
+        const summary = result.steps
+          .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
+          .join('\n');
+
+        await reporter.post(
+          `🖖 Project "${projectName}" created!\n${summary}\n\n` +
+          `Use: @CommandDeck in ${projectName} <task> to start a mission.`
+        );
+
+        // If description provided, start a mission automatically
+        if (description) {
+          await runMission(projectName, description, { channel, threadTs, reporter });
+        }
+      } catch (err) {
+        await reporter.post(`❌ Failed to create project: ${err.message}`);
+      }
+      return;
+    }
+
     // Mission command — detect repo
     const repo = slack.detectRepoFromChannel(channel) || slack.parseRepoFromPrompt(prompt);
     if (!repo) {
@@ -226,6 +263,12 @@ async function main() {
   if (!process.env.SLACK_BOT_TOKEN || !process.env.SLACK_APP_TOKEN) {
     console.error('Missing SLACK_BOT_TOKEN or SLACK_APP_TOKEN. Set environment variables and restart.');
     process.exit(1);
+  }
+
+  // Check Claude Code auth before accepting missions
+  const authOk = await auth.startupCheck();
+  if (!authOk) {
+    console.warn('⚠️ Claude Code not authenticated. Missions will fail until auth is completed.');
   }
 
   const app = startSlackApp();
