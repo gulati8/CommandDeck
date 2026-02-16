@@ -1,0 +1,34 @@
+display_information:
+  name: CommandDeck
+  description: Multi-agent development orchestration
+  background_color: "#1a1a2e"
+features:
+  bot_user:
+    display_name: CommandDeck
+    always_online: true
+  app_home:
+    home_tab_enabled: false
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+oauth_config:
+  scopes:
+    bot:
+      - app_mentions:read
+      - chat:write
+      - channels:history
+      - channels:manage
+      - channels:read
+      - groups:history
+      - groups:read
+      - reactions:read
+      - users:read
+settings:
+  event_subscriptions:
+    bot_events:
+      - app_mention
+      - reaction_added
+  interactivity:
+    is_enabled: false
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false
