@@ -70,8 +70,7 @@ Loaded by `hooks/session-start.sh` in priority order:
 
 ### Agent Model Tiers
 
-- **Opus:** captain-picard, scotty (planning and architecture)
-- **Sonnet:** borg, worf, spock, geordi, mr-data, obrien, guinan (implementation, review, operations)
+- **Default:** All agents use `claude-opus-4-6`
 - Configurable per project via `config.json` model_overrides
 
 ### Inter-Agent Communication
