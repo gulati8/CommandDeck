@@ -6,6 +6,7 @@ const { Mission } = require('./lib/mission');
 const state = require('./lib/state');
 const learn = require('./lib/learn');
 const health = require('./lib/health');
+const { createHealthServer } = require('./lib/http-health');
 const slack = require('./lib/slack');
 const auth = require('./lib/auth');
 const scaffold = require('./lib/scaffold');
@@ -275,6 +276,10 @@ async function main() {
 
   await app.start();
   console.log('🖖 CommandDeck Q is online. Listening for commands...');
+
+  // Start HTTP health endpoint
+  const httpPort = parseInt(process.env.COMMANDDECK_HTTP_PORT || '3001', 10);
+  createHealthServer(httpPort);
 }
 
 function waitForMissionId(mission, timeoutMs) {

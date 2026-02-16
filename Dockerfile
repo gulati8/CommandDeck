@@ -44,6 +44,7 @@ RUN mkdir -p \
     /home/commanddeck/.commanddeck/proposed \
     /home/commanddeck/.commanddeck/projects \
     /home/commanddeck/.commanddeck/scripts \
+    /home/commanddeck/.claude/debug \
     /home/commanddeck/projects \
   && chown -R commanddeck:commanddeck /home/commanddeck
 
@@ -64,5 +65,7 @@ ENV COMMANDDECK_PROJECT_DIR=/home/commanddeck/projects
 ENV NODE_ENV=production
 
 USER commanddeck
+
+EXPOSE 3001
 
 CMD ["node", "q.js"]
