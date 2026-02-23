@@ -96,7 +96,7 @@ describe('decompose retry', () => {
 });
 
 describe('resume', () => {
-  it('should persist checkpoint objective completion to mission state', async () => {
+  it('should mark checkpoint objective as ready so work loop executes it', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-mission-'));
     const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
     try {
@@ -127,9 +127,71 @@ describe('resume', () => {
 
       await mission.resume();
 
+      // Checkpoint should be set to 'ready' for the work loop to pick up,
+      // not 'done' which would skip execution
       const updated = await state.readMission('resume-repo', missionState.mission_id);
-      assert.equal(updated.work_items[0].status, 'done');
-      assert.ok(updated.work_items[0].completed_at);
+      assert.equal(updated.work_items[0].status, 'ready');
+      assert.equal(updated.work_items[0].completed_at, undefined);
+    } finally {
+      process.env.COMMANDDECK_STATE_DIR = oldStateDir;
+    }
+  });
+});
+
+describe('runMandatoryReviews', () => {
+  it('should skip reviews already persisted in reviewed_by', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-review-'));
+    const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
+    try {
+      process.env.COMMANDDECK_STATE_DIR = tempDir;
+
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/mission')];
+      delete require.cache[require.resolve('../lib/worker')];
+      delete require.cache[require.resolve('../lib/risk')];
+      const state = require('../lib/state');
+      const { Mission } = require('../lib/mission');
+      const risk = require('../lib/risk');
+      const worker = require('../lib/worker');
+
+      const missionState = await state.createMission('review-repo', {
+        description: 'review test',
+        slackChannel: null,
+        slackThreadTs: null
+      });
+
+      await state.withMissionLock('review-repo', missionState.mission_id, (s) => {
+        s.status = 'in_progress';
+        s.work_items = [
+          {
+            id: 'obj-1', title: 'security change', status: 'done',
+            depends_on: [], risk_flags: ['security'],
+            reviewed_by: ['worf'] // Already reviewed by worf
+          }
+        ];
+        return s;
+      });
+
+      // Stub risk to return worf as reviewer
+      const origGetReviewers = risk.getMandatoryReviewers;
+      risk.getMandatoryReviewers = () => ['worf'];
+
+      // Track if executeSpecialist is called (it shouldn't be)
+      const origExecute = worker.executeSpecialist;
+      let executeCalled = false;
+      worker.executeSpecialist = async () => { executeCalled = true; return { success: true }; };
+
+      const mission = new Mission('review-repo', '', { reporter: { post: async () => {} } });
+      mission.missionId = missionState.mission_id;
+      mission.state = await state.readMission('review-repo', missionState.mission_id);
+
+      await mission.runMandatoryReviews();
+
+      assert.equal(executeCalled, false, 'Should not re-review already reviewed objective');
+
+      // Restore
+      risk.getMandatoryReviewers = origGetReviewers;
+      worker.executeSpecialist = origExecute;
     } finally {
       process.env.COMMANDDECK_STATE_DIR = oldStateDir;
     }
