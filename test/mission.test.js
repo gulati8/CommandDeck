@@ -39,8 +39,13 @@ describe('decompose retry', () => {
   it('should retry readMission when work_items is initially empty', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-decompose-'));
     const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
+    const oldProjectDir = process.env.COMMANDDECK_PROJECT_DIR;
     try {
       process.env.COMMANDDECK_STATE_DIR = tempDir;
+      // Create a fake project directory so start() validation passes
+      const projectDir = path.join(tempDir, 'projects', 'retry-repo');
+      fs.mkdirSync(projectDir, { recursive: true });
+      process.env.COMMANDDECK_PROJECT_DIR = path.join(tempDir, 'projects');
 
       delete require.cache[require.resolve('../lib/state')];
       delete require.cache[require.resolve('../lib/mission')];
@@ -85,6 +90,7 @@ describe('decompose retry', () => {
       assert.ok(mission.state.work_items.length > 0, 'Should have found work_items after retry');
     } finally {
       process.env.COMMANDDECK_STATE_DIR = oldStateDir;
+      process.env.COMMANDDECK_PROJECT_DIR = oldProjectDir;
     }
   });
 });

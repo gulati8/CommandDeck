@@ -188,20 +188,64 @@ function startSlackApp() {
       return;
     }
 
-    // Mission command — detect repo
-    const repo = slack.detectRepoFromChannel(channel) || slack.parseRepoFromPrompt(prompt);
+    // Mission command — detect repo from channel map or prompt
+    const { listAvailableProjects } = require('./lib/mission');
+    let repo = slack.detectRepoFromChannel(channel);
+    let task = prompt;
+
     if (!repo) {
-      await say({
-        text: "Which project? Use: @CommandDeck in <repo-name> <task>",
-        thread_ts: threadTs
-      });
-      return;
+      // Channel not mapped — check if prompt specifies a project
+      const promptRepo = slack.parseRepoFromPrompt(prompt);
+
+      if (promptRepo) {
+        // Validate the project exists on disk
+        const available = listAvailableProjects();
+        if (!available.includes(promptRepo)) {
+          const list = available.length
+            ? available.map(p => `  • ${p}`).join('\n')
+            : '  (none — clone a repo first)';
+          await say({
+            text: `Project "${promptRepo}" not found.\n\nAvailable projects:\n${list}`,
+            thread_ts: threadTs
+          });
+          return;
+        }
+
+        // Check if this project already has a different channel mapped
+        const existingChannel = slack.findChannelForRepo(promptRepo);
+        if (existingChannel && existingChannel !== channel) {
+          await say({
+            text: `Project "${promptRepo}" is already mapped to <#${existingChannel}>. Use that channel instead.`,
+            thread_ts: threadTs
+          });
+          return;
+        }
+
+        // Auto-map this channel to the project
+        scaffold.updateChannelMap(channel, promptRepo);
+        repo = promptRepo;
+        task = slack.parseTaskFromPrompt(prompt);
+        await reporter.post(`Mapped this channel to project "${repo}".`);
+      } else {
+        // No repo anywhere — list available projects
+        const available = listAvailableProjects();
+        const list = available.length
+          ? available.map(p => {
+            const ch = slack.findChannelForRepo(p);
+            return ch ? `  • ${p} → <#${ch}>` : `  • ${p}`;
+          }).join('\n')
+          : '  (none — clone a repo first)';
+        await say({
+          text: `Which project? Use: \`@CommandDeck in <project> <task>\`\n\nAvailable projects:\n${list}`,
+          thread_ts: threadTs
+        });
+        return;
+      }
     }
 
-    const task = slack.parseTaskFromPrompt(prompt);
-    if (!task) {
+    if (!task || !task.trim()) {
       await say({
-        text: "What should I build? Use: @CommandDeck in <repo-name> <describe the task>",
+        text: "What should I build? Describe the task after the project name.",
         thread_ts: threadTs
       });
       return;
