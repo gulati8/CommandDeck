@@ -35,6 +35,58 @@ describe('shouldOpenPR', () => {
   });
 });
 
+describe('objective count cap', () => {
+  it('should abort mission if Picard creates too many objectives', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-cap-'));
+    const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
+    const oldProjectDir = process.env.COMMANDDECK_PROJECT_DIR;
+    try {
+      process.env.COMMANDDECK_STATE_DIR = tempDir;
+      const projectDir = path.join(tempDir, 'projects', 'cap-repo');
+      fs.mkdirSync(projectDir, { recursive: true });
+      process.env.COMMANDDECK_PROJECT_DIR = path.join(tempDir, 'projects');
+
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/mission')];
+      delete require.cache[require.resolve('../lib/worker')];
+      delete require.cache[require.resolve('../lib/worktree')];
+      const stateModule = require('../lib/state');
+      const { Mission } = require('../lib/mission');
+
+      const missionState = await stateModule.createMission('cap-repo', {
+        description: 'cap test',
+        slackChannel: null,
+        slackThreadTs: null
+      });
+
+      const mission = new Mission('cap-repo', 'test task', {
+        reporter: { post: async () => {} }
+      });
+
+      // Stub decompose to produce 15 objectives (exceeds default max of 10)
+      mission.decompose = async () => {
+        await stateModule.withMissionLock('cap-repo', mission.missionId, (s) => {
+          s.work_items = Array.from({ length: 15 }, (_, i) => ({
+            id: `obj-${i + 1}`, title: `Task ${i + 1}`, status: 'ready',
+            depends_on: [], phase: 1
+          }));
+          return s;
+        });
+      };
+
+      mission.reportPlan = async () => {};
+      mission.ensureIntegrationBranch = () => {};
+      mission.workLoop = async () => 'done';
+
+      const result = await mission.start();
+      assert.equal(result.status, 'failed');
+    } finally {
+      process.env.COMMANDDECK_STATE_DIR = oldStateDir;
+      process.env.COMMANDDECK_PROJECT_DIR = oldProjectDir;
+    }
+  });
+});
+
 describe('decompose retry', () => {
   it('should retry readMission when work_items is initially empty', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-decompose-'));

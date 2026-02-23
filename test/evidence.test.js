@@ -171,4 +171,42 @@ describe('evidence', () => {
       assert.ok(evidence.REQUIRED_FIELDS.includes('tests'));
     });
   });
+
+  describe('buildPRBody', () => {
+    it('should embed Slack metadata when channel and thread are present', () => {
+      const mission = {
+        description: 'Test mission',
+        repo: 'test-repo',
+        mission_id: 'mission-test-001',
+        slack_channel: 'C12345ABC',
+        slack_thread_ts: '1234567890.123456',
+        work_items: [
+          { id: 'obj-1', title: 'Do thing', status: 'done', assigned_to: 'borg', phase: 1 }
+        ],
+        session_log: []
+      };
+
+      const body = evidence.buildPRBody(mission);
+      assert.ok(body.includes('<!-- commanddeck:slack_channel=C12345ABC -->'));
+      assert.ok(body.includes('<!-- commanddeck:slack_thread_ts=1234567890.123456 -->'));
+    });
+
+    it('should not embed Slack metadata when channel is missing', () => {
+      const mission = {
+        description: 'CLI mission',
+        repo: 'test-repo',
+        mission_id: 'mission-test-002',
+        slack_channel: null,
+        slack_thread_ts: null,
+        work_items: [
+          { id: 'obj-1', title: 'Do thing', status: 'done', assigned_to: 'borg', phase: 1 }
+        ],
+        session_log: []
+      };
+
+      const body = evidence.buildPRBody(mission);
+      assert.ok(!body.includes('commanddeck:slack_channel'));
+      assert.ok(!body.includes('commanddeck:slack_thread_ts'));
+    });
+  });
 });
