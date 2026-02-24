@@ -31,7 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends docker.io \
   && rm -rf /var/lib/apt/lists/*
 
 # Claude Code CLI
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @anthropic-ai/claude-code \
+  && mkdir -p /etc/claude-code \
+  && echo '{}' > /etc/claude-code/managed-settings.json
 
 # Create non-root user
 RUN groupadd -r commanddeck && useradd -r -g commanddeck -m -s /bin/bash commanddeck
