@@ -6,6 +6,7 @@ const { Mission } = require('./lib/mission');
 const state = require('./lib/state');
 const learn = require('./lib/learn');
 const health = require('./lib/health');
+const pr = require('./lib/pr');
 const { createHealthServer } = require('./lib/http-health');
 const slack = require('./lib/slack');
 const auth = require('./lib/auth');
@@ -53,7 +54,38 @@ async function runMission(repo, prompt, context) {
     ...result
   });
 
+  // If mission created a PR and we're in Slack, post approval prompt
+  if (result.pr?.url && context.slackApp && context.channel && context.threadTs) {
+    await postApprovalPrompt(context.slackApp, context.channel, context.threadTs, result);
+  }
+
   return result;
+}
+
+// Post a Slack message with approve/reject instructions and track it for reactions
+async function postApprovalPrompt(app, channel, threadTs, mission) {
+  try {
+    const msg = await app.client.chat.postMessage({
+      channel,
+      thread_ts: threadTs,
+      text: `🗳️ *PR ready for approval*\n` +
+        `${mission.pr.url}\n\n` +
+        `React to this message:\n` +
+        `  :white_check_mark: to merge and deploy to production\n` +
+        `  :x: to close the PR`
+    });
+
+    slack.trackPRApproval(msg.ts, {
+      repo: mission.repo,
+      mission_id: mission.mission_id,
+      pr_number: mission.pr.number,
+      pr_url: mission.pr.url,
+      channel,
+      thread_ts: threadTs
+    });
+  } catch (err) {
+    console.error('Failed to post approval prompt:', err.message);
+  }
 }
 
 async function runResume(repo, missionId, context) {
@@ -68,6 +100,11 @@ async function runResume(repo, missionId, context) {
     ...result
   });
 
+  // If resume completed with a PR and we're in Slack, post approval prompt
+  if (result.pr?.url && context.slackApp && context.channel && context.threadTs) {
+    await postApprovalPrompt(context.slackApp, context.channel, context.threadTs, result);
+  }
+
   return result;
 }
 
@@ -80,6 +117,71 @@ async function runStatus(missionId, context) {
   const message = slack.formatStatusMessage(result);
   await context.reporter.post(message);
   return result;
+}
+
+// --- PR approval handlers ---
+
+async function handlePRMerge(approval, reporter) {
+  try {
+    await reporter.post('✅ Merging PR...');
+
+    const mission = await state.readMission(approval.repo, approval.mission_id);
+    if (!mission) {
+      await reporter.post('❌ Mission state not found. Merge manually.');
+      return;
+    }
+
+    // Merge the PR via gh CLI
+    const worktree = require('./lib/worktree');
+    const projectDir = worktree.projectPath(approval.repo);
+    const { execFileSync } = require('child_process');
+
+    execFileSync('gh', [
+      'pr', 'merge', String(approval.pr_number),
+      '--merge', '--delete-branch'
+    ], {
+      cwd: projectDir,
+      encoding: 'utf-8',
+      stdio: 'pipe'
+    });
+
+    // Clean up local branches
+    await pr.cleanup(mission, { reporter });
+
+    await reporter.post(
+      `✅ PR #${approval.pr_number} merged and deployed to production!\n` +
+      `Branches cleaned up. GH Actions will handle the production deployment.`
+    );
+  } catch (err) {
+    await reporter.post(`❌ Failed to merge PR: ${err.message}\nMerge manually: ${approval.pr_url}`);
+  }
+}
+
+async function handlePRClose(approval, reporter) {
+  try {
+    await reporter.post('🗑️ Closing PR...');
+
+    const worktree = require('./lib/worktree');
+    const projectDir = worktree.projectPath(approval.repo);
+    const { execFileSync } = require('child_process');
+
+    execFileSync('gh', [
+      'pr', 'close', String(approval.pr_number)
+    ], {
+      cwd: projectDir,
+      encoding: 'utf-8',
+      stdio: 'pipe'
+    });
+
+    const mission = await state.readMission(approval.repo, approval.mission_id);
+    if (mission) {
+      await pr.cleanup(mission, { reporter });
+    }
+
+    await reporter.post(`🗑️ PR #${approval.pr_number} closed. Branches cleaned up.`);
+  } catch (err) {
+    await reporter.post(`❌ Failed to close PR: ${err.message}\nClose manually: ${approval.pr_url}`);
+  }
 }
 
 // --- Slack app setup ---
@@ -148,7 +250,7 @@ function startSlackApp() {
         return;
       }
 
-      await runResume(repo, missionId, { channel, threadTs, reporter });
+      await runResume(repo, missionId, { channel, threadTs, reporter, slackApp: app });
       return;
     }
 
@@ -180,7 +282,7 @@ function startSlackApp() {
 
         // If description provided, start a mission automatically
         if (description) {
-          await runMission(projectName, description, { channel, threadTs, reporter });
+          await runMission(projectName, description, { channel, threadTs, reporter, slackApp: app });
         }
       } catch (err) {
         await reporter.post(`❌ Failed to create project: ${err.message}`);
@@ -251,26 +353,42 @@ function startSlackApp() {
       return;
     }
 
-    await runMission(repo, task, { channel, threadTs, reporter });
+    await runMission(repo, task, { channel, threadTs, reporter, slackApp: app });
   });
 
-  // Handle governance reactions
+  // Handle governance reactions and PR approval reactions
   app.event('reaction_added', async ({ event }) => {
     const reaction = event.reaction;
     const messageTs = event.item?.ts;
     if (!messageTs) return;
 
+    // Check for governance proposal reactions
     const proposal = slack.getProposal(messageTs);
-    if (!proposal) return;
+    if (proposal) {
+      if (reaction === 'white_check_mark' || reaction === '+1') {
+        const result = learn.approve(proposal.proposedPath, proposal.targetDir, proposal.fileName);
+        slack.removeProposal(messageTs);
+        console.log(`Learning approved: ${result.message}`);
+      } else if (reaction === 'x' || reaction === '-1') {
+        const result = learn.reject(proposal.proposedPath);
+        slack.removeProposal(messageTs);
+        console.log(`Learning rejected: ${result.message}`);
+      }
+      return;
+    }
+
+    // Check for PR approval reactions
+    const approval = slack.getPRApproval(messageTs);
+    if (!approval) return;
+
+    const reporter = slack.slackReporter(app, approval.channel, approval.thread_ts);
 
     if (reaction === 'white_check_mark' || reaction === '+1') {
-      const result = learn.approve(proposal.proposedPath, proposal.targetDir, proposal.fileName);
-      slack.removeProposal(messageTs);
-      console.log(`Learning approved: ${result.message}`);
+      await handlePRMerge(approval, reporter);
+      slack.removePRApproval(messageTs);
     } else if (reaction === 'x' || reaction === '-1') {
-      const result = learn.reject(proposal.proposedPath);
-      slack.removeProposal(messageTs);
-      console.log(`Learning rejected: ${result.message}`);
+      await handlePRClose(approval, reporter);
+      slack.removePRApproval(messageTs);
     }
   });
 

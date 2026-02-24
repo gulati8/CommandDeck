@@ -68,4 +68,5 @@ USER commanddeck
 
 EXPOSE 3001
 
+ENTRYPOINT ["/home/commanddeck/app/entrypoint.sh"]
 CMD ["node", "q.js"]

@@ -63,6 +63,56 @@ describe('slack', () => {
     });
   });
 
+  describe('PR approval tracking', () => {
+    it('should track and retrieve PR approvals', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-slack-'));
+      const slackMod = freshSlackModule(tempDir);
+
+      slackMod.trackPRApproval('789.01', {
+        repo: 'test-repo',
+        mission_id: 'mission-001',
+        pr_number: 42,
+        pr_url: 'https://github.com/test/repo/pull/42',
+        channel: 'C123',
+        thread_ts: '111.222'
+      });
+
+      const approval = slackMod.getPRApproval('789.01');
+      assert.equal(approval.repo, 'test-repo');
+      assert.equal(approval.pr_number, 42);
+      assert.equal(approval.channel, 'C123');
+      assert.ok(approval.tracked_at);
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    it('should remove PR approvals', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-slack-'));
+      const slackMod = freshSlackModule(tempDir);
+
+      slackMod.trackPRApproval('999.01', {
+        repo: 'test-repo',
+        mission_id: 'mission-002',
+        pr_number: 7
+      });
+
+      assert.ok(slackMod.getPRApproval('999.01'));
+      slackMod.removePRApproval('999.01');
+      assert.equal(slackMod.getPRApproval('999.01'), null);
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    it('should return null for non-existent approval', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-slack-'));
+      const slackMod = freshSlackModule(tempDir);
+
+      assert.equal(slackMod.getPRApproval('nonexistent'), null);
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+  });
+
   describe('proposal tracking persistence', () => {
     it('should persist proposals across module reloads', () => {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-slack-'));

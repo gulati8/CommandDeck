@@ -191,6 +191,56 @@ describe('resume', () => {
 });
 
 describe('runMandatoryReviews', () => {
+  it('should skip objectives with no risk flags', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-norisk-'));
+    const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
+    try {
+      process.env.COMMANDDECK_STATE_DIR = tempDir;
+
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/mission')];
+      delete require.cache[require.resolve('../lib/worker')];
+      delete require.cache[require.resolve('../lib/risk')];
+      const stateModule = require('../lib/state');
+      const { Mission } = require('../lib/mission');
+      const worker = require('../lib/worker');
+
+      const missionState = await stateModule.createMission('norisk-repo', {
+        description: 'no risk test',
+        slackChannel: null,
+        slackThreadTs: null
+      });
+
+      await stateModule.withMissionLock('norisk-repo', missionState.mission_id, (s) => {
+        s.status = 'in_progress';
+        s.work_items = [
+          {
+            id: 'obj-1', title: 'simple change', status: 'done',
+            depends_on: [], risk_flags: [] // No risk flags
+          }
+        ];
+        return s;
+      });
+
+      // Track if executeSpecialist is called (it shouldn't be)
+      const origExecute = worker.executeSpecialist;
+      let executeCalled = false;
+      worker.executeSpecialist = async () => { executeCalled = true; return { success: true }; };
+
+      const mission = new Mission('norisk-repo', '', { reporter: { post: async () => {} } });
+      mission.missionId = missionState.mission_id;
+      mission.state = await stateModule.readMission('norisk-repo', missionState.mission_id);
+
+      await mission.runMandatoryReviews();
+
+      assert.equal(executeCalled, false, 'Should not review objective with no risk flags');
+
+      worker.executeSpecialist = origExecute;
+    } finally {
+      process.env.COMMANDDECK_STATE_DIR = oldStateDir;
+    }
+  });
+
   it('should skip reviews already persisted in reviewed_by', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-review-'));
     const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
