@@ -20,6 +20,44 @@ No build step — pure JavaScript, no transpilation.
 - Node >= 20 required; tests use `node:test` + `node:assert/strict`
 - Use `execFileSync` over `execSync` to avoid shell injection
 
+## Vision
+
+CommandDeck is a self-hosted agentic software development platform. The long-term goal is for any developer to clone this repo, run a setup script, and have a fully deployed end-to-end workflow: Slack message → agentic development → automated testing → staged deployment → team approval → production.
+
+Think of it as a private, customizable software development firm powered by AI agents.
+
+### Design Principles
+
+- **Self-hosted first, SaaS later.** Build for single-tenant self-hosted deployment. Architect decisions with awareness that this may become multi-tenant SaaS, but don't build for it yet.
+- **Slack is the access control layer.** No user management in CommandDeck. Private Slack channels control who can see and interact with each project. A `#command-deck` meta-channel handles project creation; per-project channels (e.g., `#weather-aggregator`) handle development work.
+- **Idempotent setup.** The setup script must detect existing configuration and hook into it rather than overwriting. Running setup twice should be safe.
+- **Externalize, don't hardcode.** Domains, cloud providers, deployment targets, and infrastructure details must be configurable — not baked into code.
+- **Incremental value.** Every change should be usable immediately, not gated behind a larger feature. Ship working increments.
+
+### Environment Model
+
+- **Dev preview** — Ephemeral per-PR environments. Auto-created on PR, auto-destroyed on merge/close. Each gets its own subdomain.
+- **Staging** — Persistent environment where `main` branch deploys. All projects live at configurable subdomains (currently `*.gulatilabs.me`).
+- **Production** — Separate infrastructure per project. Planned but not yet implemented. Will eventually support dedicated EC2 instances or EKS depending on load.
+- **Testing** — Automated CI via GitHub Actions. Runs on every PR and push to main.
+
+### Customization Model
+
+CommandDeck ships with a default crew and sensible defaults. Users customize via the layered context system (see below). Priority order for customization work:
+
+1. **Tune existing crew** — Crew preference files modify agent behavior per-project or globally (e.g., "always use bun", "check for HIPAA compliance")
+2. **New agent roles** — Register custom specialists beyond the default crew (e.g., Designer, DBA)
+3. **Workflow templates** — Project-type-specific decomposition patterns (e.g., React apps vs. Go services)
+
+### Roadmap (Priority Order)
+
+1. Deploy CommandDeck to hosted infrastructure (EC2)
+2. Onboard existing projects (FurEverCare, Eve, ReefRush alongside WeatherAggregator)
+3. Clean up config model — consolidate scattered config into a clear structure
+4. Ship crew customization defaults — starter preference files, documentation
+5. Build the setup/installation script
+6. Abstract the infrastructure/deployment layer for portability
+
 ## Architecture
 
 CommandDeck is a multi-agent orchestration system that decomposes development tasks into parallel objectives executed by specialized Claude Code workers.
@@ -30,8 +68,10 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 2. **Planning:** Captain Picard agent decomposes the task into phased objectives stored in `mission.json`
 3. **Execution:** Work loop launches up to `max_workers` (default 3) Claude Code workers in parallel, each in an isolated git worktree on its own branch (`commanddeck/<mission-id>/<obj-id>`)
 4. **Integration:** Completed branches merge into an integration branch; O'Brien agent resolves conflicts
-5. **Review:** Risk-flagged objectives trigger mandatory specialist reviews (Worf for security, Geordi for infra, Spock for dependencies)
-6. **PR:** `lib/pr.js` creates a PR via `gh pr create` with evidence body
+5. **Review:** Risk-flagged objectives trigger mandatory specialist reviews (Worf for security, Geordi for infra, Spock for dependencies). Risk flags come from Picard's initial assignment and post-execution evidence-based file analysis — not speculative keyword matching.
+6. **PR:** `lib/pr.js` creates a PR via `gh pr create` with evidence body and Slack thread metadata
+7. **Deploy:** GitHub Actions builds images, deploys PR preview environment, notifies Slack thread with UAT URL
+8. **Approval:** User reacts in Slack thread — checkmark merges PR and cleans up, X closes PR and cleans up
 
 ### Key Modules
 
@@ -41,17 +81,32 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 | `lib/state.js` | File-based state with atomic mkdir locking, mission CRUD, version tracking |
 | `lib/worker.js` | Spawns `claude -p` subprocesses per agent with allowed-tool restrictions and timeouts |
 | `lib/worktree.js` | Git worktree create/remove/list for worker isolation |
-| `lib/risk.js` | Risk flag detection (file patterns + keywords) → mandatory reviewer mapping |
-| `lib/evidence.js` | Evidence bundle validation and PR body generation |
+| `lib/risk.js` | Risk flag detection (file patterns on actual changes) → mandatory reviewer mapping |
+| `lib/evidence.js` | Evidence bundle validation and PR body generation (includes Slack metadata) |
+| `lib/pr.js` | PR creation, update, merge, close, and branch cleanup (temp-file based for container compat) |
 | `lib/health.js` | Health patrol detecting stuck workers, test failure loops, edit thrashing |
 | `lib/learn.js` | Learning/governance: propose → approve/reject with scope detection |
-| `lib/slack.js` | Slack reporters, channel mapping, proposal tracking with disk-backed persistence |
+| `lib/slack.js` | Slack reporters, channel mapping, proposal tracking, PR approval tracking |
+| `lib/scaffold.js` | Project scaffolding: init structure, CI/CD, Docker templates, channel mapping |
+| `q.js` | Slack bot entry point: command routing, approval reactions, health patrol |
+| `cli.js` | CLI entry point for local/non-Slack usage |
+| `entrypoint.sh` | Container startup: SSH known_hosts, gh auth from GH_TOKEN, git config |
 
 ### State Management
 
 All state lives under `~/.commanddeck/` (override with `COMMANDDECK_STATE_DIR`). Structure:
 ```
-~/.commanddeck/projects/<repo>/missions/<id>/mission.json
+~/.commanddeck/
+  projects/<repo>/
+    config.json
+    directives/*.md
+    missions/<id>/mission.json
+  standards/*.md
+  crew/<agent>-preferences.md
+  playbooks/*.md
+  channel-map.json
+  pr-approvals.json
+  proposed/index.json
 ```
 
 Critical patterns:
@@ -85,6 +140,15 @@ Loaded by `hooks/session-start.sh` in priority order:
 - `hooks/pre-compact.sh` auto-commits and checkpoints before context compaction
 - `lib/validate.js` validates git refs and repo names against injection
 - Safety limits: max 50 sessions, max 6 hours, max 3 parallel workers, 45-min worker timeout
+
+### Container Deployment
+
+CommandDeck runs as a Docker container. Key setup:
+- **Image:** Built via GH Actions → `ghcr.io/gulati8/commanddeck:latest`
+- **Entrypoint:** `entrypoint.sh` handles SSH known_hosts, gh auth from `GH_TOKEN` env var, git config
+- **Volumes:** State dir (persistent), projects dir (persistent), host SSH keys (read-only), Claude Code auth (read-write)
+- **Networking:** Slack bot uses Socket Mode (outbound WebSocket) — no inbound ports required
+- **PR creation:** Uses temp files instead of `/dev/stdin` for container compatibility
 
 ## Testing
 
