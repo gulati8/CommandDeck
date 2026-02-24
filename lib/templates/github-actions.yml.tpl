@@ -159,7 +159,7 @@ jobs:
             --parameters "commands=[
               \"cd /srv/${APP_NAME} && docker compose down --remove-orphans 2>/dev/null || true\",
               \"rm -rf /srv/${APP_NAME}\",
-              \"sed -i '/${APP_NAME}\\.gulatilabs\\.me/,/}/d' /srv/proxy/Caddyfile 2>/dev/null || true\",
+              \"sed '/${APP_NAME}\\.gulatilabs\\.me/,/}/d' /srv/proxy/Caddyfile > /srv/proxy/Caddyfile.tmp && cat /srv/proxy/Caddyfile.tmp > /srv/proxy/Caddyfile && rm /srv/proxy/Caddyfile.tmp || true\",
               \"docker exec proxy-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker exec caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true\"
             ]" \
             --output text
