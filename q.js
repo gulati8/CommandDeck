@@ -9,6 +9,7 @@ const health = require('./lib/health');
 const pr = require('./lib/pr');
 const { createHealthServer } = require('./lib/http-health');
 const slack = require('./lib/slack');
+const thread = require('./lib/thread');
 const auth = require('./lib/auth');
 const scaffold = require('./lib/scaffold');
 const { validateRepoName } = require('./lib/validate');
@@ -83,6 +84,16 @@ async function postApprovalPrompt(app, channel, threadTs, mission) {
       channel,
       thread_ts: threadTs
     });
+
+    // Register thread for conversational follow-up
+    thread.trackThread(channel, threadTs, {
+      repo: mission.repo,
+      mission_id: mission.mission_id,
+      integration_branch: mission.integration_branch,
+      pr_number: mission.pr.number,
+      pr_url: mission.pr.url,
+      original_description: mission.description
+    });
   } catch (err) {
     console.error('Failed to post approval prompt:', err.message);
   }
@@ -148,6 +159,11 @@ async function handlePRMerge(approval, reporter) {
     // Clean up local branches
     await pr.cleanup(mission, { reporter });
 
+    // Untrack the thread — no more follow-ups
+    if (approval.thread_ts) {
+      thread.removeThread(approval.channel, approval.thread_ts);
+    }
+
     await reporter.post(
       `✅ PR #${approval.pr_number} merged and deployed to production!\n` +
       `Branches cleaned up. GH Actions will handle the production deployment.`
@@ -176,6 +192,11 @@ async function handlePRClose(approval, reporter) {
     const mission = await state.readMission(approval.repo, approval.mission_id);
     if (mission) {
       await pr.cleanup(mission, { reporter });
+    }
+
+    // Untrack the thread — no more follow-ups
+    if (approval.thread_ts) {
+      thread.removeThread(approval.channel, approval.thread_ts);
     }
 
     await reporter.post(`🗑️ PR #${approval.pr_number} closed. Branches cleaned up.`);
@@ -392,6 +413,38 @@ function startSlackApp() {
     }
   });
 
+  // Handle thread messages for conversational follow-up
+  app.event('message', async ({ event }) => {
+    // Ignore bots and system messages
+    if (event.bot_id || event.subtype) return;
+
+    // Only thread replies (not top-level messages)
+    if (!event.thread_ts || event.thread_ts === event.ts) return;
+
+    // Skip @mentions — let the app_mention handler deal with those
+    if (event.text && event.text.includes(`<@`)) return;
+
+    const threadContext = thread.getThread(event.channel, event.thread_ts);
+    if (!threadContext) return; // Not a tracked thread
+
+    if (threadContext.status === 'working') {
+      const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
+      await reporter.post("I'm still working on the previous follow-up. I'll respond when it's done.");
+      return;
+    }
+
+    if (threadContext.status === 'assessing') {
+      // Already assessing — debounce will collect this message
+    }
+
+    // Debounce messages, then assess
+    thread.debounce(event.channel, event.thread_ts, event.text, async (messages) => {
+      thread.updateThreadStatus(event.channel, event.thread_ts, 'assessing');
+      const assessment = await thread.assessFeedback(app, threadContext, messages);
+      await thread.handleAssessment(app, threadContext, assessment);
+    });
+  });
+
   // Start health patrol
   health.startPatrol(
     () => Array.from(activeMissions.values()),
@@ -433,6 +486,9 @@ async function main() {
   if (!authOk) {
     console.warn('⚠️ Claude Code not authenticated. Missions will fail until auth is completed.');
   }
+
+  // Reset any threads stuck in 'assessing' from a previous crash
+  thread.resetStaleThreads();
 
   const app = startSlackApp();
 
