@@ -36,7 +36,7 @@ program
 
 program
   .command('resume <mission-id>')
-  .description('Resume a checkpoint-paused mission')
+  .description('Resume a pending-approval mission')
   .action(async (missionId) => {
     try {
       // Find the mission to get its repo

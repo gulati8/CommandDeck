@@ -113,6 +113,53 @@ describe('slack', () => {
     });
   });
 
+  describe('plan approval tracking', () => {
+    it('should track and retrieve plan approvals', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-slack-'));
+      const slackMod = freshSlackModule(tempDir);
+
+      slackMod.trackPlanApproval('plan.01', {
+        repo: 'test-repo',
+        mission_id: 'mission-003',
+        channel: 'C123',
+        thread_ts: '111.333'
+      });
+
+      const approval = slackMod.getPlanApproval('plan.01');
+      assert.equal(approval.repo, 'test-repo');
+      assert.equal(approval.mission_id, 'mission-003');
+      assert.equal(approval.channel, 'C123');
+      assert.ok(approval.tracked_at);
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    it('should remove plan approvals', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-slack-'));
+      const slackMod = freshSlackModule(tempDir);
+
+      slackMod.trackPlanApproval('plan.02', {
+        repo: 'test-repo',
+        mission_id: 'mission-004'
+      });
+
+      assert.ok(slackMod.getPlanApproval('plan.02'));
+      slackMod.removePlanApproval('plan.02');
+      assert.equal(slackMod.getPlanApproval('plan.02'), null);
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    it('should return null for non-existent plan approval', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-slack-'));
+      const slackMod = freshSlackModule(tempDir);
+
+      assert.equal(slackMod.getPlanApproval('nonexistent'), null);
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+  });
+
   describe('proposal tracking persistence', () => {
     it('should persist proposals across module reloads', () => {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-slack-'));

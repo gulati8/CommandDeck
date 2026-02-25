@@ -55,6 +55,27 @@ async function runMission(repo, prompt, context) {
     ...result
   });
 
+  // If mission is pending approval (Slack mode), track for reactions
+  if (result.status === 'pending_approval' && context.slackApp && context.channel && context.threadTs) {
+    const planMsgTs = result.plan_message_ts;
+    if (planMsgTs) {
+      slack.trackPlanApproval(planMsgTs, {
+        repo,
+        mission_id: result.mission_id,
+        channel: context.channel,
+        thread_ts: context.threadTs
+      });
+
+      thread.trackThread(context.channel, context.threadTs, {
+        repo,
+        mission_id: result.mission_id,
+        original_description: prompt,
+        status: 'pending_plan_approval'
+      });
+    }
+    return result;
+  }
+
   // If mission created a PR and we're in Slack, post approval prompt
   if (result.pr?.url && context.slackApp && context.channel && context.threadTs) {
     await postApprovalPrompt(context.slackApp, context.channel, context.threadTs, result);
@@ -202,6 +223,70 @@ async function handlePRClose(approval, reporter) {
     await reporter.post(`🗑️ PR #${approval.pr_number} closed. Branches cleaned up.`);
   } catch (err) {
     await reporter.post(`❌ Failed to close PR: ${err.message}\nClose manually: ${approval.pr_url}`);
+  }
+}
+
+// --- Plan approval handlers ---
+
+async function handlePlanApprove(planApproval, app) {
+  const reporter = slack.slackReporter(app, planApproval.channel, planApproval.thread_ts);
+
+  try {
+    const mission = new Mission(planApproval.repo, '', {
+      channel: planApproval.channel,
+      threadTs: planApproval.thread_ts,
+      reporter
+    });
+    mission.missionId = planApproval.mission_id;
+    mission.state = await state.readMission(planApproval.repo, planApproval.mission_id);
+    mission.prompt = mission.state.description;
+
+    if (mission.state.status !== 'pending_approval') {
+      await reporter.post(`Mission is ${mission.state.status}, not pending approval.`);
+      return;
+    }
+
+    await reporter.post('✅ Plan approved — starting work...');
+
+    // Update thread status
+    thread.updateThreadStatus(planApproval.channel, planApproval.thread_ts, 'working');
+
+    await mission.approvePlan();
+
+    // Update tracked mission
+    activeMissions.set(mission.missionId, {
+      ...activeMissions.get(mission.missionId),
+      ...mission.state,
+      mission
+    });
+
+    // If mission created a PR, post approval prompt
+    if (mission.state.pr?.url) {
+      await postApprovalPrompt(app, planApproval.channel, planApproval.thread_ts, mission.state);
+    }
+  } catch (err) {
+    await reporter.post(`🔴 Mission failed: ${err.message}`);
+  }
+}
+
+async function handlePlanReject(planApproval, app) {
+  const reporter = slack.slackReporter(app, planApproval.channel, planApproval.thread_ts);
+
+  try {
+    const mission = new Mission(planApproval.repo, '', {
+      channel: planApproval.channel,
+      threadTs: planApproval.thread_ts,
+      reporter
+    });
+    mission.missionId = planApproval.mission_id;
+    mission.state = await state.readMission(planApproval.repo, planApproval.mission_id);
+
+    await mission.rejectPlan();
+
+    // Clean up thread tracking
+    thread.removeThread(planApproval.channel, planApproval.thread_ts);
+  } catch (err) {
+    await reporter.post(`❌ Failed to abort mission: ${err.message}`);
   }
 }
 
@@ -398,6 +483,19 @@ function startSlackApp() {
       return;
     }
 
+    // Check for plan approval reactions
+    const planApproval = slack.getPlanApproval(messageTs);
+    if (planApproval) {
+      if (reaction === 'white_check_mark' || reaction === '+1') {
+        slack.removePlanApproval(messageTs);
+        await handlePlanApprove(planApproval, app);
+      } else if (reaction === 'x' || reaction === '-1') {
+        slack.removePlanApproval(messageTs);
+        await handlePlanReject(planApproval, app);
+      }
+      return;
+    }
+
     // Check for PR approval reactions
     const approval = slack.getPRApproval(messageTs);
     if (!approval) return;
@@ -426,6 +524,41 @@ function startSlackApp() {
 
     const threadContext = thread.getThread(event.channel, event.thread_ts);
     if (!threadContext) return; // Not a tracked thread
+
+    // Plan revision: user replies while plan is pending approval
+    if (threadContext.status === 'pending_plan_approval') {
+      thread.debounce(event.channel, event.thread_ts, event.text, async (messages) => {
+        const feedback = messages.join('\n');
+        const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
+
+        try {
+          const mission = new Mission(threadContext.repo, '', {
+            channel: event.channel,
+            threadTs: event.thread_ts,
+            reporter
+          });
+          mission.missionId = threadContext.mission_id;
+          mission.state = await state.readMission(threadContext.repo, threadContext.mission_id);
+          mission.prompt = mission.state.description;
+
+          const result = await mission.revisePlan(feedback);
+
+          // Track new plan message for reactions
+          if (result.planMsgTs) {
+            // Remove old plan approval tracking (all existing for this mission)
+            slack.trackPlanApproval(result.planMsgTs, {
+              repo: threadContext.repo,
+              mission_id: threadContext.mission_id,
+              channel: event.channel,
+              thread_ts: event.thread_ts
+            });
+          }
+        } catch (err) {
+          await reporter.post(`🔴 Plan revision failed: ${err.message}`);
+        }
+      });
+      return;
+    }
 
     if (threadContext.status === 'working') {
       const reporter = slack.slackReporter(app, event.channel, event.thread_ts);

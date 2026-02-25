@@ -74,7 +74,7 @@ describe('objective count cap', () => {
         });
       };
 
-      mission.reportPlan = async () => {};
+      mission.reportPlanForApproval = async () => null;
       mission.ensureIntegrationBranch = () => {};
       mission.workLoop = async () => 'done';
 
@@ -131,7 +131,7 @@ describe('decompose retry', () => {
       };
 
       // Stub other lifecycle methods
-      mission.reportPlan = async () => {};
+      mission.reportPlanForApproval = async () => null;
       mission.setStatus = async (status) => { mission.state.status = status; };
       mission.ensureIntegrationBranch = () => {};
       mission.workLoop = async () => 'done';
@@ -148,7 +148,7 @@ describe('decompose retry', () => {
 });
 
 describe('resume', () => {
-  it('should mark checkpoint objective as ready so work loop executes it', async () => {
+  it('should approve and run a pending_approval mission', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-mission-'));
     const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
     try {
@@ -166,26 +166,135 @@ describe('resume', () => {
       });
 
       await state.withMissionLock('resume-repo', missionState.mission_id, (s) => {
-        s.status = 'checkpoint_paused';
+        s.status = 'pending_approval';
         s.work_items = [
-          { id: 'obj-1', title: 'checkpoint', status: 'checkpoint_paused', depends_on: [] }
+          { id: 'obj-1', title: 'task', status: 'ready', depends_on: [] }
         ];
         return s;
       });
 
       const mission = new Mission('resume-repo', '', { reporter: { post: async () => {} } });
       mission.missionId = missionState.mission_id;
-      mission.workLoop = async () => 'done';
+      mission.approvePlan = async () => { mission.state.status = 'merging'; };
 
       await mission.resume();
 
-      // Checkpoint should be set to 'ready' for the work loop to pick up,
-      // not 'done' which would skip execution
-      const updated = await state.readMission('resume-repo', missionState.mission_id);
-      assert.equal(updated.work_items[0].status, 'ready');
-      assert.equal(updated.work_items[0].completed_at, undefined);
+      assert.equal(mission.state.status, 'merging');
     } finally {
       process.env.COMMANDDECK_STATE_DIR = oldStateDir;
+    }
+  });
+
+  it('should throw if mission is not pending_approval', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-mission-'));
+    const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
+    try {
+      process.env.COMMANDDECK_STATE_DIR = tempDir;
+
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/mission')];
+      const state = require('../lib/state');
+      const { Mission } = require('../lib/mission');
+
+      const missionState = await state.createMission('resume-repo2', {
+        description: 'wrong status',
+        slackChannel: null,
+        slackThreadTs: null
+      });
+
+      const mission = new Mission('resume-repo2', '', { reporter: { post: async () => {} } });
+      mission.missionId = missionState.mission_id;
+
+      await assert.rejects(() => mission.resume(), /not pending_approval/);
+    } finally {
+      process.env.COMMANDDECK_STATE_DIR = oldStateDir;
+    }
+  });
+});
+
+describe('rejectPlan', () => {
+  it('should set mission status to aborted', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-mission-'));
+    const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
+    try {
+      process.env.COMMANDDECK_STATE_DIR = tempDir;
+
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/mission')];
+      const state = require('../lib/state');
+      const { Mission } = require('../lib/mission');
+
+      const missionState = await state.createMission('reject-repo', {
+        description: 'reject test',
+        slackChannel: null,
+        slackThreadTs: null
+      });
+
+      await state.withMissionLock('reject-repo', missionState.mission_id, (s) => {
+        s.status = 'pending_approval';
+        s.work_items = [
+          { id: 'obj-1', title: 'task', status: 'ready', depends_on: [] }
+        ];
+        return s;
+      });
+
+      const mission = new Mission('reject-repo', '', { reporter: { post: async () => {} } });
+      mission.missionId = missionState.mission_id;
+      mission.state = await state.readMission('reject-repo', missionState.mission_id);
+
+      await mission.rejectPlan();
+
+      const updated = await state.readMission('reject-repo', missionState.mission_id);
+      assert.equal(updated.status, 'aborted');
+    } finally {
+      process.env.COMMANDDECK_STATE_DIR = oldStateDir;
+    }
+  });
+});
+
+describe('start auto-approve', () => {
+  it('should auto-approve when no channel (CLI mode)', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-auto-'));
+    const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
+    const oldProjectDir = process.env.COMMANDDECK_PROJECT_DIR;
+    try {
+      process.env.COMMANDDECK_STATE_DIR = tempDir;
+      const projectDir = path.join(tempDir, 'projects', 'auto-repo');
+      fs.mkdirSync(projectDir, { recursive: true });
+      process.env.COMMANDDECK_PROJECT_DIR = path.join(tempDir, 'projects');
+
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/mission')];
+      delete require.cache[require.resolve('../lib/worker')];
+      delete require.cache[require.resolve('../lib/worktree')];
+      const stateModule = require('../lib/state');
+      const { Mission } = require('../lib/mission');
+
+      const mission = new Mission('auto-repo', 'test task', {
+        reporter: { post: async () => null }
+      });
+
+      // Stub decompose to produce one objective
+      mission.decompose = async () => {
+        await stateModule.withMissionLock('auto-repo', mission.missionId, (s) => {
+          s.work_items = [
+            { id: 'obj-1', title: 'Test', status: 'ready', depends_on: [], phase: 1, assigned_to: 'borg' }
+          ];
+          return s;
+        });
+      };
+
+      let approvedPlanCalled = false;
+      mission.approvePlan = async () => {
+        approvedPlanCalled = true;
+        mission.state.status = 'merging';
+      };
+
+      const result = await mission.start();
+      assert.ok(approvedPlanCalled, 'approvePlan should be called in CLI mode');
+    } finally {
+      process.env.COMMANDDECK_STATE_DIR = oldStateDir;
+      process.env.COMMANDDECK_PROJECT_DIR = oldProjectDir;
     }
   });
 });

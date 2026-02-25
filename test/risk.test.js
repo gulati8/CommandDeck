@@ -136,13 +136,4 @@ describe('risk', () => {
     });
   });
 
-  describe('requiresHumanCheckpoint', () => {
-    it('should require human checkpoint for migrations', () => {
-      assert.ok(risk.requiresHumanCheckpoint(['migration']));
-    });
-
-    it('should not require human checkpoint for other flags', () => {
-      assert.ok(!risk.requiresHumanCheckpoint(['auth', 'infra']));
-    });
-  });
 });
