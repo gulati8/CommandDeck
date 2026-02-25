@@ -66,8 +66,8 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 
 1. **Entry:** User triggers via CLI (`cli.js`) or Slack bot (`q.js`) → creates a `Mission` instance (`lib/mission.js`)
 2. **Planning:** Captain Picard agent decomposes the task into phased objectives stored in `mission.json`
-3. **Execution:** Work loop launches up to `max_workers` (default 3) Claude Code workers in parallel, each in an isolated git worktree on its own branch (`commanddeck/<mission-id>/<obj-id>`)
-4. **Integration:** Completed branches merge into an integration branch; O'Brien agent resolves conflicts
+3. **Execution:** Work loop launches up to `max_workers` (default 1, configurable via `COMMANDDECK_MAX_WORKERS`) Claude Code workers in parallel, each in an isolated git worktree on its own branch (`commanddeck/<mission-id>/<obj-id>`)
+4. **Integration:** Completed branches merge into an integration branch; O'Brien agent resolves conflicts when they occur
 5. **Review:** Risk-flagged objectives trigger mandatory specialist reviews (Worf for security, Geordi for infra, Spock for dependencies). Risk flags come from Picard's initial assignment and post-execution evidence-based file analysis — not speculative keyword matching.
 6. **PR:** `lib/pr.js` creates a PR via `gh pr create` with evidence body and Slack thread metadata
 7. **Deploy:** GitHub Actions builds images, deploys PR preview environment, notifies Slack thread with UAT URL
@@ -88,6 +88,12 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 | `lib/learn.js` | Learning/governance: propose → approve/reject with scope detection |
 | `lib/slack.js` | Slack reporters, channel mapping, proposal tracking, PR approval tracking |
 | `lib/scaffold.js` | Project scaffolding: init structure, CI/CD, Docker templates, channel mapping |
+| `lib/thread.js` | Slack thread-based conversational iteration and mission follow-ups |
+| `lib/auth.js` | Claude CLI auth verification and OAuth failure detection |
+| `lib/deploy.js` | Caddy reverse proxy integration for app deployments |
+| `lib/http-health.js` | HTTP GET /health endpoint for container monitoring |
+| `lib/observability.js` | Structured event logging and health alert persistence |
+| `lib/validate.js` | Git ref and repo name validation against injection |
 | `q.js` | Slack bot entry point: command routing, approval reactions, health patrol |
 | `cli.js` | CLI entry point for local/non-Slack usage |
 | `entrypoint.sh` | Container startup: SSH known_hosts, gh auth from GH_TOKEN, git config |
@@ -125,7 +131,7 @@ Loaded by `hooks/session-start.sh` in priority order:
 
 ### Agent Model Tiers
 
-- **Default:** All agents use `claude-opus-4-6`
+- **Default:** All agents use `claude-opus-4-6` (exception: O'Brien uses `claude-sonnet-4-5-20250929`)
 - Configurable per project via `config.json` model_overrides
 
 ### Inter-Agent Communication
@@ -135,9 +141,11 @@ Loaded by `hooks/session-start.sh` in priority order:
 
 ### Safety Guards
 
+- `hooks/session-start.sh` loads layered context (standards, crew, directives, ADRs, mission state)
 - `hooks/pre-write-guard.sh` blocks writes to `.env`, `.pem`, `.key`, secrets, credentials
 - `hooks/pre-bash-guard.sh` blocks dangerous commands (rm -rf /, dd, mkfs, fork bombs)
 - `hooks/pre-compact.sh` auto-commits and checkpoints before context compaction
+- `hooks/post-edit.sh` post-edit cleanup and validation
 - `lib/validate.js` validates git refs and repo names against injection
 - Safety limits: max 50 sessions, max 6 hours, max 3 parallel workers, 45-min worker timeout
 
