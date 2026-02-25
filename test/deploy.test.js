@@ -8,10 +8,19 @@ const os = require('os');
 
 describe('deploy', () => {
   let tempDir;
+  let stateDir;
   let deploy;
+  let state;
 
   before(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-deploy-'));
+    stateDir = path.join(tempDir, 'state');
+    fs.mkdirSync(stateDir, { recursive: true });
+    process.env.COMMANDDECK_STATE_DIR = stateDir;
+
+    delete require.cache[require.resolve('../lib/state')];
+    delete require.cache[require.resolve('../lib/deploy')];
+    state = require('../lib/state');
     deploy = require('../lib/deploy');
   });
 
@@ -41,40 +50,64 @@ describe('deploy', () => {
   });
 
   describe('addCaddyEntry', () => {
-    it('should detect existing entry', () => {
+    it('should detect existing entry using domain from config', () => {
+      const config = state.loadGlobalConfig();
+      const domain = config.domain;
       const caddyDir = path.join(tempDir, 'proxy');
       fs.mkdirSync(caddyDir, { recursive: true });
       const caddyfile = path.join(caddyDir, 'Caddyfile');
-      fs.writeFileSync(caddyfile, 'myapp.gulatilabs.me {\n  reverse_proxy myapp:3000\n}\n', 'utf-8');
+      fs.writeFileSync(caddyfile, `myapp.${domain} {\n  reverse_proxy myapp:3000\n}\n`, 'utf-8');
 
-      // The module reads from /srv/proxy/Caddyfile which won't exist in tests,
-      // so we test the string-matching logic directly
       const content = fs.readFileSync(caddyfile, 'utf-8');
-      assert.ok(content.includes('myapp.gulatilabs.me'));
+      assert.ok(content.includes(`myapp.${domain}`));
+    });
+
+    it('should use domain from global config in entry format', () => {
+      // Write a custom config to verify addCaddyEntry reads it
+      fs.writeFileSync(
+        path.join(stateDir, 'config.json'),
+        JSON.stringify({ domain: 'custom.dev' }),
+        'utf-8'
+      );
+
+      // Verify config is picked up
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/deploy')];
+      const freshState = require('../lib/state');
+      const freshConfig = freshState.loadGlobalConfig();
+      assert.equal(freshConfig.domain, 'custom.dev');
+
+      // Clean up custom config
+      fs.unlinkSync(path.join(stateDir, 'config.json'));
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/deploy')];
     });
   });
 
   describe('removeCaddyEntry', () => {
-    it('should match and remove entry pattern from content', () => {
+    it('should match and remove entry pattern using domain from config', () => {
+      const config = state.loadGlobalConfig();
+      const domain = config.domain;
+      const escapedDomain = domain.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const content = `
-existing.gulatilabs.me {
+existing.${domain} {
   reverse_proxy existing:3000
 }
 
-test-app.gulatilabs.me {
+test-app.${domain} {
   reverse_proxy test-app:4000
 }
 `;
       // Test the regex pattern used by removeCaddyEntry
       const appName = 'test-app';
       const pattern = new RegExp(
-        `\\n${appName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.gulatilabs\\.me\\s*\\{[^}]*\\}\\n?`,
+        `\\n${appName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.${escapedDomain}\\s*\\{[^}]*\\}\\n?`,
         'g'
       );
       const updated = content.replace(pattern, '\n');
 
-      assert.ok(!updated.includes('test-app.gulatilabs.me'));
-      assert.ok(updated.includes('existing.gulatilabs.me'));
+      assert.ok(!updated.includes(`test-app.${domain}`));
+      assert.ok(updated.includes(`existing.${domain}`));
     });
   });
 

@@ -135,6 +135,51 @@ describe('scaffold', () => {
     });
   });
 
+  describe('global config integration', () => {
+    it('should render templates with registry and domain from global config', () => {
+      // Write a custom global config
+      fs.writeFileSync(
+        path.join(stateDir, 'config.json'),
+        JSON.stringify({ registry: 'ghcr.io/testorg', domain: 'test.dev' }),
+        'utf-8'
+      );
+
+      // Re-require to pick up new config
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/scaffold')];
+      const freshScaffold = require('../lib/scaffold');
+
+      const dir = path.join(tempDir, 'config-render-project');
+      fs.mkdirSync(dir, { recursive: true });
+
+      freshScaffold.addCICDWorkflow(dir, 'my-app', { port: 3000 });
+      const workflow = fs.readFileSync(path.join(dir, '.github', 'workflows', 'deploy.yml'), 'utf-8');
+      assert.ok(workflow.includes('ghcr.io/testorg/my-app'));
+      assert.ok(workflow.includes('test.dev'));
+      assert.ok(!workflow.includes('gulati8'));
+      assert.ok(!workflow.includes('gulatilabs.me'));
+
+      freshScaffold.addDockerTemplates(dir, 'my-app', { port: 3000 });
+      const compose = fs.readFileSync(path.join(dir, 'docker-compose.prod.yml'), 'utf-8');
+      assert.ok(compose.includes('ghcr.io/testorg/my-app'));
+      assert.ok(!compose.includes('gulati8'));
+
+      // Clean up
+      fs.unlinkSync(path.join(stateDir, 'config.json'));
+      delete require.cache[require.resolve('../lib/state')];
+      delete require.cache[require.resolve('../lib/scaffold')];
+    });
+
+    it('should use default registry when no global config exists', () => {
+      const dir = path.join(tempDir, 'default-render-project');
+      fs.mkdirSync(dir, { recursive: true });
+
+      scaffold.addDockerTemplates(dir, 'my-app', { port: 3000 });
+      const compose = fs.readFileSync(path.join(dir, 'docker-compose.prod.yml'), 'utf-8');
+      assert.ok(compose.includes('ghcr.io/gulati8/my-app'));
+    });
+  });
+
   describe('updateChannelMap', () => {
     it('should create and update channel map', () => {
       scaffold.updateChannelMap('C123', 'test-repo');

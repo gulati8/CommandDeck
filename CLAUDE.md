@@ -103,6 +103,7 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 All state lives under `~/.commanddeck/` (override with `COMMANDDECK_STATE_DIR`). Structure:
 ```
 ~/.commanddeck/
+  config.json              # Global installation config
   projects/<repo>/
     config.json
     directives/*.md
@@ -119,6 +120,34 @@ Critical patterns:
 - **Atomic locking:** All state mutations use `withMissionLock()` (mkdir-based lock)
 - **Atomic writes:** tmp file + rename pattern
 - **Version tracking:** Monotonic version counter on mission state
+
+### Configuration
+
+**Global config** at `~/.commanddeck/config.json` — installation-level settings:
+
+| Field | Default | Description |
+|---|---|---|
+| `github_org` | `gulati8` | GitHub organization/user for repo creation |
+| `domain` | `gulatilabs.me` | Domain for Caddy reverse proxy entries |
+| `registry` | `ghcr.io/gulati8` | Container registry prefix for images |
+| `caddyfile_path` | `/srv/proxy/Caddyfile` | Path to the Caddy configuration file |
+| `caddy_container` | `proxy-caddy-1` | Docker container name for Caddy |
+| `deploy_dir` | `/srv` | Base directory for deployed app stacks |
+
+**Per-project config** at `~/.commanddeck/projects/<repo>/config.json` — project-specific overrides for workers, branches, test commands, model tiers.
+
+**Environment variable overrides:**
+
+| Variable | Description |
+|---|---|
+| `COMMANDDECK_STATE_DIR` | Override state directory (default `~/.commanddeck`) |
+| `COMMANDDECK_PROJECT_DIR` | Override project clone directory (default `~/projects`) |
+| `COMMANDDECK_CHANNEL_MAP` | Override channel-map.json path |
+| `COMMANDDECK_MAX_WORKERS` | Max parallel workers per mission |
+| `COMMANDDECK_MAX_SESSIONS` | Max sessions per mission |
+| `COMMANDDECK_MAX_HOURS` | Max elapsed hours per mission |
+
+**Precedence:** per-project config > global config > env vars > hardcoded defaults.
 
 ### Layered Context System
 

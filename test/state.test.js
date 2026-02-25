@@ -354,6 +354,57 @@ describe('state', () => {
     });
   });
 
+  describe('loadGlobalConfig', () => {
+    it('should return defaults when no config file exists', () => {
+      const config = state.loadGlobalConfig();
+      assert.equal(config.github_org, 'gulati8');
+      assert.equal(config.domain, 'gulatilabs.me');
+      assert.equal(config.registry, 'ghcr.io/gulati8');
+      assert.equal(config.caddyfile_path, '/srv/proxy/Caddyfile');
+      assert.equal(config.caddy_container, 'proxy-caddy-1');
+      assert.equal(config.deploy_dir, '/srv');
+    });
+
+    it('should merge overrides from config file', () => {
+      fs.writeFileSync(
+        path.join(TEST_STATE_DIR, 'config.json'),
+        JSON.stringify({ github_org: 'myorg', domain: 'example.com' }),
+        'utf-8'
+      );
+
+      const config = state.loadGlobalConfig();
+      assert.equal(config.github_org, 'myorg');
+      assert.equal(config.domain, 'example.com');
+      // Defaults still present for unset keys
+      assert.equal(config.registry, 'ghcr.io/gulati8');
+      assert.equal(config.caddyfile_path, '/srv/proxy/Caddyfile');
+
+      // Clean up
+      fs.unlinkSync(path.join(TEST_STATE_DIR, 'config.json'));
+    });
+
+    it('should override all defaults when full config provided', () => {
+      const fullConfig = {
+        github_org: 'acme',
+        domain: 'acme.dev',
+        registry: 'ghcr.io/acme',
+        caddyfile_path: '/opt/caddy/Caddyfile',
+        caddy_container: 'my-caddy',
+        deploy_dir: '/opt/apps'
+      };
+      fs.writeFileSync(
+        path.join(TEST_STATE_DIR, 'config.json'),
+        JSON.stringify(fullConfig),
+        'utf-8'
+      );
+
+      const config = state.loadGlobalConfig();
+      assert.deepEqual(config, fullConfig);
+
+      fs.unlinkSync(path.join(TEST_STATE_DIR, 'config.json'));
+    });
+  });
+
   describe('appendCaptainsLog', () => {
     it('should append text to the captains log', async () => {
       const mission = await state.createMission('log-append-repo', {

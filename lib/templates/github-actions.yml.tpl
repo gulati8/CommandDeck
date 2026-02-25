@@ -53,8 +53,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/gulati8/{{APP_NAME}}:${{ steps.tag.outputs.tag }}
-            ghcr.io/gulati8/{{APP_NAME}}:${{ github.sha }}
+            {{REGISTRY}}/{{APP_NAME}}:${{ steps.tag.outputs.tag }}
+            {{REGISTRY}}/{{APP_NAME}}:${{ github.sha }}
 
   deploy:
     needs: build-and-push
@@ -74,7 +74,7 @@ jobs:
             echo "app_name={{APP_NAME}}-pr-${PR_NUM}" >> "$GITHUB_OUTPUT"
             echo "image_tag=pr-${PR_NUM}" >> "$GITHUB_OUTPUT"
             echo "is_pr=true" >> "$GITHUB_OUTPUT"
-            echo "uat_url=https://{{APP_NAME}}-pr-${PR_NUM}.gulatilabs.me" >> "$GITHUB_OUTPUT"
+            echo "uat_url=https://{{APP_NAME}}-pr-${PR_NUM}.{{DOMAIN}}" >> "$GITHUB_OUTPUT"
           else
             echo "app_name={{APP_NAME}}" >> "$GITHUB_OUTPUT"
             echo "image_tag=latest" >> "$GITHUB_OUTPUT"
@@ -86,7 +86,7 @@ jobs:
         run: |
           APP_NAME="${{ steps.target.outputs.app_name }}"
           IMAGE_TAG="${{ steps.target.outputs.image_tag }}"
-          IMAGE_REF="ghcr.io/gulati8/{{APP_NAME}}:${IMAGE_TAG}"
+          IMAGE_REF="{{REGISTRY}}/{{APP_NAME}}:${IMAGE_TAG}"
           STAGING_DIR="/srv/{{APP_NAME}}"
           PR_DIR="/srv/${APP_NAME}"
           DB_IMAGE="{{DB_IMAGE}}"
@@ -159,7 +159,7 @@ jobs:
             COMPOSE_CONTENT=$(echo "$COMPOSE_CONTENT" | sed "s|IMAGE_REF_PLACEHOLDER|${IMAGE_REF}|g")
 
             # Copy staging .env, override DB name and frontend URL
-            ENV_SETUP="cp ${STAGING_DIR}/.env ${PR_DIR}/.env && sed -i 's/^POSTGRES_DB=.*/POSTGRES_DB={{APP_NAME}}_pr_\${PR_NUM}/' ${PR_DIR}/.env && sed -i 's|^FRONTEND_URL=.*|FRONTEND_URL=https://${APP_NAME}.gulatilabs.me|' ${PR_DIR}/.env"
+            ENV_SETUP="cp ${STAGING_DIR}/.env ${PR_DIR}/.env && sed -i 's/^POSTGRES_DB=.*/POSTGRES_DB={{APP_NAME}}_pr_\${PR_NUM}/' ${PR_DIR}/.env && sed -i 's|^FRONTEND_URL=.*|FRONTEND_URL=https://${APP_NAME}.{{DOMAIN}}|' ${PR_DIR}/.env"
 
             # Build DB setup commands
             DB_CMDS=""
@@ -178,7 +178,7 @@ jobs:
                 \"mkdir -p ${PR_DIR}\",
                 \"cat > ${PR_DIR}/docker-compose.yml << 'INNERCOMPOSE'\n${COMPOSE_CONTENT}\nINNERCOMPOSE\",
                 \"${ENV_SETUP}\",
-                \"grep -q '${APP_NAME}.gulatilabs.me' /srv/proxy/Caddyfile 2>/dev/null || printf '\\\\n${APP_NAME}.gulatilabs.me {\\\\n  reverse_proxy ${APP_NAME}:3000\\\\n}\\\\n' >> /srv/proxy/Caddyfile\",
+                \"grep -q '${APP_NAME}.{{DOMAIN}}' /srv/proxy/Caddyfile 2>/dev/null || printf '\\\\n${APP_NAME}.{{DOMAIN}} {\\\\n  reverse_proxy ${APP_NAME}:3000\\\\n}\\\\n' >> /srv/proxy/Caddyfile\",
                 \"docker exec proxy-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker exec caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true\"
               ]" \
               --output text
@@ -190,7 +190,7 @@ jobs:
               --parameters "commands=[
                 \"mkdir -p ${PR_DIR}\",
                 \"cat > ${PR_DIR}/docker-compose.yml << 'COMPOSE'\\nservices:\\n  app:\\n    image: ${IMAGE_REF}\\n    container_name: ${APP_NAME}\\n    restart: unless-stopped\\n    networks:\\n      - proxy\\n\\nnetworks:\\n  proxy:\\n    external: true\\nCOMPOSE\",
-                \"grep -q '${APP_NAME}.gulatilabs.me' /srv/proxy/Caddyfile 2>/dev/null || printf '\\\\n${APP_NAME}.gulatilabs.me {\\\\n  reverse_proxy ${APP_NAME}:3000\\\\n}\\\\n' >> /srv/proxy/Caddyfile\",
+                \"grep -q '${APP_NAME}.{{DOMAIN}}' /srv/proxy/Caddyfile 2>/dev/null || printf '\\\\n${APP_NAME}.{{DOMAIN}} {\\\\n  reverse_proxy ${APP_NAME}:3000\\\\n}\\\\n' >> /srv/proxy/Caddyfile\",
                 \"docker exec proxy-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker exec caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true\"
               ]" \
               --output text
@@ -267,7 +267,7 @@ jobs:
             --parameters "commands=[
               \"cd /srv/${APP_NAME} && docker compose down --remove-orphans --volumes 2>/dev/null || true\",
               \"rm -rf /srv/${APP_NAME}\",
-              \"sed '/${APP_NAME}\\.gulatilabs\\.me/,/}/d' /srv/proxy/Caddyfile > /srv/proxy/Caddyfile.tmp && cat /srv/proxy/Caddyfile.tmp > /srv/proxy/Caddyfile && rm /srv/proxy/Caddyfile.tmp || true\",
+              \"sed '/${APP_NAME}\\.{{DOMAIN}}/,/}/d' /srv/proxy/Caddyfile > /srv/proxy/Caddyfile.tmp && cat /srv/proxy/Caddyfile.tmp > /srv/proxy/Caddyfile && rm /srv/proxy/Caddyfile.tmp || true\",
               \"docker exec proxy-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker exec caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true\"
             ]" \
             --output text

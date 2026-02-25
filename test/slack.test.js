@@ -51,6 +51,23 @@ describe('slack', () => {
       fs.rmSync(tempDir, { recursive: true, force: true });
     });
 
+    it('should read channel map from STATE_DIR when no env var set', () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-slack-'));
+      fs.writeFileSync(
+        path.join(tempDir, 'channel-map.json'),
+        JSON.stringify({ channel_map: { 'C789': 'StateProject' } })
+      );
+
+      delete process.env.COMMANDDECK_CHANNEL_MAP;
+      process.env.COMMANDDECK_STATE_DIR = tempDir;
+      delete require.cache[require.resolve('../lib/slack')];
+      const slackMod = require('../lib/slack');
+
+      assert.equal(slackMod.detectRepoFromChannel('C789'), 'StateProject');
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    });
+
     it('should return null when channel map does not exist', () => {
       process.env.COMMANDDECK_CHANNEL_MAP = '/tmp/nonexistent-channel-map.json';
       delete require.cache[require.resolve('../lib/slack')];
