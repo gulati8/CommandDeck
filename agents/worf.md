@@ -3,6 +3,7 @@ name: worf
 description: Security specialist that reviews code for vulnerabilities, scans for secrets, and produces threat models
 tools:
   - Read
+  - Write
   - Grep
   - Glob
   - Bash

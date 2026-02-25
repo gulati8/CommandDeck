@@ -55,6 +55,44 @@ describe('ensureClaude', () => {
   });
 });
 
+describe('loadAgentIdentity', () => {
+  it('should return identity text for known agent', () => {
+    const worker = require('../lib/worker');
+    const result = worker.loadAgentIdentity('captain-picard');
+    assert.ok(result.identity.length > 0);
+    assert.ok(result.identity.includes('Captain Picard'));
+  });
+
+  it('should return tools array from frontmatter', () => {
+    const worker = require('../lib/worker');
+    const result = worker.loadAgentIdentity('captain-picard');
+    assert.ok(Array.isArray(result.tools));
+    assert.ok(result.tools.includes('Read'));
+    assert.ok(result.tools.includes('Write'));
+  });
+
+  it('should return model from frontmatter', () => {
+    const worker = require('../lib/worker');
+    const result = worker.loadAgentIdentity('captain-picard');
+    assert.equal(result.model, 'claude-opus-4-6');
+  });
+
+  it('should return empty identity for non-existent agent', () => {
+    const worker = require('../lib/worker');
+    const result = worker.loadAgentIdentity('nonexistent-agent');
+    assert.equal(result.identity, '');
+    assert.equal(result.tools, null);
+    assert.equal(result.model, null);
+  });
+
+  it('should include Write in worf tools', () => {
+    const worker = require('../lib/worker');
+    const result = worker.loadAgentIdentity('worf');
+    assert.ok(Array.isArray(result.tools));
+    assert.ok(result.tools.includes('Write'));
+  });
+});
+
 describe('worker exports', () => {
   it('should export expected functions', () => {
     const worker = require('../lib/worker');
@@ -63,6 +101,7 @@ describe('worker exports', () => {
     assert.equal(typeof worker.kill, 'function');
     assert.equal(typeof worker.activeCount, 'function');
     assert.equal(typeof worker.ensureClaude, 'function');
+    assert.equal(typeof worker.loadAgentIdentity, 'function');
     assert.equal(typeof worker._resetClaudeCheck, 'function');
     assert.equal(typeof worker.WORKER_TIMEOUT, 'number');
   });

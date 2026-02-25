@@ -79,7 +79,7 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 |---|---|
 | `lib/mission.js` | Full mission lifecycle: decompose → workLoop → executeBatch → merge → review → PR |
 | `lib/state.js` | File-based state with atomic mkdir locking, mission CRUD, version tracking |
-| `lib/worker.js` | Spawns `claude -p` subprocesses per agent with allowed-tool restrictions and timeouts |
+| `lib/worker.js` | Spawns `claude -p` subprocesses per agent; `loadAgentIdentity()` reads `agents/*.md` frontmatter for identity, tools, model |
 | `lib/worktree.js` | Git worktree create/remove/list for worker isolation |
 | `lib/risk.js` | Risk flag detection (file patterns on actual changes) → mandatory reviewer mapping |
 | `lib/evidence.js` | Evidence bundle validation and PR body generation (includes Slack metadata) |
@@ -97,6 +97,8 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 | `q.js` | Slack bot entry point: command routing, approval reactions, health patrol |
 | `cli.js` | CLI entry point for local/non-Slack usage |
 | `entrypoint.sh` | Container startup: SSH known_hosts, gh auth from GH_TOKEN, git config |
+| `agents/*.md` | Agent identity files with YAML frontmatter (tools, model) and markdown identity text |
+| `defaults/` | Starter content for standards, crew preferences, and playbooks — seeded by `install.sh` |
 
 ### State Management
 
@@ -158,10 +160,12 @@ Loaded by `hooks/session-start.sh` in priority order:
 4. Repo ADRs (`docs/adr/*.md`)
 5. Active mission state (mission.json, captains-log, briefings)
 
-### Agent Model Tiers
+### Agent Identity & Model Tiers
 
-- **Default:** All agents use `claude-opus-4-6` (exception: O'Brien uses `claude-sonnet-4-5-20250929`)
-- Configurable per project via `config.json` model_overrides
+- Agent identity, tools, and default model are defined in `agents/*.md` YAML frontmatter
+- `lib/worker.js:loadAgentIdentity()` reads these files and prepends the markdown body to worker prompts
+- Frontmatter `tools` array drives `--allowedTools` restrictions per agent
+- **Model precedence:** per-project `config.json` model_overrides > `agents/*.md` frontmatter model > `COMMANDDECK_MODEL` env var > `claude-opus-4-6`
 
 ### Inter-Agent Communication
 

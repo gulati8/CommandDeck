@@ -126,6 +126,22 @@ mkdir -p "$PROJECT_DIR"
 ok "Created $STATE_DIR/"
 ok "Created $PROJECT_DIR/"
 
+# --- 4b. Seed default content ---
+if [[ -d "$SCRIPT_DIR/defaults" ]]; then
+  for subdir in standards crew playbooks; do
+    if [[ -d "$SCRIPT_DIR/defaults/$subdir" ]]; then
+      for file in "$SCRIPT_DIR/defaults/$subdir"/*; do
+        [[ -f "$file" ]] || continue
+        dest="$STATE_DIR/$subdir/$(basename "$file")"
+        if [[ ! -f "$dest" ]]; then
+          cp "$file" "$dest"
+        fi
+      done
+    fi
+  done
+  ok "Seeded default standards, crew preferences, and playbooks"
+fi
+
 # --- 5. Copy hook scripts ---
 echo ""
 echo "Step 5: Hook scripts"
