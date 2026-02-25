@@ -116,22 +116,22 @@ test-app.gulatilabs.me {
       assert.ok(content.includes('postgres:16-alpine'));
     });
 
-    it('should isolate backend on internal and proxy networks', () => {
+    it('should isolate backend on internal network only, frontend on internal and proxy', () => {
       const content = deploy.generatePrComposeContent(
         'app-pr-5',
         'ghcr.io/gulati8/app:pr-5',
         { db_image: 'postgres:15-alpine' }
       );
 
-      // Backend should be on both networks
+      // Backend should only be on internal (not proxy, to avoid DNS collisions)
       const backendSection = content.split('backend:')[1].split('frontend:')[0];
       assert.ok(backendSection.includes('internal'));
-      assert.ok(backendSection.includes('proxy'));
+      assert.ok(!backendSection.includes('proxy'));
 
-      // Frontend should only be on proxy
+      // Frontend should be on both internal (to reach backend) and proxy (for Caddy)
       const frontendSection = content.split('frontend:')[1].split('volumes:')[0];
       assert.ok(frontendSection.includes('proxy'));
-      assert.ok(!frontendSection.includes('internal'));
+      assert.ok(frontendSection.includes('internal'));
     });
   });
 

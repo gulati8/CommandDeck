@@ -134,7 +134,6 @@ jobs:
                   condition: service_healthy
               networks:
                 - internal
-                - proxy
 
             frontend:
               image: IMAGE_REF_PLACEHOLDER
@@ -144,6 +143,7 @@ jobs:
               depends_on:
                 - backend
               networks:
+                - internal
                 - proxy
 
           volumes:
