@@ -86,29 +86,137 @@ jobs:
         run: |
           APP_NAME="${{ steps.target.outputs.app_name }}"
           IMAGE_TAG="${{ steps.target.outputs.image_tag }}"
+          IMAGE_REF="ghcr.io/gulati8/{{APP_NAME}}:${IMAGE_TAG}"
+          STAGING_DIR="/srv/{{APP_NAME}}"
+          PR_DIR="/srv/${APP_NAME}"
+          DB_IMAGE="{{DB_IMAGE}}"
+          DB_SETUP_COMMANDS="{{DB_SETUP_COMMANDS}}"
 
-          # Create docker-compose.yml and Caddy entry on EC2
-          aws ssm send-command \
-            --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "commands=[
-              \"mkdir -p /srv/${APP_NAME}\",
-              \"cat > /srv/${APP_NAME}/docker-compose.yml << 'COMPOSE'\\nservices:\\n  app:\\n    image: ghcr.io/gulati8/{{APP_NAME}}:${IMAGE_TAG}\\n    container_name: ${APP_NAME}\\n    restart: unless-stopped\\n    networks:\\n      - proxy\\n\\nnetworks:\\n  proxy:\\n    external: true\\nCOMPOSE\",
-              \"grep -q '${APP_NAME}.gulatilabs.me' /srv/proxy/Caddyfile 2>/dev/null || printf '\\\\n${APP_NAME}.gulatilabs.me {\\\\n  reverse_proxy ${APP_NAME}:3000\\\\n}\\\\n' >> /srv/proxy/Caddyfile\",
-              \"docker exec proxy-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker exec caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true\"
-            ]" \
-            --output text
+          if [ -n "$DB_IMAGE" ]; then
+            # Full-stack compose with isolated DB/Redis
+            COMPOSE_CONTENT=$(cat <<'COMPOSE'
+          services:
+            postgres:
+              image: {{DB_IMAGE}}
+              container_name: ${APP_NAME}-db
+              restart: unless-stopped
+              environment:
+                POSTGRES_DB: ${POSTGRES_DB}
+                POSTGRES_USER: ${POSTGRES_USER}
+                POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+              volumes:
+                - db_data:/var/lib/postgresql/data
+              networks:
+                - internal
+              healthcheck:
+                test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+                interval: 5s
+                timeout: 3s
+                retries: 10
+
+            redis:
+              image: redis:7-alpine
+              container_name: ${APP_NAME}-redis
+              restart: unless-stopped
+              networks:
+                - internal
+
+            backend:
+              image: IMAGE_REF_PLACEHOLDER
+              container_name: ${APP_NAME}-api
+              restart: unless-stopped
+              env_file: .env
+              environment:
+                DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${APP_NAME}-db:5432/${POSTGRES_DB}
+                REDIS_URL: redis://${APP_NAME}-redis:6379
+              depends_on:
+                postgres:
+                  condition: service_healthy
+              networks:
+                - internal
+                - proxy
+
+            frontend:
+              image: IMAGE_REF_PLACEHOLDER
+              container_name: ${APP_NAME}
+              restart: unless-stopped
+              env_file: .env
+              depends_on:
+                - backend
+              networks:
+                - proxy
+
+          volumes:
+            db_data:
+
+          networks:
+            internal:
+              name: ${APP_NAME}_internal
+            proxy:
+              external: true
+          COMPOSE
+          )
+            COMPOSE_CONTENT=$(echo "$COMPOSE_CONTENT" | sed "s|IMAGE_REF_PLACEHOLDER|${IMAGE_REF}|g")
+
+            # Copy staging .env, override DB name and frontend URL
+            ENV_SETUP="cp ${STAGING_DIR}/.env ${PR_DIR}/.env && sed -i 's/^POSTGRES_DB=.*/POSTGRES_DB={{APP_NAME}}_pr_\${PR_NUM}/' ${PR_DIR}/.env && sed -i 's|^FRONTEND_URL=.*|FRONTEND_URL=https://${APP_NAME}.gulatilabs.me|' ${PR_DIR}/.env"
+
+            # Build DB setup commands
+            DB_CMDS=""
+            if [ -n "$DB_SETUP_COMMANDS" ]; then
+              IFS=',' read -ra CMDS <<< "$DB_SETUP_COMMANDS"
+              for cmd in "${CMDS[@]}"; do
+                cmd=$(echo "$cmd" | xargs)
+                DB_CMDS="${DB_CMDS}\"docker compose -f ${PR_DIR}/docker-compose.yml exec -T backend ${cmd}\","
+              done
+            fi
+
+            aws ssm send-command \
+              --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+              --document-name "AWS-RunShellScript" \
+              --parameters "commands=[
+                \"mkdir -p ${PR_DIR}\",
+                \"cat > ${PR_DIR}/docker-compose.yml << 'INNERCOMPOSE'\n${COMPOSE_CONTENT}\nINNERCOMPOSE\",
+                \"${ENV_SETUP}\",
+                \"grep -q '${APP_NAME}.gulatilabs.me' /srv/proxy/Caddyfile 2>/dev/null || printf '\\\\n${APP_NAME}.gulatilabs.me {\\\\n  reverse_proxy ${APP_NAME}:3000\\\\n}\\\\n' >> /srv/proxy/Caddyfile\",
+                \"docker exec proxy-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker exec caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true\"
+              ]" \
+              --output text
+          else
+            # App-only compose (no database needed)
+            aws ssm send-command \
+              --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
+              --document-name "AWS-RunShellScript" \
+              --parameters "commands=[
+                \"mkdir -p ${PR_DIR}\",
+                \"cat > ${PR_DIR}/docker-compose.yml << 'COMPOSE'\\nservices:\\n  app:\\n    image: ${IMAGE_REF}\\n    container_name: ${APP_NAME}\\n    restart: unless-stopped\\n    networks:\\n      - proxy\\n\\nnetworks:\\n  proxy:\\n    external: true\\nCOMPOSE\",
+                \"grep -q '${APP_NAME}.gulatilabs.me' /srv/proxy/Caddyfile 2>/dev/null || printf '\\\\n${APP_NAME}.gulatilabs.me {\\\\n  reverse_proxy ${APP_NAME}:3000\\\\n}\\\\n' >> /srv/proxy/Caddyfile\",
+                \"docker exec proxy-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker exec caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true\"
+              ]" \
+              --output text
+          fi
 
       - name: Pull and restart on EC2
         run: |
+          APP_NAME="${{ steps.target.outputs.app_name }}"
+          APP_DIR="/srv/${APP_NAME}"
+          DB_SETUP_COMMANDS="{{DB_SETUP_COMMANDS}}"
+
+          PULL_CMDS="\"cd ${APP_DIR}\",\"docker compose pull\",\"docker compose up -d --remove-orphans\""
+
+          # If this is a PR with DB setup commands, run them after compose up
+          if [ "${{ steps.target.outputs.is_pr }}" = "true" ] && [ -n "$DB_SETUP_COMMANDS" ]; then
+            IFS=',' read -ra CMDS <<< "$DB_SETUP_COMMANDS"
+            for cmd in "${CMDS[@]}"; do
+              cmd=$(echo "$cmd" | xargs)
+              PULL_CMDS="${PULL_CMDS},\"docker compose -f ${APP_DIR}/docker-compose.yml exec -T backend ${cmd} || true\""
+            done
+          fi
+
           aws ssm send-command \
             --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters 'commands=[
-              "cd /srv/${{ steps.target.outputs.app_name }}",
-              "docker compose pull",
-              "docker compose up -d --remove-orphans"
-            ]' \
+            --parameters "commands=[${PULL_CMDS}]" \
             --output text
 
       - name: Notify Slack of UAT deployment
@@ -157,7 +265,7 @@ jobs:
             --instance-ids "${{ secrets.EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
             --parameters "commands=[
-              \"cd /srv/${APP_NAME} && docker compose down --remove-orphans 2>/dev/null || true\",
+              \"cd /srv/${APP_NAME} && docker compose down --remove-orphans --volumes 2>/dev/null || true\",
               \"rm -rf /srv/${APP_NAME}\",
               \"sed '/${APP_NAME}\\.gulatilabs\\.me/,/}/d' /srv/proxy/Caddyfile > /srv/proxy/Caddyfile.tmp && cat /srv/proxy/Caddyfile.tmp > /srv/proxy/Caddyfile && rm /srv/proxy/Caddyfile.tmp || true\",
               \"docker exec proxy-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || docker exec caddy caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || true\"
