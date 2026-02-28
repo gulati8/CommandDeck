@@ -1,8 +1,30 @@
 name: Change Request
 description: Request a feature, enhancement, or fix for CommandDeck
-title: "[Change]: "
+title: ""
 labels: []
 body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      options:
+        - change request
+        - bug
+        - exploration
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P0 — drop everything
+        - P1 — next up
+        - P2 — when ready
+    validations:
+      required: true
+
   - type: textarea
     id: what
     attributes:
