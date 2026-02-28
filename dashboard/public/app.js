@@ -52,9 +52,9 @@ function badge(status) {
 
 function progressBar(progress) {
   if (!progress || !progress.total) return '<span class="badge badge-planning">no items</span>';
-  return `<div style="display:flex;align-items:center;gap:8px;">
+  return `<div style="display:flex;align-items:center;gap:10px;">
     <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${progress.percent}%"></div></div>
-    <span style="font-size:13px;color:var(--blue-bright);font-weight:700">${progress.done}/${progress.total}</span>
+    <span style="font-size:15px;color:var(--blue-bright);font-weight:700">${progress.done}/${progress.total}</span>
   </div>`;
 }
 
@@ -180,7 +180,7 @@ async function loadProjects() {
         <span>${p.config?.default_branch || 'main'} / ${p.config?.max_workers || 1}w</span>
         <span class="mission-count">${p.mission_count} mission${p.mission_count !== 1 ? 's' : ''}</span>
       </div>
-      <div class="card-meta" style="margin-top:4px">
+      <div class="card-meta" style="margin-top:6px">
         ${linkIcon(ghRepoUrl(p.repo), 'GitHub')}
         ${p.channel_id ? linkIcon(slackChannelUrl(p.channel_id), 'Slack') : ''}
       </div>
@@ -242,11 +242,11 @@ async function loadMissions(repo) {
 
   for (const m of data) {
     html += `<tr onclick="navigateTo('detail', '${escapeHtml(repo)}', '${escapeHtml(m.mission_id)}')">
-      <td style="white-space:nowrap;color:var(--text-dim);font-size:12px">${escapeHtml(m.mission_id)}</td>
+      <td style="white-space:nowrap;color:var(--text-dim)">${escapeHtml(m.mission_id)}</td>
       <td>${escapeHtml(m.description)}</td>
       <td>${badge(m.status)}</td>
-      <td style="min-width:120px">${progressBar(m.progress)}</td>
-      <td style="white-space:nowrap;font-size:12px;color:var(--text-dim)">${formatTime(m.created_at)}<br>${relativeTime(m.created_at)}</td>
+      <td style="min-width:140px">${progressBar(m.progress)}</td>
+      <td style="white-space:nowrap;color:var(--text-dim)">${formatTime(m.created_at)}<br>${relativeTime(m.created_at)}</td>
       <td onclick="event.stopPropagation()">${m.pr?.url ? linkIcon(m.pr.url, 'PR #' + m.pr.number) : ''}</td>
     </tr>`;
   }
@@ -266,7 +266,7 @@ async function loadMissionDetail(repo, missionId) {
     : '?';
 
   let html = `
-    <p style="margin-bottom:12px;color:var(--text)">${escapeHtml(data.description)}</p>
+    <p style="margin-bottom:16px;color:var(--text);font-size:18px">${escapeHtml(data.description)}</p>
     <div class="detail-grid">
       <div class="detail-card">
         <h3>Status</h3>
@@ -295,7 +295,7 @@ async function loadMissionDetail(repo, missionId) {
 
   // Objectives table
   if (data.work_items?.length) {
-    html += `<h3 style="font-family:var(--font-display);font-size:12px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px">Objectives</h3>`;
+    html += `<h3 style="font-family:var(--font-display);font-size:14px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:20px 0 10px">Objectives</h3>`;
     html += `<table class="data-table"><thead><tr>
       <th>ID</th><th>Title</th><th>Agent</th><th>Status</th><th>Risk Flags</th><th>Evidence</th>
     </tr></thead><tbody>`;
@@ -303,12 +303,12 @@ async function loadMissionDetail(repo, missionId) {
       const riskHtml = (w.risk_flags || []).map(f => `<span class="risk-flag">${escapeHtml(f)}</span>`).join('');
       const evSummary = w.evidence ? `${w.evidence.tests?.result || 'n/a'}` : '--';
       html += `<tr class="no-click">
-        <td style="white-space:nowrap;font-size:12px;color:var(--text-dim)">${escapeHtml(w.id)}</td>
+        <td style="white-space:nowrap;color:var(--text-dim)">${escapeHtml(w.id)}</td>
         <td>${escapeHtml(w.title || w.description || '')}</td>
-        <td style="color:var(--gold-bright);font-weight:600">${escapeHtml(w.assigned_to || '--')}</td>
+        <td style="color:var(--gold-bright);font-weight:700">${escapeHtml(w.assigned_to || '--')}</td>
         <td>${badge(w.status)}</td>
         <td>${riskHtml || '--'}</td>
-        <td style="font-size:12px">${evSummary}</td>
+        <td>${evSummary}</td>
       </tr>`;
     }
     html += '</tbody></table>';
@@ -316,7 +316,7 @@ async function loadMissionDetail(repo, missionId) {
 
   // Health alerts
   if (data.health_alerts?.length) {
-    html += `<h3 style="font-family:var(--font-display);font-size:12px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px">Health Alerts</h3>`;
+    html += `<h3 style="font-family:var(--font-display);font-size:14px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:20px 0 10px">Health Alerts</h3>`;
     for (const a of data.health_alerts) {
       const cls = a.level === 'red' ? '' : ' warning';
       html += `<div class="alert-item${cls}">
@@ -328,7 +328,7 @@ async function loadMissionDetail(repo, missionId) {
 
   // Session log
   if (data.session_log?.length) {
-    html += `<h3 style="font-family:var(--font-display);font-size:12px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px">Session Log (${data.session_log.length})</h3>`;
+    html += `<h3 style="font-family:var(--font-display);font-size:14px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:20px 0 10px">Session Log (${data.session_log.length})</h3>`;
     const recent = data.session_log.slice(-20).reverse();
     for (const s of recent) {
       const dur = s.started_at && s.ended_at
@@ -356,6 +356,9 @@ function navigateTo(view, repo, missionId) {
   document.getElementById('projects-section').style.display = view === 'projects' ? '' : 'none';
   document.getElementById('missions-section').style.display = view === 'missions' ? '' : 'none';
   document.getElementById('detail-section').style.display = view === 'detail' ? '' : 'none';
+
+  // System status only on homepage
+  document.getElementById('system-section').style.display = view === 'projects' ? '' : 'none';
 
   const bc = document.getElementById('breadcrumb');
   bc.style.display = view === 'projects' ? 'none' : '';
@@ -414,7 +417,12 @@ function routeFromHash() {
 
 async function refresh() {
   await loadOverview();
-  await Promise.all([loadPending(), loadProjects(), loadQStatus(), loadContainers()]);
+  const tasks = [loadPending(), loadProjects()];
+  // Only load system status when on homepage
+  if (appState.currentView === 'projects') {
+    tasks.push(loadQStatus(), loadContainers());
+  }
+  await Promise.all(tasks);
 
   // Re-fetch current view data
   if (appState.currentView === 'missions' && appState.currentRepo) {
