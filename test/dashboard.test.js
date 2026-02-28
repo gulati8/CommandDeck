@@ -108,9 +108,9 @@ function seedState() {
   ];
   fs.writeFileSync(path.join(projectDir, 'artifacts', 'health-alerts.ndjson'), alerts.join('\n') + '\n');
 
-  // Channel map
+  // Channel map (includes channel-only-repo with no state dir)
   fs.writeFileSync(path.join(tmpDir, 'channel-map.json'), JSON.stringify({
-    channel_map: { C123: 'test-repo' }
+    channel_map: { C123: 'test-repo', C456: 'channel-only-repo' }
   }));
 
   // PR approvals
@@ -207,7 +207,7 @@ describe('dashboard server', () => {
       const res = await makeRequest(port, '/api/overview');
       assert.equal(res.statusCode, 200);
       const json = JSON.parse(res.body);
-      assert.equal(json.projects, 2);
+      assert.equal(json.projects, 3);
       assert.equal(json.active_missions, 1);
       assert.equal(json.total_missions, 1);
       assert.equal(json.config.github_org, 'testorg');
@@ -222,7 +222,7 @@ describe('dashboard server', () => {
       assert.equal(res.statusCode, 200);
       const json = JSON.parse(res.body);
       assert.ok(Array.isArray(json));
-      assert.equal(json.length, 2);
+      assert.equal(json.length, 3);
 
       const testRepo = json.find(p => p.repo === 'test-repo');
       assert.ok(testRepo);
@@ -233,6 +233,11 @@ describe('dashboard server', () => {
       const emptyRepo = json.find(p => p.repo === 'empty-repo');
       assert.ok(emptyRepo);
       assert.equal(emptyRepo.mission_count, 0);
+
+      const channelOnly = json.find(p => p.repo === 'channel-only-repo');
+      assert.ok(channelOnly);
+      assert.equal(channelOnly.channel_id, 'C456');
+      assert.equal(channelOnly.mission_count, 0);
     });
   });
 

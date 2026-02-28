@@ -58,7 +58,7 @@ function serveStatic(pathname, res) {
   }
 }
 
-// Enumerate projects from state dir (works on read-only mount, no COMMANDDECK_PROJECT_DIR needed)
+// Enumerate projects from state dir
 function listStateProjects() {
   const projectsDir = path.join(state.STATE_DIR, 'projects');
   try {
@@ -68,6 +68,16 @@ function listStateProjects() {
   } catch {
     return [];
   }
+}
+
+// All known projects: state dir + channel map (deduped)
+function listAllProjects() {
+  const stateProjects = new Set(listStateProjects());
+  const channelMap = readJSON(CHANNEL_MAP_PATH, { channel_map: {} });
+  for (const repo of Object.values(channelMap.channel_map || {})) {
+    stateProjects.add(repo);
+  }
+  return [...stateProjects].sort();
 }
 
 // List mission IDs for a project
@@ -124,7 +134,7 @@ function readEvidence(repo, missionId, objectiveId) {
 
 function handleOverview() {
   const globalConfig = state.loadGlobalConfig();
-  const projects = listStateProjects();
+  const projects = listAllProjects();
 
   let activeMissions = 0;
   let totalMissions = 0;
@@ -152,7 +162,7 @@ function handleOverview() {
 }
 
 function handleProjects() {
-  const projects = listStateProjects();
+  const projects = listAllProjects();
   const channelMap = readJSON(CHANNEL_MAP_PATH, { channel_map: {} });
   const reverseMap = {};
   for (const [ch, repo] of Object.entries(channelMap.channel_map || {})) {
