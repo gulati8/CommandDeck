@@ -91,6 +91,8 @@ async function loadOverview() {
   document.getElementById('m-projects').textContent = data.projects;
   document.getElementById('m-active').textContent = data.active_missions;
   document.getElementById('m-total').textContent = data.total_missions;
+  document.getElementById('m-workers').textContent = data.active_workers ?? 0;
+  document.getElementById('dashboard-uptime').textContent = 'Uptime: ' + formatUptime(data.uptime);
 }
 
 async function loadPending() {
@@ -184,6 +186,42 @@ async function loadProjects() {
       </div>
     </div>
   `).join('');
+}
+
+async function loadQStatus() {
+  const data = await fetchJSON('/api/q-status');
+  const dot = document.querySelector('#q-status-indicator .status-dot');
+  const text = document.getElementById('q-status-text');
+  const uptime = document.getElementById('q-uptime');
+  if (!data || data.status !== 'online') {
+    dot.className = 'status-dot offline';
+    text.textContent = 'Offline';
+    uptime.textContent = '';
+  } else {
+    dot.className = 'status-dot online';
+    text.textContent = 'Online';
+    uptime.textContent = 'Uptime: ' + formatUptime(data.uptime);
+  }
+}
+
+async function loadContainers() {
+  const data = await fetchJSON('/api/containers');
+  const grid = document.getElementById('containers-grid');
+  if (!data || !data.length) {
+    grid.innerHTML = '<div class="empty-state">No container data available</div>';
+    return;
+  }
+  grid.innerHTML = data.map(c => {
+    const healthBadge = c.health
+      ? `<span class="c-health ${c.health}">${c.health}</span>`
+      : '';
+    return `<div class="container-card">
+      <span class="status-dot ${c.state === 'running' ? 'online' : 'offline'}"></span>
+      <span class="c-name">${escapeHtml(c.name)}</span>
+      <span class="c-state ${c.state}">${c.state}</span>
+      ${healthBadge}
+    </div>`;
+  }).join('');
 }
 
 async function loadMissions(repo) {
@@ -375,7 +413,7 @@ function routeFromHash() {
 // --- Refresh loop ---
 
 async function refresh() {
-  await Promise.all([loadOverview(), loadPending(), loadProjects()]);
+  await Promise.all([loadOverview(), loadPending(), loadProjects(), loadQStatus(), loadContainers()]);
 
   // Re-fetch current view data
   if (appState.currentView === 'missions' && appState.currentRepo) {

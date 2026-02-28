@@ -177,6 +177,27 @@ a.ext-link:hover { color: var(--blue-bright); text-decoration: underline; }
 /* Risk flags */
 .risk-flag { display: inline-block; padding: 2px 8px; margin-right: 4px; font-size: 10px; border-radius: 8px; background: rgba(204,68,68,0.15); color: var(--red-bright); text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid rgba(204,68,68,0.25); }
 
+/* System status */
+.system-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.system-card { background: var(--surface); border: 1px solid var(--border); padding: 16px; }
+.system-card h3 { font-family: var(--font-display); font-size: 11px; color: var(--command-gold); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
+.system-indicator { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.status-dot.online { background: var(--done); box-shadow: 0 0 6px var(--done); }
+.status-dot.offline { background: var(--engineering-red); box-shadow: 0 0 6px var(--engineering-red); }
+
+/* Containers grid */
+.containers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.container-card { background: var(--surface); border: 1px solid var(--border); padding: 10px 14px; font-size: 13px; display: flex; align-items: center; gap: 10px; }
+.container-card .c-name { color: var(--text); font-weight: 700; }
+.container-card .c-state { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.container-card .c-state.running { color: var(--done); }
+.container-card .c-state.exited { color: var(--engineering-red); }
+.container-card .c-state.created, .container-card .c-state.paused { color: var(--muted); }
+.container-card .c-health { font-size: 10px; margin-left: auto; }
+.container-card .c-health.healthy { color: var(--done); }
+.container-card .c-health.unhealthy { color: var(--engineering-red); }
+
 /* Empty state */
 .empty-state { color: var(--text-dim); font-size: 14px; padding: 28px; text-align: center; font-style: italic; }
 

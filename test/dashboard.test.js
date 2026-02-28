@@ -11,6 +11,8 @@ const os = require('os');
 const tmpDir = path.join(os.tmpdir(), `dashboard-test-${Date.now()}`);
 process.env.COMMANDDECK_STATE_DIR = tmpDir;
 process.env.COMMANDDECK_PROJECT_DIR = path.join(tmpDir, 'projects-dir');
+process.env.DOCKER_SOCKET = '/nonexistent/docker.sock';
+process.env.Q_HOST = '127.0.0.254'; // unreachable
 
 function makeRequest(port, reqPath, method = 'GET') {
   return new Promise((resolve, reject) => {
@@ -336,6 +338,37 @@ describe('dashboard server', () => {
       assert.equal(res.statusCode, 200);
       const json = JSON.parse(res.body);
       assert.deepEqual(json, []);
+    });
+  });
+
+  describe('GET /api/q-status', () => {
+    it('returns offline when Q is not reachable', async () => {
+      const res = await makeRequest(port, '/api/q-status');
+      assert.equal(res.statusCode, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(json.status, 'offline');
+      assert.equal(json.uptime, null);
+    });
+  });
+
+  describe('GET /api/containers', () => {
+    it('returns empty array when docker socket unavailable', async () => {
+      const res = await makeRequest(port, '/api/containers');
+      assert.equal(res.statusCode, 200);
+      const json = JSON.parse(res.body);
+      assert.ok(Array.isArray(json));
+      assert.equal(json.length, 0);
+    });
+  });
+
+  describe('GET /api/overview active_workers', () => {
+    it('returns active_workers count', async () => {
+      const res = await makeRequest(port, '/api/overview');
+      assert.equal(res.statusCode, 200);
+      const json = JSON.parse(res.body);
+      assert.equal(typeof json.active_workers, 'number');
+      // obj-2 is in_progress in our test mission
+      assert.equal(json.active_workers, 1);
     });
   });
 

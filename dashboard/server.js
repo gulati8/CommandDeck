@@ -10,6 +10,9 @@ const CHANNEL_MAP_PATH = process.env.COMMANDDECK_CHANNEL_MAP
 const PR_APPROVALS_PATH = path.join(state.STATE_DIR, 'pr-approvals.json');
 const PLAN_APPROVALS_PATH = path.join(state.STATE_DIR, 'plan-approvals.json');
 const THREADS_PATH = path.join(state.STATE_DIR, 'active-threads.json');
+const Q_HOST = process.env.Q_HOST || 'commanddeck';
+const Q_PORT = parseInt(process.env.Q_PORT || '3001', 10);
+const DOCKER_SOCKET = process.env.DOCKER_SOCKET || '/var/run/docker.sock';
 
 function readJSON(filePath, fallback) {
   try { return JSON.parse(fs.readFileSync(filePath, 'utf-8')); }
@@ -138,6 +141,7 @@ function handleOverview() {
 
   let activeMissions = 0;
   let totalMissions = 0;
+  let activeWorkers = 0;
 
   for (const repo of projects) {
     for (const mid of listMissionIds(repo)) {
@@ -145,6 +149,7 @@ function handleOverview() {
       const m = state.readMissionUnsafe(repo, mid);
       if (m && ['planning', 'in_progress', 'pending_approval', 'review'].includes(m.status)) {
         activeMissions++;
+        activeWorkers += (m.work_items || []).filter(w => w.status === 'in_progress').length;
       }
     }
   }
@@ -154,6 +159,7 @@ function handleOverview() {
     projects: projects.length,
     active_missions: activeMissions,
     total_missions: totalMissions,
+    active_workers: activeWorkers,
     config: {
       github_org: globalConfig.github_org,
       domain: globalConfig.domain
@@ -245,6 +251,48 @@ function handlePending() {
   };
 }
 
+// --- Async API handlers ---
+
+function httpGet(options, timeout = 3000) {
+  return new Promise((resolve) => {
+    const req = http.get(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch { resolve(null); }
+      });
+    });
+    req.setTimeout(timeout, () => { req.destroy(); resolve(null); });
+    req.on('error', () => resolve(null));
+  });
+}
+
+async function handleQStatus() {
+  const data = await httpGet({ hostname: Q_HOST, port: Q_PORT, path: '/health' });
+  if (data && data.status === 'ok') {
+    return { status: 'online', uptime: data.uptime };
+  }
+  return { status: 'offline', uptime: null };
+}
+
+async function handleContainers() {
+  try {
+    fs.accessSync(DOCKER_SOCKET);
+  } catch {
+    return [];
+  }
+  const containers = await httpGet({ socketPath: DOCKER_SOCKET, path: '/containers/json?all=true' });
+  if (!Array.isArray(containers)) return [];
+  return containers.map(c => {
+    const name = (c.Names?.[0] || '').replace(/^\//, '');
+    let health = null;
+    if (c.Status?.includes('healthy') && !c.Status?.includes('unhealthy')) health = 'healthy';
+    else if (c.Status?.includes('unhealthy')) health = 'unhealthy';
+    return { name, image: c.Image, state: c.State, status: c.Status, health };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 // --- Route matching ---
 
 function matchRoute(pathname) {
@@ -263,7 +311,7 @@ function matchRoute(pathname) {
   return null;
 }
 
-function handleAPI(url, res) {
+async function handleAPI(url, res) {
   try {
     const pathname = url.pathname;
 
@@ -278,6 +326,12 @@ function handleAPI(url, res) {
     }
     if (pathname === '/api/pending') {
       return sendJSON(res, 200, handlePending());
+    }
+    if (pathname === '/api/q-status') {
+      return sendJSON(res, 200, await handleQStatus());
+    }
+    if (pathname === '/api/containers') {
+      return sendJSON(res, 200, await handleContainers());
     }
 
     const route = matchRoute(pathname);

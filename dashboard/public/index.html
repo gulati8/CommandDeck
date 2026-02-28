@@ -39,6 +39,10 @@
       <span class="metric-label">TOTAL MISSIONS</span>
     </div>
     <div class="metric">
+      <span class="metric-value" id="m-workers">-</span>
+      <span class="metric-label">ACTIVE WORKERS</span>
+    </div>
+    <div class="metric">
       <span class="metric-value pending" id="m-pending">-</span>
       <span class="metric-label">PENDING ACTIONS</span>
     </div>
@@ -52,6 +56,36 @@
       <span class="panel-toggle" id="pending-body-toggle">&#9660;</span>
     </div>
     <div id="pending-body" class="panel-body"></div>
+  </section>
+
+  <!-- System Status -->
+  <section id="system-section" class="panel">
+    <div class="panel-header" onclick="togglePanel('system-body')">
+      <span class="panel-marker"></span>
+      <h2>System Status</h2>
+      <span class="panel-toggle" id="system-body-toggle">&#9660;</span>
+    </div>
+    <div id="system-body" class="panel-body">
+      <div class="system-grid">
+        <div class="system-card" id="q-status-card">
+          <h3>Q Bot (Slack)</h3>
+          <div class="system-indicator" id="q-status-indicator">
+            <span class="status-dot offline"></span>
+            <span id="q-status-text">Checking...</span>
+          </div>
+          <div class="sub" id="q-uptime"></div>
+        </div>
+        <div class="system-card" id="dashboard-status-card">
+          <h3>Dashboard</h3>
+          <div class="system-indicator">
+            <span class="status-dot online"></span>
+            <span>Online</span>
+          </div>
+          <div class="sub" id="dashboard-uptime"></div>
+        </div>
+      </div>
+      <div id="containers-grid" class="containers-grid"></div>
+    </div>
   </section>
 
   <!-- Breadcrumb nav -->

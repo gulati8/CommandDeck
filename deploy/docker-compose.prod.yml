@@ -21,8 +21,13 @@ services:
     environment:
       - COMMANDDECK_STATE_DIR=/home/commanddeck/.commanddeck
       - DASHBOARD_PORT=3002
+      - Q_HOST=commanddeck
+      - Q_PORT=3001
     volumes:
       - commanddeck-state:/home/commanddeck/.commanddeck:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    group_add:
+      - "${DOCKER_GID:-993}"
     networks:
       - proxy
 
