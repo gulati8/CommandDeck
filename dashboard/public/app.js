@@ -54,7 +54,7 @@ function progressBar(progress) {
   if (!progress || !progress.total) return '<span class="badge badge-planning">no items</span>';
   return `<div style="display:flex;align-items:center;gap:8px;">
     <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${progress.percent}%"></div></div>
-    <span style="font-size:11px;color:var(--cyan);font-weight:600">${progress.done}/${progress.total}</span>
+    <span style="font-size:13px;color:var(--blue-bright);font-weight:700">${progress.done}/${progress.total}</span>
   </div>`;
 }
 
@@ -199,11 +199,11 @@ async function loadMissions(repo) {
 
   for (const m of data) {
     html += `<tr onclick="navigateTo('detail', '${escapeHtml(repo)}', '${escapeHtml(m.mission_id)}')">
-      <td style="white-space:nowrap;color:var(--text-dim);font-size:11px">${escapeHtml(m.mission_id)}</td>
+      <td style="white-space:nowrap;color:var(--text-dim);font-size:12px">${escapeHtml(m.mission_id)}</td>
       <td>${escapeHtml(m.description)}</td>
       <td>${badge(m.status)}</td>
       <td style="min-width:120px">${progressBar(m.progress)}</td>
-      <td style="white-space:nowrap;font-size:11px;color:var(--text-dim)">${formatTime(m.created_at)}<br>${relativeTime(m.created_at)}</td>
+      <td style="white-space:nowrap;font-size:12px;color:var(--text-dim)">${formatTime(m.created_at)}<br>${relativeTime(m.created_at)}</td>
       <td onclick="event.stopPropagation()">${m.pr?.url ? linkIcon(m.pr.url, 'PR #' + m.pr.number) : ''}</td>
     </tr>`;
   }
@@ -252,7 +252,7 @@ async function loadMissionDetail(repo, missionId) {
 
   // Objectives table
   if (data.work_items?.length) {
-    html += `<h3 style="font-family:var(--font-display);font-size:11px;color:var(--amber-dim);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px">Objectives</h3>`;
+    html += `<h3 style="font-family:var(--font-display);font-size:12px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px">Objectives</h3>`;
     html += `<table class="data-table"><thead><tr>
       <th>ID</th><th>Title</th><th>Agent</th><th>Status</th><th>Risk Flags</th><th>Evidence</th>
     </tr></thead><tbody>`;
@@ -260,12 +260,12 @@ async function loadMissionDetail(repo, missionId) {
       const riskHtml = (w.risk_flags || []).map(f => `<span class="risk-flag">${escapeHtml(f)}</span>`).join('');
       const evSummary = w.evidence ? `${w.evidence.tests?.result || 'n/a'}` : '--';
       html += `<tr class="no-click">
-        <td style="white-space:nowrap;font-size:11px;color:var(--text-dim)">${escapeHtml(w.id)}</td>
+        <td style="white-space:nowrap;font-size:12px;color:var(--text-dim)">${escapeHtml(w.id)}</td>
         <td>${escapeHtml(w.title || w.description || '')}</td>
-        <td style="color:var(--amber);font-weight:600">${escapeHtml(w.assigned_to || '--')}</td>
+        <td style="color:var(--gold-bright);font-weight:600">${escapeHtml(w.assigned_to || '--')}</td>
         <td>${badge(w.status)}</td>
         <td>${riskHtml || '--'}</td>
-        <td style="font-size:11px">${evSummary}</td>
+        <td style="font-size:12px">${evSummary}</td>
       </tr>`;
     }
     html += '</tbody></table>';
@@ -273,7 +273,7 @@ async function loadMissionDetail(repo, missionId) {
 
   // Health alerts
   if (data.health_alerts?.length) {
-    html += `<h3 style="font-family:var(--font-display);font-size:11px;color:var(--amber-dim);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px">Health Alerts</h3>`;
+    html += `<h3 style="font-family:var(--font-display);font-size:12px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px">Health Alerts</h3>`;
     for (const a of data.health_alerts) {
       const cls = a.level === 'red' ? '' : ' warning';
       html += `<div class="alert-item${cls}">
@@ -285,7 +285,7 @@ async function loadMissionDetail(repo, missionId) {
 
   // Session log
   if (data.session_log?.length) {
-    html += `<h3 style="font-family:var(--font-display);font-size:11px;color:var(--amber-dim);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px">Session Log (${data.session_log.length})</h3>`;
+    html += `<h3 style="font-family:var(--font-display);font-size:12px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 8px">Session Log (${data.session_log.length})</h3>`;
     const recent = data.session_log.slice(-20).reverse();
     for (const s of recent) {
       const dur = s.started_at && s.ended_at
