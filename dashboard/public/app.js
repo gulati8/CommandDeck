@@ -413,7 +413,8 @@ function routeFromHash() {
 // --- Refresh loop ---
 
 async function refresh() {
-  await Promise.all([loadOverview(), loadPending(), loadProjects(), loadQStatus(), loadContainers()]);
+  await loadOverview();
+  await Promise.all([loadPending(), loadProjects(), loadQStatus(), loadContainers()]);
 
   // Re-fetch current view data
   if (appState.currentView === 'missions' && appState.currentRepo) {
