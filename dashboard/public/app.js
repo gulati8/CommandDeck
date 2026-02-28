@@ -115,10 +115,15 @@ async function loadPending() {
   if (data.pr_approvals?.length) {
     html += `<div class="pending-group"><h3>PRs Awaiting Approval (${data.pr_approvals.length})</h3>`;
     for (const pr of data.pr_approvals) {
+      const domain = appState.overview?.config?.domain;
+      const uatUrl = domain && pr.repo && pr.pr_number
+        ? `https://${pr.repo}-pr-${pr.pr_number}.${domain}`
+        : null;
       html += `<div class="pending-item">
         <span class="repo-tag">${escapeHtml(pr.repo)}</span>
         <span>PR #${pr.pr_number}</span>
         ${linkIcon(pr.pr_url, 'GitHub')}
+        ${uatUrl ? linkIcon(uatUrl, 'UAT') : ''}
         ${linkIcon(slackChannelUrl(pr.channel), 'Slack')}
         <span style="color:var(--text-dim);margin-left:auto">${relativeTime(pr.tracked_at)}</span>
       </div>`;
