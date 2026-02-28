@@ -1,0 +1,48 @@
+name: Change Request
+description: Request a feature, enhancement, or fix for CommandDeck
+title: "[Change]: "
+labels: []
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What do you want changed?
+      description: Describe the change in plain language. Be specific about the desired outcome.
+      placeholder: "e.g., Add a /status CLI command that shows all active missions across all projects"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why do you want this? What problem does it solve or what workflow does it improve?
+      placeholder: "e.g., Right now I have to SSH into the EC2 to check mission state. A CLI command would let me check from my laptop."
+    validations:
+      required: false
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints or preferences
+      description: Anything CommandDeck should or should NOT do when implementing this.
+      placeholder: |
+        e.g.,
+        - Keep it in the existing Slack thread, don't start a new one
+        - Don't touch the database schema
+        - Use bun instead of npm for this project
+    validations:
+      required: false
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples
+      description: Show what the interaction or output should look like.
+      placeholder: |
+        e.g.,
+        $ npm run cli -- status
+        FurEverCare: 2 missions (1 active, 1 completed)
+        WeatherAggregator: idle
+    validations:
+      required: false

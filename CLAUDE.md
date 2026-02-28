@@ -51,12 +51,8 @@ CommandDeck ships with a default crew and sensible defaults. Users customize via
 
 ### Roadmap (Priority Order)
 
-1. Deploy CommandDeck to hosted infrastructure (EC2)
-2. Onboard existing projects (FurEverCare, Eve, ReefRush alongside WeatherAggregator)
-3. Clean up config model — consolidate scattered config into a clear structure
-4. Ship crew customization defaults — starter preference files, documentation
-5. Build the setup/installation script
-6. Abstract the infrastructure/deployment layer for portability
+1. Build the setup/installation script
+2. Abstract the infrastructure/deployment layer for portability
 
 ## Architecture
 
