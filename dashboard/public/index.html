@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommandDeck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Scanline overlay -->
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <header class="bridge-header">
+    <div class="header-left">
+      <h1 class="logo">CommandDeck</h1>
+      <span class="org-badge" id="org-badge"></span>
+    </div>
+    <div class="header-right">
+      <span class="domain-label" id="domain-label"></span>
+      <span class="uptime-label">UPTIME <span id="uptime" class="uptime-value">--:--:--</span></span>
+      <span class="refresh-label">LAST SYNC <span id="last-refresh">--:--:--</span></span>
+    </div>
+  </header>
+
+  <div class="metrics-bar">
+    <div class="metric">
+      <span class="metric-value" id="m-projects">-</span>
+      <span class="metric-label">PROJECTS</span>
+    </div>
+    <div class="metric">
+      <span class="metric-value active" id="m-active">-</span>
+      <span class="metric-label">ACTIVE MISSIONS</span>
+    </div>
+    <div class="metric">
+      <span class="metric-value" id="m-total">-</span>
+      <span class="metric-label">TOTAL MISSIONS</span>
+    </div>
+    <div class="metric">
+      <span class="metric-value pending" id="m-pending">-</span>
+      <span class="metric-label">PENDING ACTIONS</span>
+    </div>
+  </div>
+
+  <!-- Pending Actions -->
+  <section id="pending-section" class="panel" style="display:none">
+    <div class="panel-header" onclick="togglePanel('pending-body')">
+      <span class="panel-marker"></span>
+      <h2>Pending Actions</h2>
+      <span class="panel-toggle" id="pending-body-toggle">&#9660;</span>
+    </div>
+    <div id="pending-body" class="panel-body"></div>
+  </section>
+
+  <!-- Breadcrumb nav -->
+  <nav id="breadcrumb" class="breadcrumb" style="display:none">
+    <a href="#" onclick="navigateTo('projects'); return false;">All Projects</a>
+    <span id="bc-project" style="display:none"> / <a href="#" id="bc-project-link"></a></span>
+    <span id="bc-mission" style="display:none"> / <span id="bc-mission-label"></span></span>
+  </nav>
+
+  <!-- Projects Grid -->
+  <section id="projects-section" class="panel">
+    <div class="panel-header">
+      <span class="panel-marker"></span>
+      <h2>Projects</h2>
+    </div>
+    <div id="projects-grid" class="projects-grid"></div>
+  </section>
+
+  <!-- Mission List -->
+  <section id="missions-section" class="panel" style="display:none">
+    <div class="panel-header">
+      <span class="panel-marker"></span>
+      <h2 id="missions-title">Missions</h2>
+    </div>
+    <div id="missions-list"></div>
+  </section>
+
+  <!-- Mission Detail -->
+  <section id="detail-section" class="panel" style="display:none">
+    <div class="panel-header">
+      <span class="panel-marker"></span>
+      <h2 id="detail-title">Mission Detail</h2>
+    </div>
+    <div id="detail-body"></div>
+  </section>
+
+  <script src="/app.js"></script>
+</body>
+</html>

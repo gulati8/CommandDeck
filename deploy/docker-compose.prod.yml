@@ -14,6 +14,18 @@ services:
     networks:
       - proxy
 
+  dashboard:
+    image: ghcr.io/gulati8/commanddeck-dashboard:latest
+    container_name: commanddeck-dashboard
+    restart: unless-stopped
+    environment:
+      - COMMANDDECK_STATE_DIR=/home/commanddeck/.commanddeck
+      - DASHBOARD_PORT=3002
+    volumes:
+      - commanddeck-state:/home/commanddeck/.commanddeck:ro
+    networks:
+      - proxy
+
 volumes:
   commanddeck-state:
   commanddeck-projects:

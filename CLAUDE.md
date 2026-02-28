@@ -95,6 +95,9 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 | `entrypoint.sh` | Container startup: SSH known_hosts, gh auth from GH_TOKEN, git config |
 | `agents/*.md` | Agent identity files with YAML frontmatter (tools, model) and markdown identity text |
 | `defaults/` | Starter content for standards, crew preferences, and playbooks — seeded by `install.sh` |
+| `dashboard/server.js` | Status dashboard: vanilla HTTP server with JSON API + static file serving |
+| `dashboard/public/` | Dashboard frontend: single-page HTML/CSS/JS, dark theme, auto-refresh |
+| `dashboard/Dockerfile` | Lightweight dashboard container image (node only, no dev tools) |
 
 ### State Management
 
