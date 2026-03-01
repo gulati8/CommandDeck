@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Session Start
+
+At the start of every session, display the open GitHub issues from the session-issues hook output to the user before doing anything else. Keep it brief — list the issues, then proceed with whatever the user asked.
+
 ## Commands
 
 - **Install:** `npm install`
@@ -49,10 +53,13 @@ CommandDeck ships with a default crew and sensible defaults. Users customize via
 2. **New agent roles** — Register custom specialists beyond the default crew (e.g., Designer, DBA)
 3. **Workflow templates** — Project-type-specific decomposition patterns (e.g., React apps vs. Go services)
 
-### Roadmap (Priority Order)
+### Roadmap & Issue Tracking
 
-1. Build the setup/installation script
-2. Abstract the infrastructure/deployment layer for portability
+Roadmap and work items are tracked as GitHub issues: https://github.com/gulati8/CommandDeck/issues
+
+- **Labels:** P0 (critical), P1 (next up), P2 (when ready), bug, change request, exploration
+- **Issue template:** `.github/ISSUE_TEMPLATE/change-request.yml`
+- **Session hook:** `.claude/hooks/session-issues.sh` fetches open issues at session start so Claude Code sees current work items automatically
 
 ## Architecture
 
