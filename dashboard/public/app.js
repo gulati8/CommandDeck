@@ -4,9 +4,11 @@ let appState = {
   overview: null,
   projects: [],
   pending: null,
+  orphaned: [],
   currentView: 'projects', // projects | missions | detail
   currentRepo: null,
   currentMission: null,
+  currentMissionData: null,
   githubOrg: ''
 };
 
@@ -16,6 +18,15 @@ async function fetchJSON(url) {
   const res = await fetch(url);
   if (!res.ok) return null;
   return res.json();
+}
+
+async function postJSON(url, data) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return { ok: res.ok, status: res.status, data: await res.json().catch(() => null) };
 }
 
 // --- Formatting ---
@@ -32,6 +43,12 @@ function formatTime(iso) {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
     ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatTimeShort(iso) {
+  if (!iso) return '--';
+  const d = new Date(iso);
+  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
 function relativeTime(iso) {
@@ -92,7 +109,7 @@ async function loadOverview() {
   document.getElementById('m-active').textContent = data.active_missions;
   document.getElementById('m-total').textContent = data.total_missions;
   document.getElementById('m-workers').textContent = data.active_workers ?? 0;
-  document.getElementById('dashboard-uptime').textContent = 'Uptime: ' + formatUptime(data.uptime);
+  document.getElementById('server-uptime').textContent = 'Uptime: ' + formatUptime(data.uptime);
 }
 
 async function loadPending() {
@@ -162,6 +179,35 @@ async function loadPending() {
   body.innerHTML = html;
 }
 
+async function loadOrphaned() {
+  const data = await fetchJSON('/api/orphaned');
+  if (!data) return;
+  appState.orphaned = data;
+
+  const section = document.getElementById('orphaned-section');
+  const body = document.getElementById('orphaned-body');
+  const count = document.getElementById('orphaned-count');
+
+  if (!data.length) {
+    section.style.display = 'none';
+    return;
+  }
+  // Only show orphaned section on homepage
+  section.style.display = appState.currentView === 'projects' ? '' : 'none';
+  count.textContent = data.length;
+
+  body.innerHTML = data.map(m => `
+    <div class="orphaned-item" onclick="navigateTo('detail', '${escapeHtml(m.repo)}', '${escapeHtml(m.mission_id)}')">
+      <span class="repo-tag">${escapeHtml(m.repo)}</span>
+      ${badge(m.status)}
+      <span style="flex:1">${escapeHtml(m.description)}</span>
+      ${m.pr?.number ? `<span>PR #${m.pr.number}</span>` : ''}
+      <span style="color:var(--text-dim)">${escapeHtml(m.mission_id)}</span>
+      <button class="btn btn-ghost" onclick="event.stopPropagation(); openReconnect('${escapeHtml(m.repo)}', '${escapeHtml(m.mission_id)}', '${escapeHtml(m.status)}', ${m.pr?.number || 'null'})">Reconnect Thread</button>
+    </div>
+  `).join('');
+}
+
 async function loadProjects() {
   const data = await fetchJSON('/api/projects');
   if (!data) return;
@@ -186,22 +232,6 @@ async function loadProjects() {
       </div>
     </div>
   `).join('');
-}
-
-async function loadQStatus() {
-  const data = await fetchJSON('/api/q-status');
-  const dot = document.querySelector('#q-status-indicator .status-dot');
-  const text = document.getElementById('q-status-text');
-  const uptime = document.getElementById('q-uptime');
-  if (!data || data.status !== 'online') {
-    dot.className = 'status-dot offline';
-    text.textContent = 'Offline';
-    uptime.textContent = '';
-  } else {
-    dot.className = 'status-dot online';
-    text.textContent = 'Online';
-    uptime.textContent = 'Uptime: ' + formatUptime(data.uptime);
-  }
 }
 
 async function loadContainers() {
@@ -258,8 +288,31 @@ async function loadMissionDetail(repo, missionId) {
   const data = await fetchJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}`);
   if (!data) return;
 
+  appState.currentMissionData = data;
+
   document.getElementById('detail-title').textContent = missionId;
+  const actionsDiv = document.getElementById('detail-actions');
   const body = document.getElementById('detail-body');
+
+  // Action buttons based on mission status
+  let actionsHtml = '<div class="action-bar">';
+
+  if (data.status === 'pending_approval') {
+    actionsHtml += `<button class="btn btn-success" onclick="actionApprove('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Approve Plan</button>`;
+    actionsHtml += `<button class="btn btn-danger" onclick="actionReject('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Reject Plan</button>`;
+  }
+
+  if (data.pr?.number) {
+    actionsHtml += `<button class="btn btn-success" onclick="actionPRMerge('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Merge PR #${data.pr.number}</button>`;
+    actionsHtml += `<button class="btn btn-danger" onclick="actionPRClose('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Close PR</button>`;
+  }
+
+  if (!data.slack_thread_ts) {
+    actionsHtml += `<button class="btn btn-ghost" onclick="openReconnect('${escapeHtml(repo)}', '${escapeHtml(missionId)}', '${escapeHtml(data.status)}', ${data.pr?.number || 'null'})">Reconnect Thread</button>`;
+  }
+
+  actionsHtml += '</div>';
+  actionsDiv.innerHTML = actionsHtml;
 
   const elapsed = data.safety?.started_at
     ? ((Date.now() - new Date(data.safety.started_at).getTime()) / 3600000).toFixed(1)
@@ -283,19 +336,19 @@ async function loadMissionDetail(repo, missionId) {
         <h3>Links</h3>
         <div class="sub">${data.pr?.url ? linkIcon(data.pr.url, 'Pull Request #' + data.pr.number) : 'No PR'}</div>
         <div class="sub">${linkIcon(ghRepoUrl(repo), 'Repository')}</div>
-        <div class="sub">${data.slack_channel ? linkIcon(slackChannelUrl(data.slack_channel), 'Slack Channel') : ''}</div>
+        <div class="sub">${data.slack_channel ? linkIcon(slackChannelUrl(data.slack_channel), 'Slack Channel') : 'No Slack thread'}</div>
       </div>
       <div class="detail-card">
-        <h3>Timeline</h3>
+        <h3>Info</h3>
         <div class="sub">Created: ${formatTime(data.created_at)}</div>
         <div class="sub">Updated: ${formatTime(data.updated_at)} (${relativeTime(data.updated_at)})</div>
-        <div class="sub">Version: ${data.version ?? '?'}</div>
+        ${data.is_follow_up ? '<div class="sub" style="color:var(--command-gold)">Follow-up mission</div>' : ''}
       </div>
     </div>`;
 
   // Objectives table
   if (data.work_items?.length) {
-    html += `<h3 style="font-family:var(--font-display);font-size:14px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:20px 0 10px">Objectives</h3>`;
+    html += sectionHeader('Objectives');
     html += `<table class="data-table"><thead><tr>
       <th>ID</th><th>Title</th><th>Agent</th><th>Status</th><th>Risk Flags</th><th>Evidence</th>
     </tr></thead><tbody>`;
@@ -314,9 +367,28 @@ async function loadMissionDetail(repo, missionId) {
     html += '</tbody></table>';
   }
 
+  // Timeline
+  if (data.timeline?.length) {
+    html += sectionHeader(`Timeline (${data.timeline.length})`);
+    html += '<div class="timeline">';
+    for (const e of data.timeline) {
+      const payloadStr = Object.entries(e.payload || {})
+        .filter(([, v]) => v != null && v !== '')
+        .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+        .join(', ');
+      html += `<div class="timeline-entry">
+        <span class="timeline-ts">${formatTimeShort(e.ts)}</span>
+        <span class="timeline-event">${escapeHtml(e.event)}</span>
+        <span class="timeline-detail">${payloadStr ? escapeHtml(payloadStr) : ''}</span>
+        ${e.actor ? `<span class="timeline-actor">${escapeHtml(e.actor)}</span>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+  }
+
   // Health alerts
   if (data.health_alerts?.length) {
-    html += `<h3 style="font-family:var(--font-display);font-size:14px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:20px 0 10px">Health Alerts</h3>`;
+    html += sectionHeader('Health Alerts');
     for (const a of data.health_alerts) {
       const cls = a.level === 'red' ? '' : ' warning';
       html += `<div class="alert-item${cls}">
@@ -328,7 +400,7 @@ async function loadMissionDetail(repo, missionId) {
 
   // Session log
   if (data.session_log?.length) {
-    html += `<h3 style="font-family:var(--font-display);font-size:14px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:20px 0 10px">Session Log (${data.session_log.length})</h3>`;
+    html += sectionHeader(`Session Log (${data.session_log.length})`);
     const recent = data.session_log.slice(-20).reverse();
     for (const s of recent) {
       const dur = s.started_at && s.ended_at
@@ -346,19 +418,184 @@ async function loadMissionDetail(repo, missionId) {
   body.innerHTML = html;
 }
 
+function sectionHeader(title) {
+  return `<h3 style="font-family:var(--font-display);font-size:14px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:20px 0 10px">${title}</h3>`;
+}
+
+// --- Actions ---
+
+async function actionApprove(repo, missionId) {
+  if (!confirm('Approve this plan and start execution?')) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Approving...';
+  const result = await postJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}/approve`, {});
+  if (result.ok) {
+    await loadMissionDetail(repo, missionId);
+  } else {
+    alert('Failed to approve: ' + (result.data?.error || 'unknown error'));
+    btn.disabled = false;
+    btn.textContent = 'Approve Plan';
+  }
+}
+
+async function actionReject(repo, missionId) {
+  if (!confirm('Reject this plan and abort the mission?')) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Rejecting...';
+  const result = await postJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}/reject`, {});
+  if (result.ok) {
+    await loadMissionDetail(repo, missionId);
+  } else {
+    alert('Failed to reject: ' + (result.data?.error || 'unknown error'));
+    btn.disabled = false;
+    btn.textContent = 'Reject Plan';
+  }
+}
+
+async function actionPRMerge(repo, missionId) {
+  if (!confirm('Merge this PR? This will deploy to production.')) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Merging...';
+  const result = await postJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}/pr/merge`, {});
+  if (result.ok) {
+    await loadMissionDetail(repo, missionId);
+  } else {
+    alert('Failed to merge: ' + (result.data?.error || 'unknown error'));
+    btn.disabled = false;
+  }
+}
+
+async function actionPRClose(repo, missionId) {
+  if (!confirm('Close this PR without merging?')) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Closing...';
+  const result = await postJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}/pr/close`, {});
+  if (result.ok) {
+    await loadMissionDetail(repo, missionId);
+  } else {
+    alert('Failed to close PR: ' + (result.data?.error || 'unknown error'));
+    btn.disabled = false;
+  }
+}
+
+// --- Modals ---
+
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function openStartMission(preselectedRepo) {
+  const modal = document.getElementById('modal-start-mission');
+  const select = document.getElementById('sm-project');
+  const prompt = document.getElementById('sm-prompt');
+  const submit = document.getElementById('sm-submit');
+
+  // Populate project dropdown
+  select.innerHTML = appState.projects.map(p =>
+    `<option value="${escapeHtml(p.repo)}" ${p.repo === preselectedRepo ? 'selected' : ''}>${escapeHtml(p.repo)}</option>`
+  ).join('');
+
+  prompt.value = '';
+  submit.disabled = false;
+  submit.textContent = 'Start Mission';
+  modal.style.display = 'flex';
+  prompt.focus();
+}
+
+async function submitStartMission() {
+  const repo = document.getElementById('sm-project').value;
+  const prompt = document.getElementById('sm-prompt').value.trim();
+  const slackThread = document.getElementById('sm-slack').checked;
+  const submit = document.getElementById('sm-submit');
+
+  if (!prompt) {
+    alert('Please describe the task.');
+    return;
+  }
+
+  submit.disabled = true;
+  submit.textContent = 'Starting...';
+
+  const result = await postJSON('/api/missions', { repo, prompt, slack_thread: slackThread });
+  if (result.ok && result.data?.mission_id) {
+    closeModal('modal-start-mission');
+    navigateTo('detail', repo, result.data.mission_id);
+    await refresh();
+  } else {
+    alert('Failed to start mission: ' + (result.data?.error || 'unknown error'));
+    submit.disabled = false;
+    submit.textContent = 'Start Mission';
+  }
+}
+
+function openReconnect(repo, missionId, status, prNumber) {
+  const modal = document.getElementById('modal-reconnect');
+  document.getElementById('rc-mission-id').textContent = missionId;
+  document.getElementById('rc-status').innerHTML = badge(status) + (prNumber ? ` &middot; PR #${prNumber}` : '');
+  document.getElementById('rc-url').value = '';
+  document.getElementById('rc-submit').disabled = false;
+  document.getElementById('rc-submit').textContent = 'Reconnect';
+
+  // Store context for submit
+  modal.dataset.repo = repo;
+  modal.dataset.missionId = missionId;
+
+  modal.style.display = 'flex';
+  document.getElementById('rc-url').focus();
+}
+
+async function submitReconnect() {
+  const modal = document.getElementById('modal-reconnect');
+  const repo = modal.dataset.repo;
+  const missionId = modal.dataset.missionId;
+  const url = document.getElementById('rc-url').value.trim();
+  const submit = document.getElementById('rc-submit');
+
+  if (!url) {
+    alert('Please paste a Slack thread URL.');
+    return;
+  }
+
+  submit.disabled = true;
+  submit.textContent = 'Reconnecting...';
+
+  const result = await postJSON(
+    `/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}/reconnect`,
+    { slack_thread_url: url }
+  );
+
+  if (result.ok) {
+    closeModal('modal-reconnect');
+    await refresh();
+    if (appState.currentView === 'detail') {
+      await loadMissionDetail(repo, missionId);
+    }
+  } else {
+    alert('Failed to reconnect: ' + (result.data?.error || 'unknown error'));
+    submit.disabled = false;
+    submit.textContent = 'Reconnect';
+  }
+}
+
 // --- Navigation ---
 
 function navigateTo(view, repo, missionId) {
   appState.currentView = view;
   appState.currentRepo = repo || null;
   appState.currentMission = missionId || null;
+  appState.currentMissionData = null;
 
   document.getElementById('projects-section').style.display = view === 'projects' ? '' : 'none';
   document.getElementById('missions-section').style.display = view === 'missions' ? '' : 'none';
   document.getElementById('detail-section').style.display = view === 'detail' ? '' : 'none';
 
-  // System status only on homepage
+  // System status + orphaned only on homepage
   document.getElementById('system-section').style.display = view === 'projects' ? '' : 'none';
+  document.getElementById('orphaned-section').style.display = (view === 'projects' && appState.orphaned?.length) ? '' : 'none';
 
   const bc = document.getElementById('breadcrumb');
   bc.style.display = view === 'projects' ? 'none' : '';
@@ -417,10 +654,10 @@ function routeFromHash() {
 
 async function refresh() {
   await loadOverview();
-  const tasks = [loadPending(), loadProjects()];
+  const tasks = [loadPending(), loadProjects(), loadOrphaned()];
   // Only load system status when on homepage
   if (appState.currentView === 'projects') {
-    tasks.push(loadQStatus(), loadContainers());
+    tasks.push(loadContainers());
   }
   await Promise.all(tasks);
 

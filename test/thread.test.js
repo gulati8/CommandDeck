@@ -6,8 +6,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const db = require('../lib/db');
+
 function freshThreadModule(tempDir) {
   process.env.COMMANDDECK_STATE_DIR = tempDir;
+  db.close();
+  db.getDb();
   delete require.cache[require.resolve('../lib/thread')];
   return require('../lib/thread');
 }
@@ -16,6 +20,7 @@ describe('thread', () => {
   let tempDir;
 
   afterEach(() => {
+    db.close();
     if (tempDir && fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -114,7 +119,7 @@ describe('thread', () => {
       assert.equal(mod.getThread('C123', '111.222'), null);
     });
 
-    it('should persist to disk across module reloads', () => {
+    it('should persist across module reloads (SQLite)', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const modA = freshThreadModule(tempDir);
 
@@ -127,14 +132,14 @@ describe('thread', () => {
         original_description: 'task'
       });
 
-      // Reload module — data should persist from disk
+      // Reload module — data should persist from SQLite
       const modB = freshThreadModule(tempDir);
       const t = modB.getThread('C123', '111.222');
       assert.equal(t.repo, 'TestRepo');
       assert.equal(t.mission_id, 'mission-001');
 
-      // Verify file exists
-      assert.ok(fs.existsSync(path.join(tempDir, 'active-threads.json')));
+      // Verify SQLite db exists
+      assert.ok(fs.existsSync(path.join(tempDir, 'state.db')));
     });
 
     it('should reset stale assessing threads on startup', () => {
@@ -172,7 +177,6 @@ describe('thread', () => {
 
       mod.updateThreadStatus('C123', '111.222', 'working');
       mod.resetStaleThreads();
-      // working status should NOT be reset (only assessing is stale)
       assert.equal(mod.getThread('C123', '111.222').status, 'working');
     });
   });
@@ -189,7 +193,6 @@ describe('thread', () => {
       });
       mod.debounce('C123', '111.222', 'message 2', (msgs) => {
         collected.push(...msgs);
-        // After debounce fires, should have both messages
         assert.deepEqual(collected, ['message 1', 'message 2']);
         done();
       });
