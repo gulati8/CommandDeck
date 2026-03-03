@@ -1,11 +1,11 @@
 'use strict';
 
-let appState = {
+const appState = {
   overview: null,
   projects: [],
-  pending: null,
-  orphaned: [],
-  currentView: 'projects', // projects | missions | detail
+  missions: [],       // all missions across projects for home tab
+  currentTab: 'missions',
+  currentView: null,   // null = tab view, 'detail' = mission detail, 'project-missions' = project drill-down
   currentRepo: null,
   currentMission: null,
   currentMissionData: null,
@@ -63,21 +63,25 @@ function relativeTime(iso) {
   return `${days}d ago`;
 }
 
-function badge(status) {
-  return `<span class="badge badge-${status}">${status.replace(/_/g, ' ')}</span>`;
-}
-
-function progressBar(progress) {
-  if (!progress || !progress.total) return '<span class="badge badge-planning">no items</span>';
-  return `<div style="display:flex;align-items:center;gap:10px;">
-    <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${progress.percent}%"></div></div>
-    <span style="font-size:15px;color:var(--blue-bright);font-weight:700">${progress.done}/${progress.total}</span>
-  </div>`;
+function timeClass(iso) {
+  if (!iso) return 'time-stalled';
+  const mins = (Date.now() - new Date(iso).getTime()) / 60000;
+  if (mins < 15) return '';
+  if (mins < 60) return 'time-stale';
+  return 'time-stalled';
 }
 
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function badge(status) {
+  return `<span class="badge badge-${status}">${status.replace(/_/g, ' ')}</span>`;
+}
+
+function statusClass(status) {
+  return `status-${status}`;
 }
 
 function ghRepoUrl(repo) {
@@ -94,6 +98,12 @@ function linkIcon(url, label) {
   return `<a href="${url}" target="_blank" rel="noopener" class="ext-link">${escapeHtml(label)}</a>`;
 }
 
+function progressBar(progress) {
+  if (!progress || !progress.total) return '';
+  const cls = progress.done === progress.total ? 'done' : '';
+  return `<div class="progress-bar"><div class="progress-fill ${cls}" style="width:${progress.percent}%"></div></div>`;
+}
+
 // --- Data loading ---
 
 async function loadOverview() {
@@ -101,132 +111,312 @@ async function loadOverview() {
   if (!data) return;
   appState.overview = data;
   appState.githubOrg = data.config?.github_org || '';
-
-  document.getElementById('org-badge').textContent = data.config?.github_org || '';
-  document.getElementById('domain-label').textContent = data.config?.domain || '';
-  document.getElementById('uptime').textContent = formatUptime(data.uptime);
-  document.getElementById('m-projects').textContent = data.projects;
-  document.getElementById('m-active').textContent = data.active_missions;
-  document.getElementById('m-total').textContent = data.total_missions;
-  document.getElementById('m-workers').textContent = data.active_workers ?? 0;
-  document.getElementById('server-uptime').textContent = 'Uptime: ' + formatUptime(data.uptime);
 }
 
-async function loadPending() {
-  const data = await fetchJSON('/api/pending');
-  if (!data) return;
-  appState.pending = data;
+async function loadAllMissions() {
+  // Load projects first, then missions for each project with active missions
+  const projects = await fetchJSON('/api/projects');
+  if (!projects) return;
+  appState.projects = projects;
 
-  const total = (data.pr_approvals?.length || 0) + (data.plan_approvals?.length || 0) + (data.active_threads?.length || 0);
-  document.getElementById('m-pending').textContent = total;
+  // Fetch missions for all projects in parallel
+  const missionPromises = projects
+    .filter(p => p.mission_count > 0)
+    .map(async (p) => {
+      const missions = await fetchJSON(`/api/projects/${encodeURIComponent(p.repo)}/missions`);
+      return missions || [];
+    });
 
-  const section = document.getElementById('pending-section');
-  const body = document.getElementById('pending-body');
+  const allMissionArrays = await Promise.all(missionPromises);
+  appState.missions = allMissionArrays.flat();
+}
 
-  if (total === 0) {
-    section.style.display = 'none';
+// --- Render: Missions tab (home) ---
+
+function renderMissionsHome() {
+  const container = document.getElementById('missions-home');
+  const missions = appState.missions;
+
+  // Separate active from completed/failed
+  const activeStatuses = ['planning', 'in_progress', 'pending_approval', 'review'];
+  const active = missions.filter(m => activeStatuses.includes(m.status));
+  const completed = missions.filter(m => !activeStatuses.includes(m.status));
+
+  // Sort active: most recently updated first
+  active.sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+
+  if (!active.length && !completed.length) {
+    container.innerHTML = '<div class="empty-state">No missions yet. Start one with the button above.</div>';
     return;
   }
-  section.style.display = '';
 
   let html = '';
 
-  if (data.pr_approvals?.length) {
-    html += `<div class="pending-group"><h3>PRs Awaiting Approval (${data.pr_approvals.length})</h3>`;
-    for (const pr of data.pr_approvals) {
-      const domain = appState.overview?.config?.domain;
-      const uatUrl = domain && pr.repo && pr.pr_number
-        ? `https://${pr.repo}-pr-${pr.pr_number}.${domain}`
-        : null;
-      html += `<div class="pending-item">
-        <span class="repo-tag">${escapeHtml(pr.repo)}</span>
-        <span>PR #${pr.pr_number}</span>
-        ${linkIcon(pr.pr_url, 'GitHub')}
-        ${uatUrl ? linkIcon(uatUrl, 'UAT') : ''}
-        ${linkIcon(slackChannelUrl(pr.channel), 'Slack')}
-        <span style="color:var(--text-dim);margin-left:auto">${relativeTime(pr.tracked_at)}</span>
-      </div>`;
-    }
-    html += '</div>';
+  if (active.length) {
+    html += active.map(m => renderMissionCard(m)).join('');
+  } else {
+    html += '<div class="empty-state" style="padding:24px">No active missions</div>';
   }
 
-  if (data.plan_approvals?.length) {
-    html += `<div class="pending-group"><h3>Plans Awaiting Approval (${data.plan_approvals.length})</h3>`;
-    for (const plan of data.plan_approvals) {
-      html += `<div class="pending-item">
-        <span class="repo-tag">${escapeHtml(plan.repo)}</span>
-        <span>${escapeHtml(plan.mission_id)}</span>
-        ${linkIcon(slackChannelUrl(plan.channel), 'Slack')}
-        <span style="color:var(--text-dim);margin-left:auto">${relativeTime(plan.tracked_at)}</span>
-      </div>`;
-    }
-    html += '</div>';
+  if (completed.length) {
+    // Sort completed by date descending
+    completed.sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at));
+    const recentCompleted = completed.slice(0, 10);
+
+    html += `<h3 class="section-title" style="margin-top:32px">Recently Completed</h3>`;
+    html += recentCompleted.map(m => renderMissionCard(m, true)).join('');
   }
 
-  if (data.active_threads?.length) {
-    html += `<div class="pending-group"><h3>Active Threads (${data.active_threads.length})</h3>`;
-    for (const t of data.active_threads) {
-      html += `<div class="pending-item">
-        <span class="repo-tag">${escapeHtml(t.repo)}</span>
-        ${badge(t.status)}
-        <span style="color:var(--text-dim)">follow-ups: ${t.follow_up_count || 0}</span>
-        ${linkIcon(slackChannelUrl(t.channel), 'Slack')}
-      </div>`;
-    }
-    html += '</div>';
-  }
-
-  body.innerHTML = html;
+  container.innerHTML = html;
 }
 
-async function loadOrphaned() {
-  const data = await fetchJSON('/api/orphaned');
-  if (!data) return;
-  appState.orphaned = data;
+function renderMissionCard(m, dimmed) {
+  const progress = m.progress || { done: 0, total: 0, percent: 0 };
+  const lastActivity = m.updated_at || m.created_at;
+  const tClass = dimmed ? '' : timeClass(lastActivity);
 
-  const section = document.getElementById('orphaned-section');
-  const body = document.getElementById('orphaned-body');
-  const count = document.getElementById('orphaned-count');
+  // Determine what's happening
+  let contextText = '';
+  let warningText = '';
+  let actionHtml = '';
 
-  if (!data.length) {
-    section.style.display = 'none';
+  if (m.status === 'in_progress' && m.work_items) {
+    const active = m.work_items.filter(w => w.status === 'in_progress');
+    if (active.length) {
+      const agents = [...new Set(active.map(w => w.assigned_to).filter(Boolean))];
+      contextText = `${agents.join(', ')} working on ${active.map(w => w.id).join(', ')}`;
+    }
+  }
+
+  if (m.status === 'pending_approval') {
+    warningText = 'awaiting plan approval';
+    actionHtml = `<button class="btn btn-success btn-sm mission-action" onclick="event.stopPropagation(); actionApprove('${escapeHtml(m.repo)}', '${escapeHtml(m.mission_id)}')">Approve</button>`;
+  } else if (m.status === 'review' && m.pr?.number) {
+    contextText = `PR #${m.pr.number} open`;
+    actionHtml = `<button class="btn btn-success btn-sm mission-action" onclick="event.stopPropagation(); actionPRMerge('${escapeHtml(m.repo)}', '${escapeHtml(m.mission_id)}')">Merge PR</button>`;
+  } else if (m.pr?.number && m.status !== 'done' && m.status !== 'completed' && m.status !== 'merged') {
+    contextText = `PR #${m.pr.number}`;
+  }
+
+  // Stalled warning
+  if (!dimmed && m.status === 'in_progress') {
+    const mins = (Date.now() - new Date(lastActivity).getTime()) / 60000;
+    if (mins > 30) {
+      warningText = 'no activity ' + relativeTime(lastActivity);
+    }
+  }
+
+  // No slack thread warning
+  if (!dimmed && !m.slack_thread_ts && m.status !== 'done' && m.status !== 'completed' && m.status !== 'merged') {
+    if (!warningText) warningText = 'no Slack thread';
+  }
+
+  const opacity = dimmed ? 'opacity:0.6;' : '';
+
+  return `<div class="mission-card" style="${opacity}" onclick="showMissionDetail('${escapeHtml(m.repo)}', '${escapeHtml(m.mission_id)}')">
+    <div class="mission-card-top">
+      <span class="mission-repo">${escapeHtml(m.repo)}</span>
+      <span class="mission-id">${escapeHtml(m.mission_id)}</span>
+    </div>
+    <div class="mission-desc">${escapeHtml(m.description)}</div>
+    ${progress.total ? `<div class="mission-progress-row">
+      ${progressBar(progress)}
+      <span class="progress-label">${progress.done}/${progress.total}</span>
+    </div>` : ''}
+    <div class="mission-footer">
+      <span class="mission-status ${statusClass(m.status)}">${m.status.replace(/_/g, ' ')}</span>
+      ${warningText ? `<span class="mission-warning">! ${escapeHtml(warningText)}</span>` : ''}
+      ${contextText ? `<span class="mission-context">${escapeHtml(contextText)}</span>` : ''}
+      <span class="mission-time ${tClass}">${relativeTime(lastActivity)}</span>
+      ${actionHtml}
+    </div>
+  </div>`;
+}
+
+// --- Render: Mission Detail ---
+
+async function showMissionDetail(repo, missionId) {
+  appState.currentView = 'detail';
+  appState.currentRepo = repo;
+  appState.currentMission = missionId;
+
+  // Hide tab content, show detail view
+  hideAllViews();
+  document.getElementById('view-detail').style.display = 'block';
+  document.getElementById('bc-detail-label').textContent = `${repo} / ${missionId}`;
+
+  history.pushState(null, '', `#/${repo}/${missionId}`);
+
+  await loadMissionDetail(repo, missionId);
+}
+
+async function loadMissionDetail(repo, missionId) {
+  const data = await fetchJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}`);
+  if (!data) {
+    document.getElementById('detail-body').innerHTML = '<div class="empty-state">Mission not found</div>';
     return;
   }
-  // Only show orphaned section on homepage
-  section.style.display = appState.currentView === 'projects' ? '' : 'none';
-  count.textContent = data.length;
 
-  body.innerHTML = data.map(m => `
-    <div class="orphaned-item" onclick="navigateTo('detail', '${escapeHtml(m.repo)}', '${escapeHtml(m.mission_id)}')">
-      <span class="repo-tag">${escapeHtml(m.repo)}</span>
-      ${badge(m.status)}
-      <span style="flex:1">${escapeHtml(m.description)}</span>
-      ${m.pr?.number ? `<span>PR #${m.pr.number}</span>` : ''}
-      <span style="color:var(--text-dim)">${escapeHtml(m.mission_id)}</span>
-      <button class="btn btn-ghost" onclick="event.stopPropagation(); openReconnect('${escapeHtml(m.repo)}', '${escapeHtml(m.mission_id)}', '${escapeHtml(m.status)}', ${m.pr?.number || 'null'})">Reconnect Thread</button>
+  appState.currentMissionData = data;
+  const progress = data.progress || { done: 0, total: 0, percent: 0 };
+  const lastActivity = data.updated_at || data.created_at;
+
+  // Header area with actions
+  let headerHtml = `<div class="detail-desc">${escapeHtml(data.description)}</div>`;
+
+  // Action bar
+  headerHtml += '<div class="action-bar">';
+  if (data.status === 'pending_approval') {
+    headerHtml += `<button class="btn btn-success" onclick="actionApprove('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Approve Plan</button>`;
+    headerHtml += `<button class="btn btn-danger" onclick="actionReject('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Reject</button>`;
+  }
+  if (data.pr?.number) {
+    headerHtml += `<button class="btn btn-success" onclick="actionPRMerge('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Merge PR #${data.pr.number}</button>`;
+    headerHtml += `<button class="btn btn-danger" onclick="actionPRClose('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Close PR</button>`;
+  }
+  if (!data.slack_thread_ts) {
+    headerHtml += `<button class="btn btn-ghost" onclick="openReconnect('${escapeHtml(repo)}', '${escapeHtml(missionId)}', '${escapeHtml(data.status)}', ${data.pr?.number || 'null'})">Reconnect Thread</button>`;
+  }
+  headerHtml += '</div>';
+
+  // Meta cards
+  const elapsed = data.safety?.started_at
+    ? ((Date.now() - new Date(data.safety.started_at).getTime()) / 3600000).toFixed(1)
+    : null;
+
+  headerHtml += '<div class="detail-meta">';
+  headerHtml += `<div class="detail-meta-item">
+    <div class="detail-meta-label">Status</div>
+    <div class="detail-meta-value">${badge(data.status)}</div>
+  </div>`;
+
+  if (progress.total) {
+    headerHtml += `<div class="detail-meta-item">
+      <div class="detail-meta-label">Progress</div>
+      <div class="detail-meta-value">${progress.done} / ${progress.total}</div>
+      <div class="detail-meta-sub" style="margin-top:8px">${progressBar(progress)}</div>
+    </div>`;
+  }
+
+  headerHtml += `<div class="detail-meta-item">
+    <div class="detail-meta-label">Last Activity</div>
+    <div class="detail-meta-value ${timeClass(lastActivity)}">${relativeTime(lastActivity)}</div>
+    <div class="detail-meta-sub">${formatTime(lastActivity)}</div>
+  </div>`;
+
+  headerHtml += `<div class="detail-meta-item">
+    <div class="detail-meta-label">Links</div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px">
+      ${data.pr?.url ? linkIcon(data.pr.url, 'PR #' + data.pr.number) : '<span style="color:var(--text-dim);font-size:13px">No PR</span>'}
+      ${linkIcon(ghRepoUrl(repo), 'Repository')}
+      ${data.slack_channel ? linkIcon(slackChannelUrl(data.slack_channel), 'Slack') : ''}
     </div>
-  `).join('');
+  </div>`;
+
+  if (elapsed !== null) {
+    headerHtml += `<div class="detail-meta-item">
+      <div class="detail-meta-label">Safety</div>
+      <div class="detail-meta-sub">Sessions: ${data.safety?.session_count ?? '?'} / ${data.safety?.max_sessions ?? '?'}</div>
+      <div class="detail-meta-sub">Elapsed: ${elapsed}h / ${data.safety?.max_elapsed_hours ?? '?'}h</div>
+      <div class="detail-meta-sub">Workers: ${data.safety?.max_parallel_workers ?? '?'} max</div>
+    </div>`;
+  }
+
+  headerHtml += '</div>';
+  document.getElementById('detail-header').innerHTML = headerHtml;
+
+  // Body: objectives, timeline, alerts, session log
+  let bodyHtml = '';
+
+  // Objectives
+  if (data.work_items?.length) {
+    bodyHtml += `<h3 class="section-title">Objectives</h3>`;
+    bodyHtml += `<table class="obj-table"><thead><tr>
+      <th>ID</th><th>Title</th><th>Agent</th><th>Status</th><th>Risk</th><th>Evidence</th>
+    </tr></thead><tbody>`;
+    for (const w of data.work_items) {
+      const riskHtml = (w.risk_flags || []).map(f => `<span class="risk-flag">${escapeHtml(f)}</span>`).join('');
+      const evSummary = w.evidence ? (w.evidence.tests?.result || 'yes') : '--';
+      bodyHtml += `<tr class="no-click">
+        <td style="white-space:nowrap;color:var(--text-dim)">${escapeHtml(w.id)}</td>
+        <td>${escapeHtml(w.title || w.description || '')}</td>
+        <td class="agent-name">${escapeHtml(w.assigned_to || '--')}</td>
+        <td>${badge(w.status)}</td>
+        <td>${riskHtml || '<span style="color:var(--text-dim)">--</span>'}</td>
+        <td style="color:var(--text-secondary)">${evSummary}</td>
+      </tr>`;
+    }
+    bodyHtml += '</tbody></table>';
+  }
+
+  // Health alerts
+  if (data.health_alerts?.length) {
+    bodyHtml += `<h3 class="section-title">Health Alerts</h3>`;
+    for (const a of data.health_alerts) {
+      const cls = a.level === 'red' ? '' : ' warning';
+      bodyHtml += `<div class="alert-item${cls}">
+        <strong>${escapeHtml(a.type)}</strong> [${escapeHtml(a.objective || '')}] — ${escapeHtml(a.message)}
+        <span style="color:var(--text-dim);float:right">${formatTime(a.ts)}</span>
+      </div>`;
+    }
+  }
+
+  // Timeline
+  if (data.timeline?.length) {
+    bodyHtml += `<h3 class="section-title">Timeline (${data.timeline.length})</h3>`;
+    bodyHtml += '<div class="timeline">';
+    for (const e of data.timeline) {
+      const payloadStr = Object.entries(e.payload || {})
+        .filter(([, v]) => v != null && v !== '')
+        .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
+        .join(', ');
+      bodyHtml += `<div class="timeline-entry">
+        <span class="timeline-ts">${formatTimeShort(e.ts)}</span>
+        <span class="timeline-event">${escapeHtml(e.event)}</span>
+        <span class="timeline-detail">${payloadStr ? escapeHtml(payloadStr) : ''}</span>
+        ${e.actor ? `<span class="timeline-actor">${escapeHtml(e.actor)}</span>` : ''}
+      </div>`;
+    }
+    bodyHtml += '</div>';
+  }
+
+  // Session log
+  if (data.session_log?.length) {
+    bodyHtml += `<h3 class="section-title">Session Log (${data.session_log.length})</h3>`;
+    const recent = data.session_log.slice(-20).reverse();
+    for (const s of recent) {
+      const dur = s.started_at && s.ended_at
+        ? Math.round((new Date(s.ended_at) - new Date(s.started_at)) / 1000) + 's'
+        : 'running';
+      bodyHtml += `<div class="session-entry">
+        <span><span class="agent-name">${escapeHtml(s.agent || '?')}</span> ${escapeHtml(s.objective || '')} — exit: ${s.exit_code ?? '?'} — ${dur}</span>
+        <span style="color:var(--text-dim)">${formatTime(s.started_at)}</span>
+      </div>`;
+    }
+  }
+
+  document.getElementById('detail-body').innerHTML = bodyHtml;
 }
 
-async function loadProjects() {
-  const data = await fetchJSON('/api/projects');
-  if (!data) return;
-  appState.projects = data;
+// --- Render: Projects tab ---
 
+function renderProjects() {
   const grid = document.getElementById('projects-grid');
-  if (!data.length) {
+  const projects = appState.projects;
+
+  if (!projects.length) {
     grid.innerHTML = '<div class="empty-state">No projects with CommandDeck activity</div>';
     return;
   }
 
-  grid.innerHTML = data.map(p => `
-    <div class="project-card" onclick="navigateTo('missions', '${escapeHtml(p.repo)}')">
-      <div class="repo-name">${escapeHtml(p.repo)}</div>
-      <div class="card-meta">
+  grid.innerHTML = projects.map(p => `
+    <div class="project-card" onclick="showProjectMissions('${escapeHtml(p.repo)}')">
+      <div class="project-name">${escapeHtml(p.repo)}</div>
+      <div class="project-meta">
         <span>${p.config?.default_branch || 'main'} / ${p.config?.max_workers || 1}w</span>
-        <span class="mission-count">${p.mission_count} mission${p.mission_count !== 1 ? 's' : ''}</span>
+        <span class="project-missions-count">${p.mission_count} mission${p.mission_count !== 1 ? 's' : ''}</span>
       </div>
-      <div class="card-meta" style="margin-top:6px">
+      <div class="project-links" onclick="event.stopPropagation()">
         ${linkIcon(ghRepoUrl(p.repo), 'GitHub')}
         ${p.channel_id ? linkIcon(slackChannelUrl(p.channel_id), 'Slack') : ''}
       </div>
@@ -234,49 +424,43 @@ async function loadProjects() {
   `).join('');
 }
 
-async function loadContainers() {
-  const data = await fetchJSON('/api/containers');
-  const grid = document.getElementById('containers-grid');
-  if (!data || !data.length) {
-    grid.innerHTML = '<div class="empty-state">No container data available</div>';
-    return;
-  }
-  grid.innerHTML = data.map(c => {
-    const healthBadge = c.health
-      ? `<span class="c-health ${c.health}">${c.health}</span>`
-      : '';
-    return `<div class="container-card">
-      <span class="status-dot ${c.state === 'running' ? 'online' : 'offline'}"></span>
-      <span class="c-name">${escapeHtml(c.name)}</span>
-      <span class="c-state ${c.state}">${c.state}</span>
-      ${healthBadge}
-    </div>`;
-  }).join('');
-}
+// --- Project missions sub-view ---
 
-async function loadMissions(repo) {
+async function showProjectMissions(repo) {
+  appState.currentView = 'project-missions';
+  appState.currentRepo = repo;
+
+  hideAllViews();
+  document.getElementById('view-project-missions').style.display = 'block';
+  document.getElementById('bc-project-label').textContent = repo;
+
+  history.pushState(null, '', `#/projects/${repo}`);
+
   const data = await fetchJSON(`/api/projects/${encodeURIComponent(repo)}/missions`);
-  if (!data) return;
+  const container = document.getElementById('project-missions-list');
 
-  const container = document.getElementById('missions-list');
-  document.getElementById('missions-title').textContent = `${repo} Missions`;
-
-  if (!data.length) {
+  if (!data || !data.length) {
     container.innerHTML = '<div class="empty-state">No missions for this project</div>';
     return;
   }
 
   let html = `<table class="data-table"><thead><tr>
-    <th>Mission</th><th>Description</th><th>Status</th><th>Progress</th><th>Created</th><th>Links</th>
+    <th>Mission</th><th>Description</th><th>Status</th><th>Progress</th><th>Updated</th><th>Links</th>
   </tr></thead><tbody>`;
 
   for (const m of data) {
-    html += `<tr onclick="navigateTo('detail', '${escapeHtml(repo)}', '${escapeHtml(m.mission_id)}')">
-      <td style="white-space:nowrap;color:var(--text-dim)">${escapeHtml(m.mission_id)}</td>
+    const progress = m.progress || { done: 0, total: 0, percent: 0 };
+    html += `<tr onclick="showMissionDetail('${escapeHtml(repo)}', '${escapeHtml(m.mission_id)}')">
+      <td style="white-space:nowrap;color:var(--text-dim);font-size:12px">${escapeHtml(m.mission_id)}</td>
       <td>${escapeHtml(m.description)}</td>
       <td>${badge(m.status)}</td>
-      <td style="min-width:140px">${progressBar(m.progress)}</td>
-      <td style="white-space:nowrap;color:var(--text-dim)">${formatTime(m.created_at)}<br>${relativeTime(m.created_at)}</td>
+      <td style="min-width:120px">
+        ${progress.total ? `<div style="display:flex;align-items:center;gap:8px">
+          ${progressBar(progress)}
+          <span style="font-size:12px;color:var(--blue);font-weight:700">${progress.done}/${progress.total}</span>
+        </div>` : ''}
+      </td>
+      <td style="white-space:nowrap;color:var(--text-dim);font-size:12px">${relativeTime(m.updated_at || m.created_at)}</td>
       <td onclick="event.stopPropagation()">${m.pr?.url ? linkIcon(m.pr.url, 'PR #' + m.pr.number) : ''}</td>
     </tr>`;
   }
@@ -284,142 +468,40 @@ async function loadMissions(repo) {
   container.innerHTML = html;
 }
 
-async function loadMissionDetail(repo, missionId) {
-  const data = await fetchJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}`);
-  if (!data) return;
+// --- Render: System tab ---
 
-  appState.currentMissionData = data;
+async function renderSystem() {
+  const dot = document.getElementById('server-dot');
+  const info = document.getElementById('server-info');
+  const title = document.getElementById('containers-title');
 
-  document.getElementById('detail-title').textContent = missionId;
-  const actionsDiv = document.getElementById('detail-actions');
-  const body = document.getElementById('detail-body');
+  dot.className = 'status-dot online';
+  const uptime = appState.overview?.uptime;
+  info.innerHTML = uptime != null
+    ? `Uptime: ${formatUptime(uptime)} &middot; ${appState.overview?.active_workers ?? 0} active workers &middot; ${appState.overview?.total_missions ?? 0} total missions`
+    : 'Loading...';
 
-  // Action buttons based on mission status
-  let actionsHtml = '<div class="action-bar">';
-
-  if (data.status === 'pending_approval') {
-    actionsHtml += `<button class="btn btn-success" onclick="actionApprove('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Approve Plan</button>`;
-    actionsHtml += `<button class="btn btn-danger" onclick="actionReject('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Reject Plan</button>`;
+  // Containers
+  const data = await fetchJSON('/api/containers');
+  const grid = document.getElementById('containers-grid');
+  if (!data || !data.length) {
+    title.textContent = 'Containers';
+    grid.innerHTML = '<div class="empty-state">No container data available</div>';
+    return;
   }
 
-  if (data.pr?.number) {
-    actionsHtml += `<button class="btn btn-success" onclick="actionPRMerge('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Merge PR #${data.pr.number}</button>`;
-    actionsHtml += `<button class="btn btn-danger" onclick="actionPRClose('${escapeHtml(repo)}', '${escapeHtml(missionId)}')">Close PR</button>`;
-  }
+  const running = data.filter(c => c.state === 'running').length;
+  title.textContent = `Containers (${running} running, ${data.length} total)`;
 
-  if (!data.slack_thread_ts) {
-    actionsHtml += `<button class="btn btn-ghost" onclick="openReconnect('${escapeHtml(repo)}', '${escapeHtml(missionId)}', '${escapeHtml(data.status)}', ${data.pr?.number || 'null'})">Reconnect Thread</button>`;
-  }
-
-  actionsHtml += '</div>';
-  actionsDiv.innerHTML = actionsHtml;
-
-  const elapsed = data.safety?.started_at
-    ? ((Date.now() - new Date(data.safety.started_at).getTime()) / 3600000).toFixed(1)
-    : '?';
-
-  let html = `
-    <p style="margin-bottom:16px;color:var(--text);font-size:18px">${escapeHtml(data.description)}</p>
-    <div class="detail-grid">
-      <div class="detail-card">
-        <h3>Status</h3>
-        <div class="val">${badge(data.status)}</div>
-        <div class="sub">${progressBar(data.progress)}</div>
-      </div>
-      <div class="detail-card">
-        <h3>Safety Limits</h3>
-        <div class="sub">Sessions: ${data.safety?.session_count ?? '?'} / ${data.safety?.max_sessions ?? '?'}</div>
-        <div class="sub">Elapsed: ${elapsed}h / ${data.safety?.max_elapsed_hours ?? '?'}h</div>
-        <div class="sub">Workers: ${data.safety?.max_parallel_workers ?? '?'} max</div>
-      </div>
-      <div class="detail-card">
-        <h3>Links</h3>
-        <div class="sub">${data.pr?.url ? linkIcon(data.pr.url, 'Pull Request #' + data.pr.number) : 'No PR'}</div>
-        <div class="sub">${linkIcon(ghRepoUrl(repo), 'Repository')}</div>
-        <div class="sub">${data.slack_channel ? linkIcon(slackChannelUrl(data.slack_channel), 'Slack Channel') : 'No Slack thread'}</div>
-      </div>
-      <div class="detail-card">
-        <h3>Info</h3>
-        <div class="sub">Created: ${formatTime(data.created_at)}</div>
-        <div class="sub">Updated: ${formatTime(data.updated_at)} (${relativeTime(data.updated_at)})</div>
-        ${data.is_follow_up ? '<div class="sub" style="color:var(--command-gold)">Follow-up mission</div>' : ''}
-      </div>
+  grid.innerHTML = data.map(c => {
+    const healthBadge = c.health ? `<span class="c-health ${c.health}">${c.health}</span>` : '';
+    return `<div class="container-card">
+      <span class="status-dot ${c.state === 'running' ? 'online' : 'offline'}"></span>
+      <span class="c-name">${escapeHtml(c.name)}</span>
+      <span class="c-state ${c.state}">${c.state}</span>
+      ${healthBadge}
     </div>`;
-
-  // Objectives table
-  if (data.work_items?.length) {
-    html += sectionHeader('Objectives');
-    html += `<table class="data-table"><thead><tr>
-      <th>ID</th><th>Title</th><th>Agent</th><th>Status</th><th>Risk Flags</th><th>Evidence</th>
-    </tr></thead><tbody>`;
-    for (const w of data.work_items) {
-      const riskHtml = (w.risk_flags || []).map(f => `<span class="risk-flag">${escapeHtml(f)}</span>`).join('');
-      const evSummary = w.evidence ? `${w.evidence.tests?.result || 'n/a'}` : '--';
-      html += `<tr class="no-click">
-        <td style="white-space:nowrap;color:var(--text-dim)">${escapeHtml(w.id)}</td>
-        <td>${escapeHtml(w.title || w.description || '')}</td>
-        <td style="color:var(--gold-bright);font-weight:700">${escapeHtml(w.assigned_to || '--')}</td>
-        <td>${badge(w.status)}</td>
-        <td>${riskHtml || '--'}</td>
-        <td>${evSummary}</td>
-      </tr>`;
-    }
-    html += '</tbody></table>';
-  }
-
-  // Timeline
-  if (data.timeline?.length) {
-    html += sectionHeader(`Timeline (${data.timeline.length})`);
-    html += '<div class="timeline">';
-    for (const e of data.timeline) {
-      const payloadStr = Object.entries(e.payload || {})
-        .filter(([, v]) => v != null && v !== '')
-        .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
-        .join(', ');
-      html += `<div class="timeline-entry">
-        <span class="timeline-ts">${formatTimeShort(e.ts)}</span>
-        <span class="timeline-event">${escapeHtml(e.event)}</span>
-        <span class="timeline-detail">${payloadStr ? escapeHtml(payloadStr) : ''}</span>
-        ${e.actor ? `<span class="timeline-actor">${escapeHtml(e.actor)}</span>` : ''}
-      </div>`;
-    }
-    html += '</div>';
-  }
-
-  // Health alerts
-  if (data.health_alerts?.length) {
-    html += sectionHeader('Health Alerts');
-    for (const a of data.health_alerts) {
-      const cls = a.level === 'red' ? '' : ' warning';
-      html += `<div class="alert-item${cls}">
-        <strong>${escapeHtml(a.type)}</strong> [${escapeHtml(a.objective || '')}] — ${escapeHtml(a.message)}
-        <span style="color:var(--text-dim);float:right">${formatTime(a.ts)}</span>
-      </div>`;
-    }
-  }
-
-  // Session log
-  if (data.session_log?.length) {
-    html += sectionHeader(`Session Log (${data.session_log.length})`);
-    const recent = data.session_log.slice(-20).reverse();
-    for (const s of recent) {
-      const dur = s.started_at && s.ended_at
-        ? Math.round((new Date(s.ended_at) - new Date(s.started_at)) / 1000) + 's'
-        : 'running';
-      html += `<div class="session-entry">
-        <span class="agent-name">${escapeHtml(s.agent || '?')}</span>
-        ${escapeHtml(s.objective || '')}
-        — exit: ${s.exit_code ?? '?'} — ${dur}
-        <span style="float:right">${formatTime(s.started_at)}</span>
-      </div>`;
-    }
-  }
-
-  body.innerHTML = html;
-}
-
-function sectionHeader(title) {
-  return `<h3 style="font-family:var(--font-display);font-size:14px;color:var(--command-gold);letter-spacing:0.1em;text-transform:uppercase;margin:20px 0 10px">${title}</h3>`;
+  }).join('');
 }
 
 // --- Actions ---
@@ -431,11 +513,12 @@ async function actionApprove(repo, missionId) {
   btn.textContent = 'Approving...';
   const result = await postJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}/approve`, {});
   if (result.ok) {
-    await loadMissionDetail(repo, missionId);
+    await refresh();
+    if (appState.currentView === 'detail') await loadMissionDetail(repo, missionId);
   } else {
-    alert('Failed to approve: ' + (result.data?.error || 'unknown error'));
+    alert('Failed: ' + (result.data?.error || 'unknown error'));
     btn.disabled = false;
-    btn.textContent = 'Approve Plan';
+    btn.textContent = 'Approve';
   }
 }
 
@@ -446,24 +529,26 @@ async function actionReject(repo, missionId) {
   btn.textContent = 'Rejecting...';
   const result = await postJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}/reject`, {});
   if (result.ok) {
-    await loadMissionDetail(repo, missionId);
+    await refresh();
+    if (appState.currentView === 'detail') await loadMissionDetail(repo, missionId);
   } else {
-    alert('Failed to reject: ' + (result.data?.error || 'unknown error'));
+    alert('Failed: ' + (result.data?.error || 'unknown error'));
     btn.disabled = false;
-    btn.textContent = 'Reject Plan';
+    btn.textContent = 'Reject';
   }
 }
 
 async function actionPRMerge(repo, missionId) {
-  if (!confirm('Merge this PR? This will deploy to production.')) return;
+  if (!confirm('Merge this PR?')) return;
   const btn = event.target;
   btn.disabled = true;
   btn.textContent = 'Merging...';
   const result = await postJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}/pr/merge`, {});
   if (result.ok) {
-    await loadMissionDetail(repo, missionId);
+    await refresh();
+    if (appState.currentView === 'detail') await loadMissionDetail(repo, missionId);
   } else {
-    alert('Failed to merge: ' + (result.data?.error || 'unknown error'));
+    alert('Failed: ' + (result.data?.error || 'unknown error'));
     btn.disabled = false;
   }
 }
@@ -475,9 +560,10 @@ async function actionPRClose(repo, missionId) {
   btn.textContent = 'Closing...';
   const result = await postJSON(`/api/missions/${encodeURIComponent(repo)}/${encodeURIComponent(missionId)}/pr/close`, {});
   if (result.ok) {
-    await loadMissionDetail(repo, missionId);
+    await refresh();
+    if (appState.currentView === 'detail') await loadMissionDetail(repo, missionId);
   } else {
-    alert('Failed to close PR: ' + (result.data?.error || 'unknown error'));
+    alert('Failed: ' + (result.data?.error || 'unknown error'));
     btn.disabled = false;
   }
 }
@@ -494,7 +580,6 @@ function openStartMission(preselectedRepo) {
   const prompt = document.getElementById('sm-prompt');
   const submit = document.getElementById('sm-submit');
 
-  // Populate project dropdown
   select.innerHTML = appState.projects.map(p =>
     `<option value="${escapeHtml(p.repo)}" ${p.repo === preselectedRepo ? 'selected' : ''}>${escapeHtml(p.repo)}</option>`
   ).join('');
@@ -512,10 +597,7 @@ async function submitStartMission() {
   const slackThread = document.getElementById('sm-slack').checked;
   const submit = document.getElementById('sm-submit');
 
-  if (!prompt) {
-    alert('Please describe the task.');
-    return;
-  }
+  if (!prompt) { alert('Please describe the task.'); return; }
 
   submit.disabled = true;
   submit.textContent = 'Starting...';
@@ -523,10 +605,10 @@ async function submitStartMission() {
   const result = await postJSON('/api/missions', { repo, prompt, slack_thread: slackThread });
   if (result.ok && result.data?.mission_id) {
     closeModal('modal-start-mission');
-    navigateTo('detail', repo, result.data.mission_id);
     await refresh();
+    showMissionDetail(repo, result.data.mission_id);
   } else {
-    alert('Failed to start mission: ' + (result.data?.error || 'unknown error'));
+    alert('Failed: ' + (result.data?.error || 'unknown error'));
     submit.disabled = false;
     submit.textContent = 'Start Mission';
   }
@@ -540,10 +622,8 @@ function openReconnect(repo, missionId, status, prNumber) {
   document.getElementById('rc-submit').disabled = false;
   document.getElementById('rc-submit').textContent = 'Reconnect';
 
-  // Store context for submit
   modal.dataset.repo = repo;
   modal.dataset.missionId = missionId;
-
   modal.style.display = 'flex';
   document.getElementById('rc-url').focus();
 }
@@ -555,10 +635,7 @@ async function submitReconnect() {
   const url = document.getElementById('rc-url').value.trim();
   const submit = document.getElementById('rc-submit');
 
-  if (!url) {
-    alert('Please paste a Slack thread URL.');
-    return;
-  }
+  if (!url) { alert('Please paste a Slack thread URL.'); return; }
 
   submit.disabled = true;
   submit.textContent = 'Reconnecting...';
@@ -571,11 +648,9 @@ async function submitReconnect() {
   if (result.ok) {
     closeModal('modal-reconnect');
     await refresh();
-    if (appState.currentView === 'detail') {
-      await loadMissionDetail(repo, missionId);
-    }
+    if (appState.currentView === 'detail') await loadMissionDetail(repo, missionId);
   } else {
-    alert('Failed to reconnect: ' + (result.data?.error || 'unknown error'));
+    alert('Failed: ' + (result.data?.error || 'unknown error'));
     submit.disabled = false;
     submit.textContent = 'Reconnect';
   }
@@ -583,59 +658,42 @@ async function submitReconnect() {
 
 // --- Navigation ---
 
-function navigateTo(view, repo, missionId) {
-  appState.currentView = view;
-  appState.currentRepo = repo || null;
-  appState.currentMission = missionId || null;
-  appState.currentMissionData = null;
-
-  document.getElementById('projects-section').style.display = view === 'projects' ? '' : 'none';
-  document.getElementById('missions-section').style.display = view === 'missions' ? '' : 'none';
-  document.getElementById('detail-section').style.display = view === 'detail' ? '' : 'none';
-
-  // System status + orphaned only on homepage
-  document.getElementById('system-section').style.display = view === 'projects' ? '' : 'none';
-  document.getElementById('orphaned-section').style.display = (view === 'projects' && appState.orphaned?.length) ? '' : 'none';
-
-  const bc = document.getElementById('breadcrumb');
-  bc.style.display = view === 'projects' ? 'none' : '';
-
-  const bcProject = document.getElementById('bc-project');
-  const bcMission = document.getElementById('bc-mission');
-
-  if (view === 'missions' && repo) {
-    bcProject.style.display = '';
-    const link = document.getElementById('bc-project-link');
-    link.textContent = repo;
-    link.onclick = function () { navigateTo('missions', repo); return false; };
-    bcMission.style.display = 'none';
-    loadMissions(repo);
-    history.pushState(null, '', `#/${repo}`);
-  } else if (view === 'detail' && repo && missionId) {
-    bcProject.style.display = '';
-    const link = document.getElementById('bc-project-link');
-    link.textContent = repo;
-    link.onclick = function () { navigateTo('missions', repo); return false; };
-    bcMission.style.display = '';
-    document.getElementById('bc-mission-label').textContent = missionId;
-    loadMissionDetail(repo, missionId);
-    history.pushState(null, '', `#/${repo}/${missionId}`);
-  } else {
-    bcProject.style.display = 'none';
-    bcMission.style.display = 'none';
-    history.pushState(null, '', '#/');
-  }
+function hideAllViews() {
+  document.querySelectorAll('.tab-content').forEach(el => {
+    el.style.display = 'none';
+    el.classList.remove('active');
+  });
 }
 
-function togglePanel(id) {
-  const el = document.getElementById(id);
-  const toggle = document.getElementById(id + '-toggle');
-  if (el.style.display === 'none') {
-    el.style.display = '';
-    if (toggle) toggle.innerHTML = '&#9660;';
-  } else {
-    el.style.display = 'none';
-    if (toggle) toggle.innerHTML = '&#9654;';
+function switchTab(tabName) {
+  appState.currentView = null;
+  appState.currentRepo = null;
+  appState.currentMission = null;
+  appState.currentMissionData = null;
+  appState.currentTab = tabName;
+
+  // Update tab buttons
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tabName);
+  });
+
+  hideAllViews();
+  const tabEl = document.getElementById(`tab-${tabName}`);
+  if (tabEl) {
+    tabEl.style.display = 'block';
+    tabEl.classList.add('active');
+  }
+
+  // Render tab content
+  if (tabName === 'missions') {
+    renderMissionsHome();
+    history.pushState(null, '', '#/');
+  } else if (tabName === 'projects') {
+    renderProjects();
+    history.pushState(null, '', '#/projects');
+  } else if (tabName === 'system') {
+    renderSystem();
+    history.pushState(null, '', '#/system');
   }
 }
 
@@ -643,33 +701,40 @@ function togglePanel(id) {
 
 function routeFromHash() {
   const hash = location.hash.replace('#/', '').replace('#', '');
-  if (!hash) return navigateTo('projects');
+  if (!hash) return switchTab('missions');
+
   const parts = hash.split('/');
-  if (parts.length === 2) return navigateTo('detail', parts[0], parts[1]);
-  if (parts.length === 1 && parts[0]) return navigateTo('missions', parts[0]);
-  navigateTo('projects');
+
+  // #/system
+  if (parts[0] === 'system') return switchTab('system');
+
+  // #/projects or #/projects/repo
+  if (parts[0] === 'projects') {
+    if (parts[1]) return showProjectMissions(parts[1]);
+    return switchTab('projects');
+  }
+
+  // #/repo/missionId — mission detail
+  if (parts.length === 2) return showMissionDetail(parts[0], parts[1]);
+
+  // #/repo — project missions
+  if (parts.length === 1 && parts[0]) return showProjectMissions(parts[0]);
+
+  switchTab('missions');
 }
 
 // --- Refresh loop ---
 
 async function refresh() {
   await loadOverview();
-  const tasks = [loadPending(), loadProjects(), loadOrphaned()];
-  // Only load system status when on homepage
-  if (appState.currentView === 'projects') {
-    tasks.push(loadContainers());
-  }
-  await Promise.all(tasks);
+  await loadAllMissions();
 
-  // Re-fetch current view data
-  if (appState.currentView === 'missions' && appState.currentRepo) {
-    loadMissions(appState.currentRepo);
-  } else if (appState.currentView === 'detail' && appState.currentRepo && appState.currentMission) {
-    loadMissionDetail(appState.currentRepo, appState.currentMission);
+  // Re-render current view if it's a tab
+  if (!appState.currentView) {
+    if (appState.currentTab === 'missions') renderMissionsHome();
+    else if (appState.currentTab === 'projects') renderProjects();
+    else if (appState.currentTab === 'system') renderSystem();
   }
-
-  document.getElementById('last-refresh').textContent =
-    new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 // --- Init ---
