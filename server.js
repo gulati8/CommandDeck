@@ -737,6 +737,10 @@ function handleGetAPI(pathname, res) {
     return sendJSON(res, 200, db.getOrphanedMissions());
   }
 
+  if (pathname === '/api/events/recent') {
+    return sendJSON(res, 200, db.recentEvents(30));
+  }
+
   if (pathname === '/api/containers') {
     const DOCKER_SOCKET = process.env.DOCKER_SOCKET || '/var/run/docker.sock';
     try {

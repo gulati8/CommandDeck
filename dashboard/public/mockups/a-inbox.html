@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommandDeck — Mockup A: The Inbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #06060a;
+      --surface: #0d0d14;
+      --surface-hover: #13131f;
+      --surface-active: #1a1a2a;
+      --border: #1a1a2a;
+      --border-active: #c8a04a;
+      --text: #e8e4d9;
+      --text-dim: #6b6a63;
+      --text-muted: #3d3d3d;
+      --accent: #c8a04a;
+      --accent-glow: rgba(200, 160, 74, 0.15);
+      --red: #e05252;
+      --green: #4ade80;
+      --blue: #60a5fa;
+      --orange: #f59e0b;
+      --purple: #a78bfa;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      height: 48px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+      letter-spacing: 2px;
+    }
+    .logo::before {
+      content: '◆ ';
+      font-size: 10px;
+    }
+    .topbar-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+      display: flex;
+      gap: 16px;
+    }
+    .topbar-meta .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      display: inline-block;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .topbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-new {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      padding: 6px 14px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .btn-new:hover { opacity: 0.9; }
+
+    /* ── Main two-column layout ── */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Left column: Item list ── */
+    .list-panel {
+      width: 380px;
+      min-width: 380px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .list-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .list-header h2 {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .list-filters {
+      display: flex;
+      gap: 4px;
+    }
+    .filter-btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      padding: 3px 8px;
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .filter-btn.active {
+      background: var(--accent-glow);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .filter-btn:hover:not(.active) {
+      background: var(--surface-hover);
+    }
+    .list-count {
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .list-items {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .list-items::-webkit-scrollbar { width: 4px; }
+    .list-items::-webkit-scrollbar-track { background: transparent; }
+    .list-items::-webkit-scrollbar-thumb { background: var(--border); }
+
+    /* ── Individual list item ── */
+    .item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      position: relative;
+      transition: background 0.1s;
+    }
+    .item:hover { background: var(--surface-hover); }
+    .item.selected { background: var(--surface-active); }
+    .item.selected::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--accent);
+    }
+
+    /* Action items get a left accent */
+    .item.needs-action {
+      border-left: 3px solid var(--orange);
+      padding-left: 13px;
+    }
+    .item.needs-action.selected::before { display: none; }
+
+    .item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .item-project {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .item-time {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .item-title {
+      font-size: 12px;
+      line-height: 1.4;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .item-bottom {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .item-status {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 2px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .item-status.approve { background: rgba(245, 158, 11, 0.15); color: var(--orange); }
+    .item-status.review { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
+    .item-status.running { background: rgba(96, 165, 250, 0.15); color: var(--blue); }
+    .item-status.done { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+    .item-status.failed { background: rgba(224, 82, 82, 0.15); color: var(--red); }
+    .item-status.stalled { background: rgba(224, 82, 82, 0.15); color: var(--red); }
+
+    .item-id {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .item-pr {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    /* ── Right column: Detail panel ── */
+    .detail-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .detail-empty {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      color: var(--text-muted);
+    }
+    .detail-empty-icon {
+      font-size: 32px;
+      opacity: 0.3;
+    }
+    .detail-empty-text {
+      font-size: 12px;
+    }
+
+    .detail-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .detail-content::-webkit-scrollbar { width: 4px; }
+    .detail-content::-webkit-scrollbar-track { background: transparent; }
+    .detail-content::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .detail-project {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .detail-title {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+
+    /* ── Action banner (appears at top of detail for actionable items) ── */
+    .action-banner {
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .action-banner.approve-plan {
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.08), transparent);
+      border-left: 3px solid var(--orange);
+    }
+    .action-banner.merge-pr {
+      background: linear-gradient(90deg, rgba(74, 222, 128, 0.08), transparent);
+      border-left: 3px solid var(--green);
+    }
+    .action-banner.stalled {
+      background: linear-gradient(90deg, rgba(224, 82, 82, 0.08), transparent);
+      border-left: 3px solid var(--red);
+    }
+    .action-text {
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-action {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      padding: 6px 16px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .btn-approve {
+      background: var(--green);
+      color: var(--bg);
+    }
+    .btn-merge {
+      background: var(--green);
+      color: var(--bg);
+    }
+    .btn-reject {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+    .btn-close-pr {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+    }
+    .btn-investigate {
+      background: var(--orange);
+      color: var(--bg);
+    }
+
+    /* ── Detail meta grid ── */
+    .detail-meta {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+      margin-bottom: 24px;
+    }
+    .meta-cell {
+      background: var(--surface);
+      padding: 12px;
+    }
+    .meta-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .meta-value {
+      font-size: 13px;
+      color: var(--text);
+    }
+    .meta-value a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* ── Objectives ── */
+    .detail-section {
+      margin-bottom: 24px;
+    }
+    .detail-section-title {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .objective-row {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      gap: 12px;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(26, 26, 42, 0.5);
+    }
+    .obj-id {
+      color: var(--text-muted);
+      font-size: 10px;
+      width: 40px;
+      flex-shrink: 0;
+    }
+    .obj-title { flex: 1; }
+    .obj-agent {
+      font-size: 10px;
+      color: var(--text-dim);
+      width: 60px;
+      text-align: right;
+    }
+    .obj-status {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .obj-status.done { background: var(--green); }
+    .obj-status.running {
+      background: var(--blue);
+      animation: pulse 2s infinite;
+    }
+    .obj-status.ready { background: var(--text-muted); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Timeline ── */
+    .timeline-item {
+      display: flex;
+      gap: 12px;
+      padding: 6px 0;
+      font-size: 11px;
+    }
+    .timeline-time {
+      color: var(--text-muted);
+      width: 50px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+    .timeline-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .timeline-event {
+      color: var(--text-dim);
+    }
+    .timeline-event strong {
+      color: var(--text);
+      font-weight: 400;
+    }
+
+    /* ── Keyboard hint ── */
+    .keyboard-hint {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .kbd code {
+      background: var(--border);
+      color: var(--text-dim);
+      padding: 1px 5px;
+      font-size: 9px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* ── Section separator in list ── */
+    .list-section {
+      padding: 8px 16px 4px;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .list-section .count {
+      color: var(--accent);
+      margin-left: 4px;
+    }
+
+    /* Badge for action items */
+    .badge {
+      background: var(--orange);
+      color: var(--bg);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 2px;
+      margin-left: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo">COMMANDDECK</div>
+      <div class="topbar-meta">
+        <span><span class="dot"></span>Online</span>
+        <span>4 projects</span>
+        <span>2 active</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-new">+ New Mission</button>
+    </div>
+  </div>
+
+  <!-- Main two-column layout -->
+  <div class="main">
+
+    <!-- Left: Item list -->
+    <div class="list-panel">
+      <div class="list-header">
+        <h2>Missions</h2>
+        <div class="list-filters">
+          <button class="filter-btn active">All</button>
+          <button class="filter-btn">Active</button>
+          <button class="filter-btn">Done</button>
+        </div>
+      </div>
+
+      <div class="list-items">
+
+        <!-- Section: Needs your action -->
+        <div class="list-section">Needs action<span class="count">2</span></div>
+
+        <div class="item needs-action selected">
+          <div class="item-top">
+            <span class="item-project">FurEverCare</span>
+            <span class="item-time">12m ago</span>
+          </div>
+          <div class="item-title">Add email notifications for appointment reminders</div>
+          <div class="item-bottom">
+            <span class="item-status approve">Approve Plan</span>
+            <span class="item-id">mission-20260303-412</span>
+          </div>
+        </div>
+
+        <div class="item needs-action">
+          <div class="item-top">
+            <span class="item-project">FurEverCare</span>
+            <span class="item-time">2h ago</span>
+          </div>
+          <div class="item-title">Apply dedup functionality to Conditions and Veterinarians</div>
+          <div class="item-bottom">
+            <span class="item-status review">Merge PR</span>
+            <span class="item-id">mission-20260228-326</span>
+            <span class="item-pr">PR #43</span>
+          </div>
+        </div>
+
+        <!-- Section: In progress -->
+        <div class="list-section">In progress<span class="count">2</span></div>
+
+        <div class="item">
+          <div class="item-top">
+            <span class="item-project">WeatherAggregator</span>
+            <span class="item-time">5m ago</span>
+          </div>
+          <div class="item-title">Refactor data pipeline to support hourly granularity</div>
+          <div class="item-bottom">
+            <span class="item-status running">Running</span>
+            <span class="item-id">mission-20260303-415</span>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item-top">
+            <span class="item-project">eve</span>
+            <span class="item-time">18m ago</span>
+          </div>
+          <div class="item-title">Build conversation memory persistence layer</div>
+          <div class="item-bottom">
+            <span class="item-status running">Running</span>
+            <span class="item-id">mission-20260303-418</span>
+          </div>
+        </div>
+
+        <!-- Section: Completed -->
+        <div class="list-section">Completed</div>
+
+        <div class="item">
+          <div class="item-top">
+            <span class="item-project">FurEverCare</span>
+            <span class="item-time">Yesterday</span>
+          </div>
+          <div class="item-title">Add HIPAA-compliant audit logging for patient records</div>
+          <div class="item-bottom">
+            <span class="item-status done">Done</span>
+            <span class="item-id">mission-20260302-400</span>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item-top">
+            <span class="item-project">WeatherAggregator</span>
+            <span class="item-time">Yesterday</span>
+          </div>
+          <div class="item-title">Fix timezone handling in forecast display</div>
+          <div class="item-bottom">
+            <span class="item-status done">Done</span>
+            <span class="item-id">mission-20260302-398</span>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item-top">
+            <span class="item-project">SharkShark</span>
+            <span class="item-time">2 days ago</span>
+          </div>
+          <div class="item-title">Implement reef health scoring algorithm</div>
+          <div class="item-bottom">
+            <span class="item-status done">Done</span>
+            <span class="item-id">mission-20260301-390</span>
+          </div>
+        </div>
+
+        <div class="item">
+          <div class="item-top">
+            <span class="item-project">FurEverCare</span>
+            <span class="item-time">3 days ago</span>
+          </div>
+          <div class="item-title">Add species autocomplete to registration form</div>
+          <div class="item-bottom">
+            <span class="item-status done">Done</span>
+            <span class="item-id">mission-20260228-325</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Keyboard shortcuts -->
+      <div class="keyboard-hint">
+        <span class="kbd"><code>↑↓</code> navigate</span>
+        <span class="kbd"><code>↵</code> open</span>
+        <span class="kbd"><code>a</code> approve</span>
+        <span class="kbd"><code>n</code> new</span>
+      </div>
+    </div>
+
+    <!-- Right: Detail panel -->
+    <div class="detail-panel">
+
+      <!-- Action banner -->
+      <div class="action-banner approve-plan">
+        <span class="action-text">Plan ready for approval — 4 objectives across 2 phases</span>
+        <div class="action-buttons">
+          <button class="btn-action btn-reject">Reject</button>
+          <button class="btn-action btn-approve">Approve Plan</button>
+        </div>
+      </div>
+
+      <div class="detail-content">
+        <div class="detail-project">FurEverCare</div>
+        <div class="detail-title">Add email notifications for appointment reminders</div>
+
+        <!-- Meta grid -->
+        <div class="detail-meta">
+          <div class="meta-cell">
+            <div class="meta-label">Status</div>
+            <div class="meta-value" style="color: var(--orange);">Pending Approval</div>
+          </div>
+          <div class="meta-cell">
+            <div class="meta-label">Objectives</div>
+            <div class="meta-value">4 planned</div>
+          </div>
+          <div class="meta-cell">
+            <div class="meta-label">Created</div>
+            <div class="meta-value">12 min ago</div>
+          </div>
+          <div class="meta-cell">
+            <div class="meta-label">Slack</div>
+            <div class="meta-value"><a href="#">#furever-care</a></div>
+          </div>
+        </div>
+
+        <!-- Objectives -->
+        <div class="detail-section">
+          <div class="detail-section-title">Planned Objectives</div>
+          <div class="objective-row">
+            <span class="obj-id">001</span>
+            <span class="obj-title">Email template system with Handlebars</span>
+            <span class="obj-agent">borg</span>
+            <span class="obj-status ready"></span>
+          </div>
+          <div class="objective-row">
+            <span class="obj-id">002</span>
+            <span class="obj-title">Appointment reminder scheduler (cron)</span>
+            <span class="obj-agent">borg</span>
+            <span class="obj-status ready"></span>
+          </div>
+          <div class="objective-row">
+            <span class="obj-id">003</span>
+            <span class="obj-title">Owner notification preferences API</span>
+            <span class="obj-agent">borg</span>
+            <span class="obj-status ready"></span>
+          </div>
+          <div class="objective-row">
+            <span class="obj-id">004</span>
+            <span class="obj-title">Integration tests for email flow</span>
+            <span class="obj-agent">spock</span>
+            <span class="obj-status ready"></span>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="detail-section">
+          <div class="detail-section-title">Timeline</div>
+          <div class="timeline-item">
+            <span class="timeline-time">14:51</span>
+            <span class="timeline-dot"></span>
+            <span class="timeline-event"><strong>Plan ready</strong> — 4 objectives, 2 phases. Waiting for approval.</span>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-time">14:48</span>
+            <span class="timeline-dot"></span>
+            <span class="timeline-event"><strong>Planning started</strong> — Picard analyzing codebase</span>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-time">14:47</span>
+            <span class="timeline-dot"></span>
+            <span class="timeline-event"><strong>Mission created</strong> — via Slack #furever-care</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
