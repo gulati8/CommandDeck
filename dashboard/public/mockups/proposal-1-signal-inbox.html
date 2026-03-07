@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommandDeck Mockup - Proposal 1 Signal Inbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070B11;
+      --panel: #0E1520;
+      --panel-2: #152132;
+      --line: #24344B;
+      --text: #E8F0FA;
+      --sub: #9FB2CA;
+      --muted: #6F8098;
+      --pending: #FFC247;
+      --info: #44C2FF;
+      --ok: #3ED598;
+      --risk: #FF6B5E;
+      --accent: #65F3D5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Manrope', sans-serif;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(68,194,255,0.10), transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(101,243,213,0.08), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: rgba(7,11,17,0.88);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .logo {
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .meta {
+      display: flex;
+      gap: 14px;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--sub);
+      font-size: 12px;
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot.live { background: var(--ok); box-shadow: 0 0 12px rgba(62,213,152,.8); }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      padding: 9px 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .btn.primary {
+      background: linear-gradient(120deg, #39A8FF, #65F3D5);
+      color: #041017;
+      border-color: transparent;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 350px 1fr 300px;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(14,21,32,0.95), rgba(14,21,32,0.78));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: calc(100vh - 84px);
+    }
+
+    .panel-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .panel h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--sub);
+    }
+
+    .pill {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255,194,71,0.16);
+      color: var(--pending);
+      border: 1px solid rgba(255,194,71,0.35);
+    }
+
+    .queue { padding: 10px; display: grid; gap: 9px; }
+
+    .item {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: transform .15s ease, border-color .15s ease;
+    }
+
+    .item:hover { transform: translateY(-1px); border-color: #3a5272; }
+    .item.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(101,243,213,.25); }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      margin-bottom: 7px;
+    }
+
+    .tag.pending { background: rgba(255,194,71,.18); color: var(--pending); }
+    .tag.risk { background: rgba(255,107,94,.16); color: var(--risk); }
+    .tag.info { background: rgba(68,194,255,.16); color: var(--info); }
+
+    .title { font-size: 13px; line-height: 1.4; margin-bottom: 6px; font-weight: 700; }
+    .sub { color: var(--sub); font-size: 12px; line-height: 1.5; }
+    .meta-line { color: var(--muted); font-size: 11px; margin-top: 8px; font-family: 'IBM Plex Mono', monospace; }
+
+    .detail { padding: 18px; display: grid; gap: 14px; }
+    .hero { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--panel-2); }
+    .hero h3 { font-size: 18px; margin-bottom: 7px; }
+    .hero p { color: var(--sub); line-height: 1.55; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #101C2A;
+    }
+
+    .stat .k { font-size: 23px; font-weight: 700; }
+    .stat .l { color: var(--sub); font-size: 12px; }
+
+    .timeline { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: #0c1420; }
+    .event { padding: 8px 0; border-bottom: 1px dashed rgba(111,128,152,.25); }
+    .event:last-child { border-bottom: none; }
+    .event b { color: var(--text); font-size: 13px; }
+    .event span { display: block; color: var(--sub); font-size: 12px; }
+
+    .partner { padding: 12px; display: grid; gap: 10px; }
+
+    .brief {
+      border: 1px solid var(--line);
+      background: #0f1b2a;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .brief h4 { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .brief p { color: var(--sub); font-size: 13px; line-height: 1.5; }
+
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; }
+      .panel { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="logo">COMMANDDECK / PROPOSAL 1</div>
+      <div class="meta"><span><i class="dot live"></i>Live</span><span>4 missions running</span><span>2 blocked</span></div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn">Open Slack Thread</button>
+      <button class="btn primary">+ Start Mission</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Signal Inbox</h2>
+        <span class="pill">5 needs action</span>
+      </div>
+      <div class="queue">
+        <article class="item active">
+          <span class="tag pending">PLAN APPROVAL</span>
+          <div class="title">Add deployment rollback guardrails</div>
+          <div class="sub">Mission has 4 objectives and security flags.</div>
+          <div class="meta-line">weather-api • 12m ago</div>
+        </article>
+
+        <article class="item">
+          <span class="tag risk">STALLED</span>
+          <div class="title">Fix flaky CI in preview deploy</div>
+          <div class="sub">No objective progress for 42 minutes.</div>
+          <div class="meta-line">checkout-engine • 42m ago</div>
+        </article>
+
+        <article class="item">
+          <span class="tag info">MERGE READY</span>
+          <div class="title">Implement OAuth refresh token flow</div>
+          <div class="sub">PR #112 open, tests passed, waiting decision.</div>
+          <div class="meta-line">commanddeck • 5m ago</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Mission Detail</h2><span class="pill" style="background:rgba(68,194,255,.18);border-color:rgba(68,194,255,.35);color:var(--info)">in progress</span></div>
+      <div class="detail">
+        <div class="hero">
+          <h3>Mission: Deployment rollback guardrails</h3>
+          <p>Objective 1 and 2 complete. Objective 3 needs approval due to production-risk flag. Slack thread is active with partner comments and reviewer notes.</p>
+        </div>
+
+        <div class="grid2">
+          <div class="stat"><div class="k">75%</div><div class="l">Objectives Complete</div></div>
+          <div class="stat"><div class="k">3</div><div class="l">Risk Flags</div></div>
+        </div>
+
+        <div class="timeline">
+          <div class="event"><b>Geordi completed infra checks</b><span>Evidence attached: `evidence-obj-2.json`</span></div>
+          <div class="event"><b>Worf requested manual review</b><span>Risk: `auth-hardening`, `secrets-scope`</span></div>
+          <div class="event"><b>Plan ready for approval</b><span>Approve in Slack or here.</span></div>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <button class="btn">Reject Plan</button>
+          <button class="btn primary">Approve & Continue</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Partner Brief</h2><span class="pill" style="background:rgba(101,243,213,.14);border-color:rgba(101,243,213,.35);color:var(--accent)">plain english</span></div>
+      <div class="partner">
+        <div class="brief">
+          <h4>What changed</h4>
+          <p>CommandDeck can now detect risky deployment conditions and pause before merge.</p>
+        </div>
+        <div class="brief">
+          <h4>Decision needed</h4>
+          <p>Approve this mission plan so implementation can continue to testing and PR review.</p>
+        </div>
+        <div class="brief">
+          <h4>Business impact</h4>
+          <p>Reduces production outage risk and lowers rollback response time for partner launches.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

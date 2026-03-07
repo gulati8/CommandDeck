@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommandDeck Mockup - Proposal 2 Mission Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700&family=Manrope:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0A0F17;
+      --card: #111C2A;
+      --card-2: #162537;
+      --line: #28415D;
+      --text: #ECF4FF;
+      --sub: #A9BED9;
+      --muted: #728BA7;
+      --sky: #5CC8FF;
+      --mint: #65F0C8;
+      --amber: #FFC65A;
+      --salmon: #FF7A6E;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Manrope', sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(170deg, rgba(92,200,255,.12), transparent 35%),
+        linear-gradient(330deg, rgba(101,240,200,.10), transparent 35%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .top {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(17,28,42,.85);
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .brand {
+      font-family: 'Sora', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+
+    .tabs { display: flex; gap: 8px; }
+
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-size: 12px;
+      color: var(--sub);
+      background: rgba(17,28,42,.65);
+    }
+
+    .chip.active {
+      background: rgba(92,200,255,.16);
+      color: var(--sky);
+      border-color: rgba(92,200,255,.45);
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .btn.primary {
+      border: none;
+      color: #08202C;
+      background: linear-gradient(120deg, var(--sky), var(--mint));
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px 1fr 290px;
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(17,28,42,.9);
+      overflow: hidden;
+    }
+
+    .head {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .head h3 {
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      color: var(--sub);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,198,90,.45);
+      color: var(--amber);
+      background: rgba(255,198,90,.15);
+    }
+
+    .goals { padding: 12px; display: grid; gap: 8px; }
+
+    .goal {
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .goal .t { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+    .goal .d { font-size: 12px; color: var(--sub); }
+    .goal .m { margin-top: 8px; font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+    .goal.current { border-color: var(--mint); box-shadow: inset 0 0 0 1px rgba(101,240,200,.28); }
+
+    .studio-body { padding: 15px; display: grid; gap: 12px; }
+
+    .mission-title {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      background: linear-gradient(120deg, rgba(92,200,255,.12), rgba(101,240,200,.08));
+    }
+
+    .mission-title h1 { font-family: 'Sora', sans-serif; font-size: 22px; margin-bottom: 6px; }
+    .mission-title p { color: var(--sub); line-height: 1.55; }
+
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--card-2);
+    }
+
+    .panel h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--sub); margin-bottom: 9px; }
+
+    .timeline .e {
+      padding: 8px 0;
+      border-bottom: 1px dashed rgba(114,139,167,.28);
+    }
+
+    .timeline .e:last-child { border-bottom: none; }
+    .timeline b { font-size: 13px; }
+    .timeline span { display: block; color: var(--sub); font-size: 12px; }
+
+    .risk .flag {
+      border: 1px solid rgba(255,122,110,.42);
+      color: var(--salmon);
+      background: rgba(255,122,110,.14);
+      border-radius: 10px;
+      padding: 8px 10px;
+      margin-bottom: 7px;
+      font-size: 12px;
+    }
+
+    .briefing { padding: 12px; display: grid; gap: 8px; }
+
+    .note {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #122133;
+      padding: 11px;
+    }
+
+    .note h5 { color: var(--mint); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 7px; }
+    .note p { font-size: 13px; color: var(--sub); line-height: 1.5; }
+
+    .actions { display: grid; gap: 8px; }
+
+    @media (max-width: 1150px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div>
+        <div class="brand">COMMANDDECK / PROPOSAL 2 MISSION STUDIO</div>
+        <div style="margin-top:6px; color:var(--muted); font-size:12px;">Slack for conversation. Web for mission understanding.</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div class="tabs">
+          <span class="chip active">Operator Mode</span>
+          <span class="chip">Partner Mode</span>
+        </div>
+        <button class="btn">Open Slack Thread</button>
+        <button class="btn primary">Approve Plan</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card">
+        <div class="head"><h3>Objectives</h3><span class="status">3/4 done</span></div>
+        <div class="goals">
+          <article class="goal current">
+            <div class="t">OBJ-4 Harden env secrets scope</div>
+            <div class="d">Limit token visibility in worker subprocess setup.</div>
+            <div class="m">Worf • risk: security • in_review</div>
+          </article>
+          <article class="goal">
+            <div class="t">OBJ-3 Add rollback trigger pipeline</div>
+            <div class="d">Create safety rollback condition and deploy fallback.</div>
+            <div class="m">Geordi • done</div>
+          </article>
+          <article class="goal">
+            <div class="t">OBJ-2 Improve health patrol rules</div>
+            <div class="d">Detect test loop, stalled workers, edit thrash patterns.</div>
+            <div class="m">Data • done</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="head"><h3>Mission Studio</h3><span class="status" style="border-color:rgba(92,200,255,.45);color:var(--sky);background:rgba(92,200,255,.15)">in_progress</span></div>
+        <div class="studio-body">
+          <section class="mission-title">
+            <h1>Deploy Guardrails + Approval Path Improvements</h1>
+            <p>This mission improves deployment safety by adding rollback triggers, better health patrol checks, and explicit approval checkpoints linked back to Slack thread context.</p>
+          </section>
+
+          <section class="cols">
+            <article class="panel timeline">
+              <h4>Timeline</h4>
+              <div class="e"><b>Captain planned 4-objective mission</b><span>Phase split with security + infra review tags.</span></div>
+              <div class="e"><b>Worker sessions completed objective 2 and 3</b><span>Tests passed, PR draft opened.</span></div>
+              <div class="e"><b>Partner asked for plain-language explanation</b><span>Summary generated and posted to thread.</span></div>
+            </article>
+
+            <article class="panel risk">
+              <h4>Risk and Evidence</h4>
+              <div class="flag">Security reviewer requested narrower token scope in env bootstrap.</div>
+              <div class="flag" style="color:var(--amber);border-color:rgba(255,198,90,.45);background:rgba(255,198,90,.15)">Pending decision: approve final objective execution.</div>
+            </article>
+          </section>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="head"><h3>Partner Briefing</h3><span class="status" style="border-color:rgba(101,240,200,.45);color:var(--mint);background:rgba(101,240,200,.14)">plain language</span></div>
+        <div class="briefing">
+          <article class="note">
+            <h5>What this does</h5>
+            <p>Reduces the chance of a bad deployment reaching users by adding automatic rollback and stronger checks.</p>
+          </article>
+          <article class="note">
+            <h5>What you need to decide</h5>
+            <p>Approve moving forward with the final security hardening task so release can proceed.</p>
+          </article>
+          <article class="note">
+            <h5>Expected impact</h5>
+            <p>Fewer release incidents, faster recovery, and clearer accountability in approvals.</p>
+          </article>
+          <div class="actions">
+            <button class="btn primary">Approve in Web</button>
+            <button class="btn">Reply in Slack Thread</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

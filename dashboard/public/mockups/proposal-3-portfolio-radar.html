@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommandDeck Mockup - Proposal 3 Portfolio Radar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Public+Sans:wght@400;600;700&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0D1116;
+      --panel: #161D24;
+      --panel-2: #1E2832;
+      --line: #2F3F4E;
+      --text: #EFF4F8;
+      --sub: #AEBECF;
+      --muted: #7E90A5;
+      --teal: #47D6C2;
+      --blue: #56B5FF;
+      --amber: #F9C35A;
+      --red: #FF7766;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Public Sans', sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(120deg, rgba(71,214,194,.08), transparent 40%),
+        linear-gradient(300deg, rgba(86,181,255,.08), transparent 45%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .page { max-width: 1380px; margin: 0 auto; padding: 16px; }
+
+    .top {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(22,29,36,.88);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 17px;
+      letter-spacing: .05em;
+      font-weight: 700;
+    }
+
+    .toolbar { display: flex; gap: 8px; }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .btn.primary {
+      color: #052019;
+      border: none;
+      background: linear-gradient(110deg, var(--teal), #8EF2E3);
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .kpi {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .kpi .v { font-family: 'Outfit', sans-serif; font-size: 30px; font-weight: 700; }
+    .kpi .l { color: var(--sub); font-size: 12px; }
+    .kpi .t { margin-top: 6px; font-size: 11px; color: var(--muted); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-head h3 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      color: var(--sub);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px;
+      background: var(--line);
+    }
+
+    .col {
+      background: #131A21;
+      min-height: 450px;
+      padding: 10px;
+    }
+
+    .col-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--sub);
+      letter-spacing: .07em;
+      margin-bottom: 8px;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px;
+      margin-bottom: 8px;
+      background: var(--panel-2);
+    }
+
+    .item .p { font-size: 10px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .item .t { font-size: 13px; font-weight: 700; line-height: 1.35; margin-bottom: 6px; }
+    .item .m { font-family: 'Fira Mono', monospace; font-size: 11px; color: var(--sub); }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-family: 'Fira Mono', monospace;
+      margin-right: 6px;
+    }
+
+    .b-amber { color: var(--amber); border: 1px solid rgba(249,195,90,.46); background: rgba(249,195,90,.14); }
+    .b-teal { color: var(--teal); border: 1px solid rgba(71,214,194,.4); background: rgba(71,214,194,.14); }
+    .b-red { color: var(--red); border: 1px solid rgba(255,119,102,.4); background: rgba(255,119,102,.14); }
+
+    .list { padding: 10px; }
+
+    .decision {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 9px;
+      background: var(--panel-2);
+    }
+
+    .decision h4 { font-size: 13px; margin-bottom: 5px; }
+    .decision p { color: var(--sub); font-size: 12px; line-height: 1.45; margin-bottom: 7px; }
+    .decision .m { font-family: 'Fira Mono', monospace; color: var(--muted); font-size: 11px; }
+
+    @media (max-width: 1150px) {
+      .kpis { grid-template-columns: 1fr 1fr; }
+      .layout { grid-template-columns: 1fr; }
+      .board { grid-template-columns: 1fr; }
+      .col { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="top">
+      <div>
+        <div class="title">COMMANDDECK / PROPOSAL 3 PORTFOLIO RADAR</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">Business-first command center for multi-project planning and approvals.</div>
+      </div>
+      <div class="toolbar">
+        <button class="btn">Open Weekly Digest</button>
+        <button class="btn primary">+ New Initiative</button>
+      </div>
+    </header>
+
+    <section class="kpis">
+      <article class="kpi"><div class="v">23</div><div class="l">Missions this week</div><div class="t">+18% vs last week</div></article>
+      <article class="kpi"><div class="v">7.4h</div><div class="l">Median cycle time</div><div class="t">-1.2h improvement</div></article>
+      <article class="kpi"><div class="v">92%</div><div class="l">Mission success rate</div><div class="t">includes merged + deployed</div></article>
+      <article class="kpi"><div class="v">5</div><div class="l">Decisions waiting</div><div class="t" style="color:var(--amber)">2 overdue</div></article>
+    </section>
+
+    <main class="layout">
+      <section class="card">
+        <div class="card-head"><h3>Initiative Board</h3><span style="font-size:11px;color:var(--sub)">Group by impact stage</span></div>
+        <div class="board">
+          <div class="col">
+            <div class="col-title">Idea Intake</div>
+            <article class="item">
+              <div class="p">Partner Idea</div>
+              <div class="t">Automated weekly roadmap summary in Slack</div>
+              <div><span class="badge b-amber">needs sizing</span></div>
+              <div class="m">owner: amit • impact: medium</div>
+            </article>
+            <article class="item">
+              <div class="p">Biz Request</div>
+              <div class="t">Mission budget guardrails by project</div>
+              <div><span class="badge b-amber">discovery</span></div>
+              <div class="m">owner: partner-ops</div>
+            </article>
+          </div>
+          <div class="col">
+            <div class="col-title">In Delivery</div>
+            <article class="item">
+              <div class="p">commanddeck</div>
+              <div class="t">Mission Studio partner mode</div>
+              <div><span class="badge b-teal">in progress</span></div>
+              <div class="m">4 objectives • 2 done</div>
+            </article>
+            <article class="item">
+              <div class="p">checkout-engine</div>
+              <div class="t">Deployment rollback playbook automation</div>
+              <div><span class="badge b-amber">approval pending</span></div>
+              <div class="m">risk: infra • due Fri</div>
+            </article>
+          </div>
+          <div class="col">
+            <div class="col-title">Shipped / Measuring</div>
+            <article class="item">
+              <div class="p">weather-api</div>
+              <div class="t">Health patrol anti-stall signals</div>
+              <div><span class="badge b-teal">shipped</span></div>
+              <div class="m">incident rate down 31%</div>
+            </article>
+            <article class="item">
+              <div class="p">commanddeck</div>
+              <div class="t">Dashboard mission reconnect flow</div>
+              <div><span class="badge b-red">monitoring</span></div>
+              <div class="m">1 regression under review</div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card">
+        <div class="card-head"><h3>Decision Docket</h3><span style="font-size:11px;color:var(--sub)">for partners</span></div>
+        <div class="list">
+          <article class="decision">
+            <h4>Approve security hardening scope increase?</h4>
+            <p>Add one objective to tighten token environment boundaries before merge.</p>
+            <div class="m">due: tomorrow 4pm • owner: amit</div>
+          </article>
+          <article class="decision">
+            <h4>Prioritize partner digest over new agent role?</h4>
+            <p>Choosing digest first improves non-tech collaboration this month.</p>
+            <div class="m">due: Thu • owner: biz lead</div>
+          </article>
+          <article class="decision">
+            <h4>Keep Slack-first approvals or move to web-only?</h4>
+            <p>Current recommendation: stay Slack-first for approval latency.</p>
+            <div class="m">due: Fri • owner: operators</div>
+          </article>
+          <button class="btn primary" style="width:100%;margin-top:4px;">Open Decision Workspace</button>
+        </div>
+      </aside>
+    </main>
+  </div>
+</body>
+</html>
