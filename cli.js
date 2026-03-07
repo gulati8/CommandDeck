@@ -146,17 +146,42 @@ program
       console.log(`🚀 Creating project "${name}"...`);
       const result = await scaffold.createProject(name, {
         description: options.description || '',
-        port: parseInt(options.port, 10)
+        port: parseInt(options.port, 10),
+        reporter
       });
 
       for (const step of result.steps) {
         const icon = step.status === 'ok' ? '✅' : '❌';
-        console.log(`  ${icon} ${step.step}${step.error ? ': ' + step.error : ''}`);
+        const skip = step.skipped ? ' (already existed)' : '';
+        console.log(`  ${icon} ${step.step}${skip}${step.error ? ': ' + step.error : ''}`);
       }
 
       console.log(`\n🖖 Project "${name}" created!`);
     } catch (err) {
       console.error(`Create failed: ${err.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('onboard <name>')
+  .description('Onboard an existing GitHub repo (clone, configure, map channel)')
+  .action(async (name) => {
+    try {
+      console.log(`📦 Onboarding existing project "${name}"...`);
+      const result = await scaffold.onboardProject(name, {
+        reporter
+      });
+
+      for (const step of result.steps) {
+        const icon = step.status === 'ok' ? '✅' : '❌';
+        const skip = step.skipped ? ' (already existed)' : '';
+        console.log(`  ${icon} ${step.step}${skip}${step.error ? ': ' + step.error : ''}`);
+      }
+
+      console.log(`\n🖖 Project "${name}" onboarded!`);
+    } catch (err) {
+      console.error(`Onboard failed: ${err.message}`);
       process.exit(1);
     }
   });
@@ -168,11 +193,12 @@ program
     // Delegate to create command
     try {
       console.log(`🚀 Scaffolding project "${repo}"...`);
-      const result = await scaffold.createProject(repo, {});
+      const result = await scaffold.createProject(repo, { reporter });
 
       for (const step of result.steps) {
         const icon = step.status === 'ok' ? '✅' : '❌';
-        console.log(`  ${icon} ${step.step}${step.error ? ': ' + step.error : ''}`);
+        const skip = step.skipped ? ' (already existed)' : '';
+        console.log(`  ${icon} ${step.step}${skip}${step.error ? ': ' + step.error : ''}`);
       }
     } catch (err) {
       console.error(`Scaffold failed: ${err.message}`);

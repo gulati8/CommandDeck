@@ -360,9 +360,18 @@ function startSlackApp() {
       return;
     }
 
-    // Create project command
+    // Create project command — only from #command-deck
     const createMatch = prompt.match(/^(?:create|build me|new project)\s+(?:project\s+)?(\S+)(?:\s*[:]\s*(.+))?$/i);
     if (createMatch) {
+      const metaChannel = slack.findChannelForRepo('CommandDeck') || process.env.COMMANDDECK_META_CHANNEL;
+      if (metaChannel && channel !== metaChannel) {
+        await say({
+          text: `Project creation is only available in <#${metaChannel}>. Head there and try again.`,
+          thread_ts: threadTs
+        });
+        return;
+      }
+
       const projectName = createMatch[1];
       const description = createMatch[2]?.trim() || '';
 
@@ -374,11 +383,16 @@ function startSlackApp() {
       try {
         const result = await scaffold.createProject(projectName, {
           description,
-          slackApp: app
+          slackApp: app,
+          reporter
         });
 
         const summary = result.steps
-          .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
+          .map(s => {
+            const icon = s.status === 'ok' ? '✅' : '❌';
+            const skip = s.skipped ? ' (already existed)' : '';
+            return `  ${icon} ${s.step}${skip}${s.error ? ': ' + s.error : ''}`;
+          })
           .join('\n');
 
         await reporter.post(
@@ -392,6 +406,49 @@ function startSlackApp() {
         }
       } catch (err) {
         await reporter.post(`❌ Failed to create project: ${err.message}`);
+      }
+      return;
+    }
+
+    // Onboard existing repo command — only from #command-deck
+    const onboardMatch = prompt.match(/^onboard\s+(\S+)$/i);
+    if (onboardMatch) {
+      const metaChannel = slack.findChannelForRepo('CommandDeck') || process.env.COMMANDDECK_META_CHANNEL;
+      if (metaChannel && channel !== metaChannel) {
+        await say({
+          text: `Project onboarding is only available in <#${metaChannel}>. Head there and try again.`,
+          thread_ts: threadTs
+        });
+        return;
+      }
+
+      const projectName = onboardMatch[1];
+
+      await say({
+        text: `📦 Onboarding existing project "${projectName}"...`,
+        thread_ts: threadTs
+      });
+
+      try {
+        const result = await scaffold.onboardProject(projectName, {
+          slackApp: app,
+          reporter
+        });
+
+        const summary = result.steps
+          .map(s => {
+            const icon = s.status === 'ok' ? '✅' : '❌';
+            const skip = s.skipped ? ' (already existed)' : '';
+            return `  ${icon} ${s.step}${skip}${s.error ? ': ' + s.error : ''}`;
+          })
+          .join('\n');
+
+        await reporter.post(
+          `🖖 Project "${projectName}" onboarded!\n${summary}\n\n` +
+          `Use: @CommandDeck in ${projectName} <task> to start a mission.`
+        );
+      } catch (err) {
+        await reporter.post(`❌ Failed to onboard project: ${err.message}`);
       }
       return;
     }
