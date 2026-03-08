@@ -516,7 +516,27 @@ function startSlackApp() {
       return;
     }
 
-    await runMission(repo, task, { channel, threadTs, reporter, slackApp: app });
+    // Classify: let Picard decide if this is actionable or needs conversation
+    try {
+      const classification = await thread.classifyMessage(app, channel, threadTs, task, { repo });
+
+      if (classification.action === 'work') {
+        // Clear, actionable task — launch mission
+        const missionPrompt = classification.task_description || task;
+        await runMission(repo, missionPrompt, { channel, threadTs, reporter, slackApp: app });
+      } else {
+        // Conversational or inquiry — respond and track for follow-up
+        await reporter.post(classification.message);
+        thread.trackThread(channel, threadTs, {
+          repo,
+          mission_id: null,
+          original_description: task,
+          status: 'conversing'
+        });
+      }
+    } catch (err) {
+      await reporter.post(`🔴 Something went wrong: ${err.message}`);
+    }
   });
 
   // Handle governance reactions and PR approval reactions
@@ -617,9 +637,9 @@ function startSlackApp() {
       return;
     }
 
-    if (threadContext.status === 'working') {
+    if (threadContext.status === 'working' || threadContext.status === 'launching') {
       const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
-      await reporter.post("I'm still working on the previous follow-up. I'll respond when it's done.");
+      await reporter.post("I'm still working on that. I'll respond when it's done.");
       return;
     }
 
@@ -627,11 +647,30 @@ function startSlackApp() {
       // Already assessing — debounce will collect this message
     }
 
-    // Debounce messages, then assess
+    // Unified classification for all thread follow-ups (pre-mission and post-mission)
     thread.debounce(event.channel, event.thread_ts, event.text, async (messages) => {
       thread.updateThreadStatus(event.channel, event.thread_ts, 'assessing');
-      const assessment = await thread.assessFeedback(app, threadContext, messages);
-      await thread.handleAssessment(app, threadContext, assessment);
+
+      const classification = await thread.classifyMessage(
+        app, event.channel, event.thread_ts, messages, threadContext
+      );
+      const result = await thread.handleClassification(app, threadContext, classification);
+
+      // If classification triggered a new mission (pre-mission thread)
+      if (result?.needs_new_mission && result.task_description) {
+        const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
+        try {
+          await runMission(result.repo, result.task_description, {
+            channel: event.channel,
+            threadTs: event.thread_ts,
+            reporter,
+            slackApp: app
+          });
+        } catch (err) {
+          await reporter.post(`🔴 Mission failed to start: ${err.message}`);
+          thread.updateThreadStatus(event.channel, event.thread_ts, 'conversing');
+        }
+      }
     });
   });
 
