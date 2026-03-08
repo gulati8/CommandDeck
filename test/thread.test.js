@@ -218,33 +218,33 @@ describe('thread', () => {
     });
   });
 
-  describe('parseAssessment', () => {
-    it('should parse valid JSON', () => {
+  describe('parseClassification', () => {
+    it('should parse valid JSON with work action', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
-      const result = mod.parseAssessment(JSON.stringify({
+      const result = mod.parseClassification(JSON.stringify({
         action: 'work',
         message: 'I understand, making the change now.',
-        work_description: 'Fix the button color to blue'
+        task_description: 'Fix the button color to blue'
       }));
 
       assert.equal(result.action, 'work');
       assert.equal(result.message, 'I understand, making the change now.');
-      assert.equal(result.work_description, 'Fix the button color to blue');
+      assert.equal(result.task_description, 'Fix the button color to blue');
     });
 
     it('should parse JSON embedded in surrounding text', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
-      const result = mod.parseAssessment(
-        'Here is my assessment:\n' +
-        '{"action": "clarify", "message": "Could you clarify what you mean?", "work_description": null}\n' +
-        'End of assessment.'
+      const result = mod.parseClassification(
+        'Here is my classification:\n' +
+        '{"action": "converse", "message": "Could you clarify what you mean?", "task_description": null}\n' +
+        'End of classification.'
       );
 
-      assert.equal(result.action, 'clarify');
+      assert.equal(result.action, 'converse');
       assert.equal(result.message, 'Could you clarify what you mean?');
     });
 
@@ -252,50 +252,105 @@ describe('thread', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
-      const result = mod.parseAssessment('this is not json at all');
+      const result = mod.parseClassification('this is not json at all');
 
-      assert.equal(result.action, 'acknowledge');
-      assert.ok(result.message.includes('rephrase'));
+      assert.equal(result.action, 'converse');
+      assert.ok(result.message.includes('help'));
     });
 
     it('should fallback on empty/null input', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
-      assert.equal(mod.parseAssessment('').action, 'acknowledge');
-      assert.equal(mod.parseAssessment(null).action, 'acknowledge');
-      assert.equal(mod.parseAssessment(undefined).action, 'acknowledge');
+      assert.equal(mod.parseClassification('').action, 'converse');
+      assert.equal(mod.parseClassification(null).action, 'converse');
+      assert.equal(mod.parseClassification(undefined).action, 'converse');
     });
 
     it('should fallback on missing or invalid action', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
-      const noAction = mod.parseAssessment(JSON.stringify({
+      const noAction = mod.parseClassification(JSON.stringify({
         message: 'No action field here'
       }));
-      assert.equal(noAction.action, 'acknowledge');
+      assert.equal(noAction.action, 'converse');
 
-      const badAction = mod.parseAssessment(JSON.stringify({
+      const badAction = mod.parseClassification(JSON.stringify({
         action: 'invalid',
         message: 'Bad action value'
       }));
-      assert.equal(badAction.action, 'acknowledge');
+      assert.equal(badAction.action, 'converse');
     });
 
     it('should handle JSON with extra whitespace', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
-      const result = mod.parseAssessment(`
+      const result = mod.parseClassification(`
         {
-          "action": "acknowledge",
+          "action": "inquiry",
           "message": "Got it, thanks!"
         }
       `);
 
-      assert.equal(result.action, 'acknowledge');
+      assert.equal(result.action, 'inquiry');
       assert.equal(result.message, 'Got it, thanks!');
+    });
+
+    it('should accept all valid actions', () => {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
+      const mod = freshThreadModule(tempDir);
+
+      for (const action of ['work', 'converse', 'inquiry']) {
+        const result = mod.parseClassification(JSON.stringify({ action, message: 'test' }));
+        assert.equal(result.action, action);
+      }
+    });
+  });
+
+  describe('pre-mission thread tracking', () => {
+    it('should track a thread without a mission', () => {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
+      const mod = freshThreadModule(tempDir);
+
+      mod.trackThread('C123', '111.222', {
+        repo: 'TestRepo',
+        status: 'conversing'
+      });
+
+      const t = mod.getThread('C123', '111.222');
+      assert.equal(t.repo, 'TestRepo');
+      assert.equal(t.status, 'conversing');
+      assert.equal(t.mission_id, null);
+    });
+
+    it('should reset stale launching threads to conversing', () => {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
+      const mod = freshThreadModule(tempDir);
+
+      mod.trackThread('C123', '111.222', {
+        repo: 'TestRepo',
+        status: 'launching'
+      });
+
+      mod.updateThreadStatus('C123', '111.222', 'launching');
+      mod.resetStaleThreads();
+      assert.equal(mod.getThread('C123', '111.222').status, 'conversing');
+    });
+
+    it('should reset stale assessing pre-mission threads to conversing', () => {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
+      const mod = freshThreadModule(tempDir);
+
+      mod.trackThread('C123', '111.222', {
+        repo: 'TestRepo',
+        status: 'conversing'
+      });
+
+      mod.updateThreadStatus('C123', '111.222', 'assessing');
+      mod.resetStaleThreads();
+      assert.equal(mod.getThread('C123', '111.222').status, 'conversing');
     });
   });
 });

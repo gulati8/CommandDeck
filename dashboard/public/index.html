@@ -20,6 +20,7 @@
     <div class="topbar-right">
       <nav class="topbar-nav">
         <a href="#/projects" class="nav-link" onclick="showView('projects'); return false;">Projects</a>
+        <a href="#/logs" class="nav-link" onclick="showView('logs'); return false;">Logs</a>
         <a href="#/system" class="nav-link" onclick="showView('system'); return false;">System</a>
       </nav>
       <button class="btn-new" onclick="openStartMission()">+ New Mission</button>
@@ -47,6 +48,20 @@
       <span id="bc-project-label"></span>
     </nav>
     <div id="project-missions-list"></div>
+  </main>
+
+  <!-- Logs -->
+  <main id="view-logs" class="page">
+    <nav class="page-nav">
+      <a href="#/" onclick="showFeed(); return false;">&larr; Home</a>
+    </nav>
+    <div class="logs-toolbar">
+      <input type="text" id="logs-filter" class="logs-filter" placeholder="Filter events..." oninput="renderLogs()">
+      <label class="logs-auto-label">
+        <input type="checkbox" id="logs-auto" checked onchange="toggleLogsPoll()"> Auto-refresh
+      </label>
+    </div>
+    <div id="logs-list" class="logs-list"></div>
   </main>
 
   <!-- System -->

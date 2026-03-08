@@ -272,6 +272,36 @@ async function handlePlanReject(planApproval, app) {
 
 // --- Slack app setup ---
 
+// Resolve meta-channel ID from bot username (e.g. command_deck → #command-deck)
+let _metaChannelId = null;
+async function resolveMetaChannel(app) {
+  if (_metaChannelId) return _metaChannelId;
+  try {
+    const authResult = await app.client.auth.test();
+    const botName = authResult.user || '';
+    const channelName = botName.replace(/_/g, '-');
+
+    let cursor;
+    do {
+      const result = await app.client.conversations.list({
+        types: 'public_channel',
+        limit: 200,
+        cursor
+      });
+      const match = result.channels.find(c => c.name === channelName);
+      if (match) {
+        _metaChannelId = match.id;
+        console.log(`  Meta-channel resolved: #${channelName} (${_metaChannelId})`);
+        return _metaChannelId;
+      }
+      cursor = result.response_metadata?.next_cursor;
+    } while (cursor);
+  } catch (err) {
+    console.error('Failed to resolve meta-channel:', err.message);
+  }
+  return null;
+}
+
 function startSlackApp() {
   const app = new App({
     token: process.env.SLACK_BOT_TOKEN,
@@ -279,6 +309,13 @@ function startSlackApp() {
     socketMode: true,
     appToken: process.env.SLACK_APP_TOKEN
   });
+
+  // Resolve meta-channel on first event
+  let _metaChannelReady = null;
+  function getMetaChannel() {
+    if (!_metaChannelReady) _metaChannelReady = resolveMetaChannel(app);
+    return _metaChannelReady;
+  }
 
   // Handle @CommandDeck mentions
   app.event('app_mention', async ({ event, say }) => {
@@ -338,9 +375,18 @@ function startSlackApp() {
       return;
     }
 
-    // Create project command
+    // Create project command — only from meta-channel
     const createMatch = prompt.match(/^(?:create|build me|new project)\s+(?:project\s+)?(\S+)(?:\s*[:]\s*(.+))?$/i);
     if (createMatch) {
+      const metaChannel = await getMetaChannel();
+      if (metaChannel && channel !== metaChannel) {
+        await say({
+          text: `Project creation is only available in <#${metaChannel}>. Head there and try again.`,
+          thread_ts: threadTs
+        });
+        return;
+      }
+
       const projectName = createMatch[1];
       const description = createMatch[2]?.trim() || '';
 
@@ -352,7 +398,8 @@ function startSlackApp() {
       try {
         const result = await scaffold.createProject(projectName, {
           description,
-          slackApp: app
+          slackApp: app,
+          reporter
         });
 
         const summary = result.steps
@@ -373,65 +420,91 @@ function startSlackApp() {
       return;
     }
 
-    // Mission command — detect repo from channel map or prompt
-    const { listAvailableProjects } = require('./lib/mission');
+    // Onboard existing repo command — only from meta-channel
+    const onboardMatch = prompt.match(/^onboard\s+(\S+)$/i);
+    if (onboardMatch) {
+      const metaChannel = await getMetaChannel();
+      if (metaChannel && channel !== metaChannel) {
+        await say({
+          text: `Project onboarding is only available in <#${metaChannel}>. Head there and try again.`,
+          thread_ts: threadTs
+        });
+        return;
+      }
+
+      const projectName = onboardMatch[1];
+
+      await say({
+        text: `📦 Onboarding existing project "${projectName}"...`,
+        thread_ts: threadTs
+      });
+
+      try {
+        const result = await scaffold.onboardProject(projectName, {
+          slackApp: app,
+          reporter
+        });
+
+        const summary = result.steps
+          .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
+          .join('\n');
+
+        await reporter.post(
+          `🖖 Project "${projectName}" onboarded!\n${summary}\n\n` +
+          `Use: @CommandDeck in ${projectName} <task> to start a mission.`
+        );
+      } catch (err) {
+        await reporter.post(`❌ Failed to onboard project: ${err.message}`);
+      }
+      return;
+    }
+
+    // Detect repo from channel map or "in <project>" syntax
     let repo = slack.detectRepoFromChannel(channel);
     let task = prompt;
 
     if (!repo) {
       const promptRepo = slack.parseRepoFromPrompt(prompt);
-
       if (promptRepo) {
+        const { listAvailableProjects } = require('./lib/mission');
         const available = listAvailableProjects();
-        if (!available.includes(promptRepo)) {
-          const list = available.length
-            ? available.map(p => `  • ${p}`).join('\n')
-            : '  (none — clone a repo first)';
-          await say({
-            text: `Project "${promptRepo}" not found.\n\nAvailable projects:\n${list}`,
-            thread_ts: threadTs
-          });
-          return;
+        if (available.includes(promptRepo)) {
+          const existingChannel = slack.findChannelForRepo(promptRepo);
+          if (existingChannel && existingChannel !== channel) {
+            await say({
+              text: `Project "${promptRepo}" is already mapped to <#${existingChannel}>. Use that channel instead.`,
+              thread_ts: threadTs
+            });
+            return;
+          }
+          scaffold.updateChannelMap(channel, promptRepo);
+          repo = promptRepo;
+          task = slack.parseTaskFromPrompt(prompt);
+          await reporter.post(`Mapped this channel to project "${repo}".`);
         }
-
-        const existingChannel = slack.findChannelForRepo(promptRepo);
-        if (existingChannel && existingChannel !== channel) {
-          await say({
-            text: `Project "${promptRepo}" is already mapped to <#${existingChannel}>. Use that channel instead.`,
-            thread_ts: threadTs
-          });
-          return;
-        }
-
-        scaffold.updateChannelMap(channel, promptRepo);
-        repo = promptRepo;
-        task = slack.parseTaskFromPrompt(prompt);
-        await reporter.post(`Mapped this channel to project "${repo}".`);
-      } else {
-        const available = listAvailableProjects();
-        const list = available.length
-          ? available.map(p => {
-            const ch = slack.findChannelForRepo(p);
-            return ch ? `  • ${p} → <#${ch}>` : `  • ${p}`;
-          }).join('\n')
-          : '  (none — clone a repo first)';
-        await say({
-          text: `Which project? Use: \`@CommandDeck in <project> <task>\`\n\nAvailable projects:\n${list}`,
-          thread_ts: threadTs
-        });
-        return;
       }
     }
 
-    if (!task || !task.trim()) {
-      await say({
-        text: "What should I build? Describe the task after the project name.",
-        thread_ts: threadTs
-      });
-      return;
-    }
+    // Classify intent — works with or without a repo context
+    const context = {};
+    if (repo) context.repo = repo;
 
-    await runMission(repo, task, { channel, threadTs, reporter, slackApp: app });
+    thread.trackThread(channel, threadTs, { repo: repo || null, status: 'conversing' });
+    thread.updateThreadStatus(channel, threadTs, 'assessing');
+
+    const classification = await thread.classifyMessage(app, channel, threadTs, task, context);
+
+    const threadContext = thread.getThread(channel, threadTs) || { repo, channel, thread_ts: threadTs };
+    const result = await thread.handleClassification(app, { ...threadContext, channel, thread_ts: threadTs }, classification);
+
+    if (result?.needs_new_mission) {
+      if (!result.repo) {
+        await reporter.post("I'd like to help with that — which project should I work on?");
+        thread.updateThreadStatus(channel, threadTs, 'conversing');
+        return;
+      }
+      await runMission(result.repo, result.task_description || task, { channel, threadTs, reporter, slackApp: app });
+    }
   });
 
   // Handle governance reactions and PR approval reactions
@@ -525,17 +598,42 @@ function startSlackApp() {
       return;
     }
 
-    if (threadContext.status === 'working') {
+    if (threadContext.status === 'working' || threadContext.status === 'launching') {
       const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
-      await reporter.post("I'm still working on the previous follow-up. I'll respond when it's done.");
+      await reporter.post("I'm still working on the previous task. I'll respond when it's done.");
       return;
     }
 
-    // Debounce messages, then assess
+    // Debounce messages, then classify and route
     thread.debounce(event.channel, event.thread_ts, event.text, async (messages) => {
       thread.updateThreadStatus(event.channel, event.thread_ts, 'assessing');
-      const assessment = await thread.assessFeedback(app, threadContext, messages);
-      await thread.handleAssessment(app, threadContext, assessment);
+
+      const classification = await thread.classifyMessage(
+        app, event.channel, event.thread_ts, messages,
+        {
+          repo: threadContext.repo,
+          original_description: threadContext.original_description,
+          pr_url: threadContext.pr_url,
+          mission_id: threadContext.mission_id
+        }
+      );
+
+      const result = await thread.handleClassification(app, {
+        ...threadContext,
+        channel: event.channel,
+        thread_ts: event.thread_ts
+      }, classification);
+
+      // Pre-mission thread: classification said "work" with no existing mission
+      if (result?.needs_new_mission && result.repo) {
+        const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
+        await runMission(result.repo, result.task_description || messages.join('\n'), {
+          channel: event.channel,
+          threadTs: event.thread_ts,
+          reporter,
+          slackApp: app
+        });
+      }
     });
   });
 
@@ -739,6 +837,10 @@ function handleGetAPI(pathname, res) {
 
   if (pathname === '/api/events/recent') {
     return sendJSON(res, 200, db.recentEvents(30));
+  }
+
+  if (pathname === '/api/events/all') {
+    return sendJSON(res, 200, db.recentEvents(200));
   }
 
   if (pathname === '/api/containers') {

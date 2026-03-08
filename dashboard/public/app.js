@@ -840,6 +840,71 @@ async function submitReconnect() {
   }
 }
 
+// --- Logs view ---
+
+let _logsData = [];
+let _logsPollTimer = null;
+
+async function loadLogs() {
+  const data = await fetchJSON('/api/events/all');
+  _logsData = data || [];
+  renderLogs();
+}
+
+function renderLogs() {
+  const container = document.getElementById('logs-list');
+  if (!container) return;
+
+  const filter = (document.getElementById('logs-filter')?.value || '').toLowerCase();
+  const filtered = filter
+    ? _logsData.filter(e => {
+      const text = `${e.event} ${e.repo || ''} ${JSON.stringify(e.payload || {})}`.toLowerCase();
+      return text.includes(filter);
+    })
+    : _logsData;
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty-state">No events found</div>';
+    return;
+  }
+
+  let html = '';
+  for (const ev of filtered) {
+    const payload = ev.payload || {};
+    const payloadParts = Object.entries(payload)
+      .filter(([, v]) => v != null && v !== '')
+      .map(([k, v]) => `<span class="log-key">${escapeHtml(k)}:</span>${escapeHtml(String(v))}`);
+
+    let iconClass = 'ev-default';
+    if (ev.event.includes('classification')) iconClass = 'ev-started';
+    else if (ev.event.includes('created') || ev.event.includes('started')) iconClass = 'ev-started';
+    else if (ev.event.includes('completed') || ev.event.includes('done')) iconClass = 'ev-completed';
+    else if (ev.event.includes('failed') || ev.event.includes('error')) iconClass = 'ev-failed';
+    else if (ev.event.includes('auth')) iconClass = 'ev-approved';
+    else if (ev.event.includes('pr')) iconClass = 'ev-pr';
+
+    html += `<div class="log-entry">
+      <span class="log-time">${formatTime(ev.ts)}</span>
+      <span class="log-icon ${iconClass}"></span>
+      <span class="log-event">${escapeHtml(ev.event)}</span>
+      ${ev.repo ? `<span class="log-repo">${escapeHtml(ev.repo)}</span>` : ''}
+      <span class="log-payload">${payloadParts.join(' ')}</span>
+    </div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+function toggleLogsPoll() {
+  const auto = document.getElementById('logs-auto')?.checked;
+  if (auto && !_logsPollTimer) {
+    _logsPollTimer = setInterval(loadLogs, 5000);
+  } else if (!auto && _logsPollTimer) {
+    clearInterval(_logsPollTimer);
+    _logsPollTimer = null;
+  }
+}
+
 // --- Navigation ---
 
 function hideAllViews() {
@@ -866,6 +931,11 @@ function showView(name) {
     document.getElementById('view-projects').classList.add('active');
     history.pushState(null, '', '#/projects');
     renderProjects();
+  } else if (name === 'logs') {
+    document.getElementById('view-logs').classList.add('active');
+    history.pushState(null, '', '#/logs');
+    loadLogs();
+    toggleLogsPoll();
   } else if (name === 'system') {
     document.getElementById('view-system').classList.add('active');
     history.pushState(null, '', '#/system');
@@ -881,6 +951,7 @@ function routeFromHash() {
 
   const parts = hash.split('/');
   if (parts[0] === 'system') return showView('system');
+  if (parts[0] === 'logs') return showView('logs');
   if (parts[0] === 'projects') {
     if (parts[1]) return showProjectMissions(parts[1]);
     return showView('projects');
