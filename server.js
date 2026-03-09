@@ -527,7 +527,8 @@ function startSlackApp() {
     }
 
     // Handle onboard/create from conversational classification
-    if (result?.action === 'onboard' && result.project_name) {
+    // (project_name is guaranteed present — handleClassification demotes to converse if missing)
+    if (result?.action === 'onboard') {
       try {
         const onboardResult = await scaffold.onboardProject(result.project_name, {
           slackApp: app,
@@ -540,14 +541,13 @@ function startSlackApp() {
           `🖖 Project "${result.project_name}" onboarded!\n${summary}\n\n` +
           `Use: @CommandDeck in ${result.project_name} <task> to start a mission.`
         );
-        thread.updateThreadStatus(channel, threadTs, 'conversing');
       } catch (err) {
         await reporter.post(`❌ Failed to onboard project: ${err.message}`);
-        thread.updateThreadStatus(channel, threadTs, 'conversing');
       }
+      thread.updateThreadStatus(channel, threadTs, 'conversing');
     }
 
-    if (result?.action === 'create' && result.project_name) {
+    if (result?.action === 'create') {
       try {
         const createResult = await scaffold.createProject(result.project_name, {
           description: result.task_description || '',
@@ -710,7 +710,7 @@ function startSlackApp() {
       }
 
       // Handle onboard/create from follow-up messages
-      if (result?.action === 'onboard' && result.project_name) {
+      if (result?.action === 'onboard') {
         const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
         try {
           const onboardResult = await scaffold.onboardProject(result.project_name, {
@@ -730,7 +730,7 @@ function startSlackApp() {
         thread.updateThreadStatus(event.channel, event.thread_ts, 'conversing');
       }
 
-      if (result?.action === 'create' && result.project_name) {
+      if (result?.action === 'create') {
         const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
         try {
           const createResult = await scaffold.createProject(result.project_name, {
