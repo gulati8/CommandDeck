@@ -82,6 +82,11 @@ function slackChannelUrl(channelId) {
   return `https://app.slack.com/client/T/${channelId}`;
 }
 
+function slackThreadUrl(channelId, threadTs) {
+  if (!channelId || !threadTs) return null;
+  return `https://app.slack.com/archives/${channelId}/p${threadTs.replace('.', '')}`;
+}
+
 function linkIcon(url, label) {
   if (!url) return '';
   return `<a href="${url}" target="_blank" rel="noopener" class="ext-link">${escapeHtml(label)}</a>`;
@@ -124,7 +129,7 @@ function classifyMissions(missions) {
   const running = [];
   const waiting = [];
   const completed = [];
-  const terminalStatuses = ['done', 'completed', 'merged', 'failed', 'aborted'];
+  const terminalStatuses = ['done', 'completed', 'merged', 'failed', 'aborted', 'cancelled'];
 
   for (const m of missions) {
     if (terminalStatuses.includes(m.status)) {
@@ -574,7 +579,8 @@ async function loadSlidePanel(repo, missionId) {
   html += '<div class="slide-links">';
   if (data.pr?.url) html += linkIcon(data.pr.url, 'PR #' + data.pr.number);
   html += linkIcon(ghRepoUrl(repo), 'Repository');
-  if (data.slack_channel) html += linkIcon(slackChannelUrl(data.slack_channel), 'Slack');
+  if (data.slack_channel) html += linkIcon(slackChannelUrl(data.slack_channel), 'Channel');
+  if (data.slack_channel && data.slack_thread_ts) html += linkIcon(slackThreadUrl(data.slack_channel, data.slack_thread_ts), 'Thread');
   if (!data.slack_thread_ts) {
     html += `<button class="btn btn-ghost" style="font-size:10px;padding:3px 8px;" onclick="openReconnect('${escapeHtml(repo)}', '${escapeHtml(missionId)}', '${escapeHtml(data.status)}', ${data.pr?.number || 'null'})">Reconnect Thread</button>`;
   }
