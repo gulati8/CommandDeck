@@ -419,7 +419,8 @@ function startSlackApp() {
         const result = await scaffold.createProject(projectName, {
           description,
           slackApp: app,
-          reporter
+          reporter,
+          userId: event.user
         });
 
         const summary = result.steps
@@ -462,33 +463,14 @@ function startSlackApp() {
       try {
         const result = await scaffold.onboardProject(projectName, {
           slackApp: app,
-          reporter
+          reporter,
+          userId: event.user
         });
 
         const summary = result.steps
           .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
           .join('\n');
 
-        await reporter.post(
-          `🖖 Project "${projectName}" onboarded!\n${summary}\n\n` +
-          `Use: @CommandDeck in ${projectName} <task> to start a mission.`
-        );
-      } catch (err) {
-        await reporter.post(`❌ Failed to onboard project: ${err.message}`);
-      }
-      return;
-    }
-
-    // Detect GitHub URL → auto-onboard
-    const ghUrlMatch = prompt.match(/github\.com[:/][^/]+\/([^/\s.>]+)/);
-    if (ghUrlMatch) {
-      const projectName = ghUrlMatch[1];
-      await say({ text: `📦 Onboarding project "${projectName}"...`, thread_ts: threadTs });
-      try {
-        const result = await scaffold.onboardProject(projectName, { slackApp: app, reporter });
-        const summary = result.steps
-          .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
-          .join('\n');
         await reporter.post(
           `🖖 Project "${projectName}" onboarded!\n${summary}\n\n` +
           `Use: @CommandDeck in ${projectName} <task> to start a mission.`
@@ -552,7 +534,8 @@ function startSlackApp() {
       try {
         const onboardResult = await scaffold.onboardProject(result.project_name, {
           slackApp: app,
-          reporter
+          reporter,
+          userId: event.user
         });
         const summary = onboardResult.steps
           .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
@@ -572,7 +555,8 @@ function startSlackApp() {
         const createResult = await scaffold.createProject(result.project_name, {
           description: result.task_description || '',
           slackApp: app,
-          reporter
+          reporter,
+          userId: event.user
         });
         const summary = createResult.steps
           .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
@@ -698,27 +682,6 @@ function startSlackApp() {
       return;
     }
 
-    // Detect GitHub URL in thread reply → auto-onboard
-    const ghUrlMatch = (event.text || '').match(/github\.com[:/][^/]+\/([^/\s.>]+)/);
-    if (ghUrlMatch) {
-      const projectName = ghUrlMatch[1];
-      const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
-      await reporter.post(`📦 Onboarding project "${projectName}"...`);
-      try {
-        const result = await scaffold.onboardProject(projectName, { slackApp: app, reporter });
-        const summary = result.steps
-          .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
-          .join('\n');
-        await reporter.post(
-          `🖖 Project "${projectName}" onboarded!\n${summary}\n\n` +
-          `Use: @CommandDeck in ${projectName} <task> to start a mission.`
-        );
-      } catch (err) {
-        await reporter.post(`❌ Failed to onboard project: ${err.message}`);
-      }
-      return;
-    }
-
     // Debounce messages, then classify and route
     thread.debounce(event.channel, event.thread_ts, event.text, async (messages) => {
       thread.updateThreadStatus(event.channel, event.thread_ts, 'assessing');
@@ -756,7 +719,8 @@ function startSlackApp() {
         try {
           const onboardResult = await scaffold.onboardProject(result.project_name, {
             slackApp: app,
-            reporter
+            reporter,
+            userId: event.user
           });
           const summary = onboardResult.steps
             .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
@@ -777,7 +741,8 @@ function startSlackApp() {
           const createResult = await scaffold.createProject(result.project_name, {
             description: result.task_description || '',
             slackApp: app,
-            reporter
+            reporter,
+            userId: event.user
           });
           const summary = createResult.steps
             .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)

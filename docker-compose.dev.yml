@@ -4,7 +4,6 @@ services:
     container_name: commanddeck-dev
     env_file: .env.dev
     environment:
-      - GH_TOKEN=${GH_TOKEN}
       - NODE_ENV=development
     volumes:
       - commanddeck-dev-state:/home/commanddeck/.commanddeck
