@@ -339,6 +339,11 @@ function startSlackApp() {
     const threadTs = event.ts;
     const reporter = slack.slackReporter(app, channel, threadTs);
 
+    logEvent('slack.mention', {
+      channel,
+      message_preview: prompt.substring(0, 100)
+    });
+
     // Learn/remember command
     if (prompt.match(/^(remember|learn):?\s/i)) {
       const learnText = prompt.replace(/^(remember|learn):?\s*/i, '').trim();
@@ -520,6 +525,52 @@ function startSlackApp() {
       }
       await runMission(result.repo, result.task_description || task, { channel, threadTs, reporter, slackApp: app });
     }
+
+    // Handle onboard/create from conversational classification
+    if (result?.action === 'onboard' && result.project_name) {
+      try {
+        const onboardResult = await scaffold.onboardProject(result.project_name, {
+          slackApp: app,
+          reporter
+        });
+        const summary = onboardResult.steps
+          .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
+          .join('\n');
+        await reporter.post(
+          `🖖 Project "${result.project_name}" onboarded!\n${summary}\n\n` +
+          `Use: @CommandDeck in ${result.project_name} <task> to start a mission.`
+        );
+        thread.updateThreadStatus(channel, threadTs, 'conversing');
+      } catch (err) {
+        await reporter.post(`❌ Failed to onboard project: ${err.message}`);
+        thread.updateThreadStatus(channel, threadTs, 'conversing');
+      }
+    }
+
+    if (result?.action === 'create' && result.project_name) {
+      try {
+        const createResult = await scaffold.createProject(result.project_name, {
+          description: result.task_description || '',
+          slackApp: app,
+          reporter
+        });
+        const summary = createResult.steps
+          .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
+          .join('\n');
+        await reporter.post(
+          `🖖 Project "${result.project_name}" created!\n${summary}\n\n` +
+          `Use: @CommandDeck in ${result.project_name} <task> to start a mission.`
+        );
+        thread.updateThreadStatus(channel, threadTs, 'conversing');
+
+        if (result.task_description) {
+          await runMission(result.project_name, result.task_description, { channel, threadTs, reporter, slackApp: app });
+        }
+      } catch (err) {
+        await reporter.post(`❌ Failed to create project: ${err.message}`);
+        thread.updateThreadStatus(channel, threadTs, 'conversing');
+      }
+    }
   });
 
   // Handle governance reactions and PR approval reactions
@@ -579,6 +630,14 @@ function startSlackApp() {
 
     const threadContext = thread.getThread(event.channel, event.thread_ts);
     if (!threadContext) return;
+
+    logEvent('slack.thread_message', {
+      repo: threadContext.repo,
+      channel: event.channel,
+      thread_ts: event.thread_ts,
+      status: threadContext.status,
+      message_preview: (event.text || '').substring(0, 100)
+    });
 
     // Plan revision: user replies while plan is pending approval
     if (threadContext.status === 'pending_plan_approval') {
@@ -648,6 +707,56 @@ function startSlackApp() {
           reporter,
           slackApp: app
         });
+      }
+
+      // Handle onboard/create from follow-up messages
+      if (result?.action === 'onboard' && result.project_name) {
+        const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
+        try {
+          const onboardResult = await scaffold.onboardProject(result.project_name, {
+            slackApp: app,
+            reporter
+          });
+          const summary = onboardResult.steps
+            .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
+            .join('\n');
+          await reporter.post(
+            `🖖 Project "${result.project_name}" onboarded!\n${summary}\n\n` +
+            `Use: @CommandDeck in ${result.project_name} <task> to start a mission.`
+          );
+        } catch (err) {
+          await reporter.post(`❌ Failed to onboard project: ${err.message}`);
+        }
+        thread.updateThreadStatus(event.channel, event.thread_ts, 'conversing');
+      }
+
+      if (result?.action === 'create' && result.project_name) {
+        const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
+        try {
+          const createResult = await scaffold.createProject(result.project_name, {
+            description: result.task_description || '',
+            slackApp: app,
+            reporter
+          });
+          const summary = createResult.steps
+            .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
+            .join('\n');
+          await reporter.post(
+            `🖖 Project "${result.project_name}" created!\n${summary}\n\n` +
+            `Use: @CommandDeck in ${result.project_name} <task> to start a mission.`
+          );
+          if (result.task_description) {
+            await runMission(result.project_name, result.task_description, {
+              channel: event.channel,
+              threadTs: event.thread_ts,
+              reporter,
+              slackApp: app
+            });
+          }
+        } catch (err) {
+          await reporter.post(`❌ Failed to create project: ${err.message}`);
+        }
+        thread.updateThreadStatus(event.channel, event.thread_ts, 'conversing');
       }
     });
   });
@@ -1246,6 +1355,10 @@ async function main() {
 
   // Initialize telemetry (OTel + telemetry.db + Unix socket)
   telemetry.init();
+  const migratedEvents = tdb.migrateEventsFromAppDb();
+  if (migratedEvents > 0) {
+    console.log(`  ✅ Migrated ${migratedEvents} events from app.db → telemetry.db`);
+  }
   console.log('  ✅ Telemetry initialized (OTel + telemetry.db + socket)');
 
   // Migrate existing JSON state if needed

@@ -302,10 +302,40 @@ describe('thread', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
-      for (const action of ['work', 'converse', 'inquiry']) {
+      for (const action of ['work', 'converse', 'inquiry', 'onboard', 'create']) {
         const result = mod.parseClassification(JSON.stringify({ action, message: 'test' }));
         assert.equal(result.action, action);
       }
+    });
+
+    it('should parse onboard action with project_name', () => {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
+      const mod = freshThreadModule(tempDir);
+
+      const result = mod.parseClassification(JSON.stringify({
+        action: 'onboard',
+        message: 'Setting course to onboard eastvillageeverything.',
+        project_name: 'eastvillageeverything'
+      }));
+
+      assert.equal(result.action, 'onboard');
+      assert.equal(result.project_name, 'eastvillageeverything');
+    });
+
+    it('should parse create action with project_name', () => {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
+      const mod = freshThreadModule(tempDir);
+
+      const result = mod.parseClassification(JSON.stringify({
+        action: 'create',
+        message: 'Creating project myapp.',
+        project_name: 'myapp',
+        task_description: 'A weather dashboard'
+      }));
+
+      assert.equal(result.action, 'create');
+      assert.equal(result.project_name, 'myapp');
+      assert.equal(result.task_description, 'A weather dashboard');
     });
   });
 
