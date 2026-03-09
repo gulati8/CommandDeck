@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommandDeck — Mockup B: The Feed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #06060a;
+      --surface: #0d0d14;
+      --surface-hover: #13131f;
+      --surface-active: #1a1a2a;
+      --border: #1a1a2a;
+      --text: #e8e4d9;
+      --text-dim: #6b6a63;
+      --text-muted: #3d3d3d;
+      --accent: #c8a04a;
+      --accent-glow: rgba(200, 160, 74, 0.12);
+      --red: #e05252;
+      --green: #4ade80;
+      --blue: #60a5fa;
+      --orange: #f59e0b;
+      --purple: #a78bfa;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Compact top bar ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 48px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--accent);
+      letter-spacing: 2px;
+    }
+    .logo::before {
+      content: '◆ ';
+      font-size: 10px;
+    }
+    .topbar-status {
+      display: flex;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .dot-green { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .dot-blue { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    .btn-new {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      padding: 6px 14px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Page layout: narrow centered column ── */
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    /* ── Pinned action cards (top of feed) ── */
+    .pinned-section {
+      margin-bottom: 32px;
+    }
+    .pinned-label {
+      font-size: 10px;
+      color: var(--orange);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pinned-label::before {
+      content: '';
+      display: block;
+      width: 8px;
+      height: 8px;
+      background: var(--orange);
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    }
+    .pinned-count {
+      background: var(--orange);
+      color: var(--bg);
+      font-size: 9px;
+      padding: 1px 5px;
+      font-weight: 700;
+    }
+
+    .action-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      margin-bottom: 8px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .action-card:hover {
+      border-color: #2a2a3a;
+    }
+    .action-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+    .action-card.type-approve::before { background: var(--orange); }
+    .action-card.type-merge::before { background: var(--green); }
+    .action-card.type-stalled::before { background: var(--red); }
+
+    .action-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .action-type {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+    }
+    .action-type.approve { background: rgba(245, 158, 11, 0.15); color: var(--orange); }
+    .action-type.merge { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+    .action-type.stalled { background: rgba(224, 82, 82, 0.15); color: var(--red); }
+
+    .action-project {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .action-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .action-context {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .action-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .action-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+      display: flex;
+      gap: 12px;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 6px;
+    }
+    .btn {
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      padding: 5px 12px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .btn-approve { background: var(--green); color: var(--bg); }
+    .btn-merge { background: var(--green); color: var(--bg); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--text-muted); }
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid rgba(224, 82, 82, 0.3);
+    }
+
+    /* ── Feed section ── */
+    .feed-section {
+      margin-bottom: 32px;
+    }
+    .feed-label {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .feed-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Running missions: compact cards ── */
+    .running-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 14px 20px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .running-card:hover { border-color: #2a2a3a; }
+
+    .running-pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue);
+      animation: pulse 2s infinite;
+      flex-shrink: 0;
+    }
+
+    .running-info { flex: 1; }
+    .running-title {
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+    .running-sub {
+      font-size: 10px;
+      color: var(--text-dim);
+      display: flex;
+      gap: 10px;
+    }
+
+    .running-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .progress-bar {
+      width: 60px;
+      height: 4px;
+      background: var(--border);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--blue);
+      transition: width 0.3s;
+    }
+    .progress-text {
+      font-size: 10px;
+      color: var(--text-dim);
+      width: 30px;
+      text-align: right;
+    }
+
+    /* ── Activity feed: timeline ── */
+    .activity-list {
+      padding-left: 0;
+    }
+    .activity-item {
+      display: flex;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(26, 26, 42, 0.4);
+    }
+    .activity-item:last-child { border-bottom: none; }
+
+    .activity-time {
+      font-size: 10px;
+      color: var(--text-muted);
+      width: 60px;
+      flex-shrink: 0;
+      text-align: right;
+      padding-top: 1px;
+    }
+    .activity-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 10px;
+      border-radius: 3px;
+    }
+    .activity-icon.created { background: rgba(96, 165, 250, 0.15); color: var(--blue); }
+    .activity-icon.completed { background: rgba(74, 222, 128, 0.15); color: var(--green); }
+    .activity-icon.merged { background: rgba(167, 139, 250, 0.15); color: var(--purple); }
+    .activity-icon.pr { background: rgba(200, 160, 74, 0.15); color: var(--accent); }
+    .activity-icon.failed { background: rgba(224, 82, 82, 0.15); color: var(--red); }
+
+    .activity-body { flex: 1; }
+    .activity-text {
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-dim);
+    }
+    .activity-text strong {
+      color: var(--text);
+      font-weight: 400;
+    }
+    .activity-text .project-tag {
+      color: var(--accent);
+      font-size: 10px;
+    }
+
+    /* ── Completed summary ── */
+    .completed-summary {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .completed-chip {
+      font-size: 10px;
+      padding: 4px 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .completed-chip:hover { border-color: var(--text-muted); }
+    .completed-chip .chip-status {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 5px;
+    }
+    .completed-chip .chip-status.failed {
+      background: var(--red);
+    }
+
+    /* ── Slide-out panel (right side) ── */
+    .slide-panel {
+      position: fixed;
+      right: 0;
+      top: 48px;
+      bottom: 0;
+      width: 440px;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      box-shadow: -20px 0 40px rgba(0, 0, 0, 0.5);
+    }
+    .slide-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .slide-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 18px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+    }
+    .slide-close:hover { color: var(--text); }
+
+    .slide-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .slide-body::-webkit-scrollbar { width: 4px; }
+    .slide-body::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .slide-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+    .slide-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      margin-bottom: 20px;
+    }
+    .slide-meta-cell {
+      background: var(--bg);
+      padding: 10px 12px;
+    }
+    .slide-meta-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+    .slide-meta-value {
+      font-size: 12px;
+    }
+
+    .slide-section-title {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .slide-obj {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 11px;
+      border-bottom: 1px solid rgba(26, 26, 42, 0.4);
+    }
+    .slide-obj-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .slide-obj-dot.done { background: var(--green); }
+    .slide-obj-dot.running { background: var(--blue); animation: pulse 2s infinite; }
+    .slide-obj-dot.ready { background: var(--text-muted); }
+    .slide-obj-name { flex: 1; }
+    .slide-obj-agent { color: var(--text-dim); font-size: 10px; }
+
+    /* ── Empty / all clear state ── */
+    .all-clear {
+      text-align: center;
+      padding: 40px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+    .all-clear-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+    .all-clear-text {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .all-clear-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo">COMMANDDECK</div>
+      <div class="topbar-status">
+        <span class="status-item"><span class="dot-green"></span> Online</span>
+        <span class="status-item"><span class="dot-blue"></span> 2 running</span>
+        <span class="status-item">16 missions total</span>
+      </div>
+    </div>
+    <button class="btn-new">+ New Mission</button>
+  </div>
+
+  <!-- Centered feed column -->
+  <div class="page">
+
+    <!-- Pinned: Action needed -->
+    <div class="pinned-section">
+      <div class="pinned-label">Action needed <span class="pinned-count">2</span></div>
+
+      <div class="action-card type-approve">
+        <div class="action-card-top">
+          <span class="action-type approve">Approve Plan</span>
+          <span class="action-project">FurEverCare</span>
+        </div>
+        <div class="action-title">Add email notifications for appointment reminders</div>
+        <div class="action-context">
+          4 objectives across 2 phases: Email template system, appointment scheduler, owner preferences API, integration tests. Estimated ~2h of agent time.
+        </div>
+        <div class="action-footer">
+          <div class="action-meta">
+            <span>mission-20260303-412</span>
+            <span>12m ago</span>
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary">View Plan</button>
+            <button class="btn btn-danger">Reject</button>
+            <button class="btn btn-approve">Approve</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-card type-merge">
+        <div class="action-card-top">
+          <span class="action-type merge">Merge PR</span>
+          <span class="action-project">FurEverCare</span>
+        </div>
+        <div class="action-title">Apply dedup functionality to Conditions and Veterinarians</div>
+        <div class="action-context">
+          PR #43 — 4/4 objectives complete. CI passing. 12 files changed, +340 / -28 lines. Preview environment live.
+        </div>
+        <div class="action-footer">
+          <div class="action-meta">
+            <span>mission-20260228-326</span>
+            <span>2h ago</span>
+          </div>
+          <div class="action-buttons">
+            <button class="btn btn-secondary">View PR</button>
+            <button class="btn btn-danger">Close</button>
+            <button class="btn btn-merge">Merge</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Running missions -->
+    <div class="feed-section">
+      <div class="feed-label">Running now</div>
+
+      <div class="running-card">
+        <div class="running-pulse"></div>
+        <div class="running-info">
+          <div class="running-title">Refactor data pipeline to support hourly granularity</div>
+          <div class="running-sub">
+            <span>WeatherAggregator</span>
+            <span>Working on: Backend pipeline changes</span>
+          </div>
+        </div>
+        <div class="running-progress">
+          <div class="progress-bar"><div class="progress-fill" style="width: 40%"></div></div>
+          <span class="progress-text">2/5</span>
+        </div>
+      </div>
+
+      <div class="running-card">
+        <div class="running-pulse"></div>
+        <div class="running-info">
+          <div class="running-title">Build conversation memory persistence layer</div>
+          <div class="running-sub">
+            <span>eve</span>
+            <span>Working on: SQLite storage adapter</span>
+          </div>
+        </div>
+        <div class="running-progress">
+          <div class="progress-bar"><div class="progress-fill" style="width: 66%"></div></div>
+          <span class="progress-text">2/3</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent activity feed -->
+    <div class="feed-section">
+      <div class="feed-label">Recent activity</div>
+
+      <div class="activity-list">
+        <div class="activity-item">
+          <span class="activity-time">14:51</span>
+          <span class="activity-icon pr">PR</span>
+          <div class="activity-body">
+            <div class="activity-text"><strong>PR #43 opened</strong> for dedup functionality <span class="project-tag">FurEverCare</span></div>
+          </div>
+        </div>
+
+        <div class="activity-item">
+          <span class="activity-time">14:48</span>
+          <span class="activity-icon completed">✓</span>
+          <div class="activity-body">
+            <div class="activity-text"><strong>obj-004 completed</strong> — test fuzzy matching (spock) <span class="project-tag">FurEverCare</span></div>
+          </div>
+        </div>
+
+        <div class="activity-item">
+          <span class="activity-time">14:40</span>
+          <span class="activity-icon merged">↗</span>
+          <div class="activity-body">
+            <div class="activity-text"><strong>obj-002 merged</strong> into integration branch <span class="project-tag">FurEverCare</span></div>
+          </div>
+        </div>
+
+        <div class="activity-item">
+          <span class="activity-time">14:25</span>
+          <span class="activity-icon completed">✓</span>
+          <div class="activity-body">
+            <div class="activity-text"><strong>obj-001 completed</strong> — fuzzy matching engine (borg) <span class="project-tag">FurEverCare</span></div>
+          </div>
+        </div>
+
+        <div class="activity-item">
+          <span class="activity-time">14:15</span>
+          <span class="activity-icon created">◆</span>
+          <div class="activity-body">
+            <div class="activity-text"><strong>Plan approved</strong> for email notifications <span class="project-tag">FurEverCare</span></div>
+          </div>
+        </div>
+
+        <div class="activity-item">
+          <span class="activity-time">13:50</span>
+          <span class="activity-icon completed">✓</span>
+          <div class="activity-body">
+            <div class="activity-text"><strong>Mission completed</strong> — HIPAA audit logging <span class="project-tag">FurEverCare</span></div>
+          </div>
+        </div>
+
+        <div class="activity-item">
+          <span class="activity-time">12:30</span>
+          <span class="activity-icon completed">✓</span>
+          <div class="activity-body">
+            <div class="activity-text"><strong>Mission completed</strong> — timezone fix in forecast display <span class="project-tag">WeatherAggregator</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completed missions (collapsed summary) -->
+    <div class="feed-section">
+      <div class="feed-label">Completed this week (5)</div>
+      <div class="completed-summary">
+        <span class="completed-chip"><span class="chip-status"></span>HIPAA audit logging</span>
+        <span class="completed-chip"><span class="chip-status"></span>Timezone fix</span>
+        <span class="completed-chip"><span class="chip-status"></span>Reef health scoring</span>
+        <span class="completed-chip"><span class="chip-status"></span>Species autocomplete</span>
+        <span class="completed-chip"><span class="chip-status failed"></span>Payment retry (failed)</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Slide-out detail panel (shown when clicking a running card) -->
+  <div class="slide-panel">
+    <div class="slide-header">
+      <span style="font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Mission Detail</span>
+      <button class="slide-close">✕</button>
+    </div>
+    <div class="slide-body">
+      <div style="font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">WeatherAggregator</div>
+      <div class="slide-title">Refactor data pipeline to support hourly granularity</div>
+
+      <div class="slide-meta">
+        <div class="slide-meta-cell">
+          <div class="slide-meta-label">Status</div>
+          <div class="slide-meta-value" style="color: var(--blue);">In Progress</div>
+        </div>
+        <div class="slide-meta-cell">
+          <div class="slide-meta-label">Progress</div>
+          <div class="slide-meta-value">2 / 5 objectives</div>
+        </div>
+        <div class="slide-meta-cell">
+          <div class="slide-meta-label">Started</div>
+          <div class="slide-meta-value">35 min ago</div>
+        </div>
+        <div class="slide-meta-cell">
+          <div class="slide-meta-label">Slack</div>
+          <div class="slide-meta-value" style="color: var(--accent);">#weather-agg</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <div class="slide-section-title">Objectives</div>
+        <div class="slide-obj">
+          <span class="slide-obj-dot done"></span>
+          <span class="slide-obj-name">Schema migration for hourly tables</span>
+          <span class="slide-obj-agent">borg</span>
+        </div>
+        <div class="slide-obj">
+          <span class="slide-obj-dot done"></span>
+          <span class="slide-obj-name">Update collector to store hourly data</span>
+          <span class="slide-obj-agent">borg</span>
+        </div>
+        <div class="slide-obj">
+          <span class="slide-obj-dot running"></span>
+          <span class="slide-obj-name">Backend pipeline aggregation logic</span>
+          <span class="slide-obj-agent">borg</span>
+        </div>
+        <div class="slide-obj">
+          <span class="slide-obj-dot ready"></span>
+          <span class="slide-obj-name">Frontend chart granularity selector</span>
+          <span class="slide-obj-agent">borg</span>
+        </div>
+        <div class="slide-obj">
+          <span class="slide-obj-dot ready"></span>
+          <span class="slide-obj-name">E2E tests for hourly pipeline</span>
+          <span class="slide-obj-agent">spock</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="slide-section-title">Timeline</div>
+        <div class="activity-item" style="border: none; padding: 4px 0;">
+          <span class="activity-time" style="width: 40px;">now</span>
+          <span class="activity-icon created" style="width: 16px; height: 16px; font-size: 8px;">●</span>
+          <span class="activity-text" style="font-size: 10px;">obj-003 in progress (borg)</span>
+        </div>
+        <div class="activity-item" style="border: none; padding: 4px 0;">
+          <span class="activity-time" style="width: 40px;">12m</span>
+          <span class="activity-icon completed" style="width: 16px; height: 16px; font-size: 8px;">✓</span>
+          <span class="activity-text" style="font-size: 10px;">obj-002 merged to integration</span>
+        </div>
+        <div class="activity-item" style="border: none; padding: 4px 0;">
+          <span class="activity-time" style="width: 40px;">20m</span>
+          <span class="activity-icon completed" style="width: 16px; height: 16px; font-size: 8px;">✓</span>
+          <span class="activity-text" style="font-size: 10px;">obj-001 completed</span>
+        </div>
+        <div class="activity-item" style="border: none; padding: 4px 0;">
+          <span class="activity-time" style="width: 40px;">30m</span>
+          <span class="activity-icon created" style="width: 16px; height: 16px; font-size: 8px;">◆</span>
+          <span class="activity-text" style="font-size: 10px;">Mission started — 5 objectives</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

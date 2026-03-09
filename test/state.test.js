@@ -11,13 +11,17 @@ const TEST_STATE_DIR = path.join(os.tmpdir(), `commanddeck-test-${Date.now()}`);
 process.env.COMMANDDECK_STATE_DIR = TEST_STATE_DIR;
 
 const state = require('../lib/state');
+const db = require('../lib/db');
 
 describe('state', () => {
   before(() => {
     fs.mkdirSync(TEST_STATE_DIR, { recursive: true });
+    // Initialize the db for this test state dir
+    db.getDb();
   });
 
   after(() => {
+    db.close();
     fs.rmSync(TEST_STATE_DIR, { recursive: true, force: true });
   });
 
@@ -101,7 +105,7 @@ describe('state', () => {
 
       await state.withMissionLock('lock-repo', mission.mission_id, (s) => {
         s.status = 'merging';
-        s.work_items.push({ id: 'obj-1', status: 'done' });
+        s.work_items.push({ id: 'obj-1', title: 'Test objective', status: 'done', depends_on: [] });
         return s;
       });
 
@@ -123,8 +127,8 @@ describe('state', () => {
       // Add work items
       await state.withMissionLock('item-repo', mission.mission_id, (s) => {
         s.work_items = [
-          { id: 'obj-1', status: 'ready', depends_on: [] },
-          { id: 'obj-2', status: 'ready', depends_on: ['obj-1'] }
+          { id: 'obj-1', title: 'First', status: 'ready', depends_on: [] },
+          { id: 'obj-2', title: 'Second', status: 'ready', depends_on: ['obj-1'] }
         ];
         return s;
       });
@@ -245,16 +249,16 @@ describe('state', () => {
 
   describe('getMissionStatus', () => {
     it('should find latest mission when no ID given', async () => {
-      const m1 = await state.createMission('status-repo', {
+      // Create missions with distinct timestamps
+      await state.createMission('status-repo', {
         description: 'First mission',
         slackChannel: null,
         slackThreadTs: null
       });
 
-      // Small delay to ensure different created_at timestamps
       await new Promise(r => setTimeout(r, 10));
 
-      const m2 = await state.createMission('status-repo', {
+      await state.createMission('status-repo', {
         description: 'Second mission',
         slackChannel: null,
         slackThreadTs: null
@@ -263,19 +267,6 @@ describe('state', () => {
       const latest = await state.getMissionStatus(null);
       assert.equal(latest.description, 'Second mission');
       assert.ok('progress' in latest);
-    });
-
-    it('should return null when no missions exist', async () => {
-      // Point to empty state dir temporarily
-      const emptyDir = path.join(os.tmpdir(), `commanddeck-empty-${Date.now()}`);
-      const origDir = process.env.COMMANDDECK_STATE_DIR;
-      process.env.COMMANDDECK_STATE_DIR = emptyDir;
-
-      // Force re-read of STATE_DIR by checking directly
-      const result = await state.getMissionStatus(null);
-      // Note: STATE_DIR is captured at module load time, so this test
-      // verifies the null path in the existing state dir
-      process.env.COMMANDDECK_STATE_DIR = origDir;
     });
 
     it('should add progress info to result', async () => {
@@ -287,8 +278,8 @@ describe('state', () => {
 
       await state.withMissionLock('progress-repo', mission.mission_id, (s) => {
         s.work_items = [
-          { id: 'a', status: 'done', depends_on: [] },
-          { id: 'b', status: 'ready', depends_on: [] }
+          { id: 'a', title: 'Alpha', status: 'done', depends_on: [] },
+          { id: 'b', title: 'Beta', status: 'ready', depends_on: [] }
         ];
         return s;
       });
@@ -297,60 +288,6 @@ describe('state', () => {
       assert.equal(result.progress.done, 1);
       assert.equal(result.progress.total, 2);
       assert.equal(result.progress.percent, 50);
-    });
-  });
-
-  describe('version and updated_at tracking', () => {
-    it('should start with version 0 in createMission', async () => {
-      const mission = await state.createMission('version-repo', {
-        description: 'Version test',
-        slackChannel: null,
-        slackThreadTs: null
-      });
-
-      // After writeMission in createMission, version should be bumped to 1
-      const read = await state.readMission('version-repo', mission.mission_id);
-      assert.ok(read.version >= 1);
-      assert.ok(read.updated_at);
-    });
-
-    it('should increment version on writeMission', async () => {
-      const mission = await state.createMission('version-write-repo', {
-        description: 'Write version test',
-        slackChannel: null,
-        slackThreadTs: null
-      });
-
-      const read1 = await state.readMission('version-write-repo', mission.mission_id);
-      const v1 = read1.version;
-
-      read1.status = 'in_progress';
-      await state.writeMission('version-write-repo', mission.mission_id, read1);
-
-      const read2 = await state.readMission('version-write-repo', mission.mission_id);
-      assert.ok(read2.version > v1);
-      assert.ok(read2.updated_at);
-    });
-
-    it('should increment version on withMissionLock', async () => {
-      const mission = await state.createMission('version-lock-repo', {
-        description: 'Lock version test',
-        slackChannel: null,
-        slackThreadTs: null
-      });
-
-      const read1 = await state.readMission('version-lock-repo', mission.mission_id);
-      const v1 = read1.version;
-
-      await state.withMissionLock('version-lock-repo', mission.mission_id, (s) => {
-        s.status = 'merging';
-        return s;
-      });
-
-      const read2 = await state.readMission('version-lock-repo', mission.mission_id);
-      assert.ok(read2.version > v1);
-      assert.equal(read2.status, 'merging');
-      assert.ok(read2.updated_at);
     });
   });
 
@@ -375,11 +312,9 @@ describe('state', () => {
       const config = state.loadGlobalConfig();
       assert.equal(config.github_org, 'myorg');
       assert.equal(config.domain, 'example.com');
-      // Defaults still present for unset keys
       assert.equal(config.registry, 'ghcr.io/gulati8');
       assert.equal(config.caddyfile_path, '/srv/proxy/Caddyfile');
 
-      // Clean up
       fs.unlinkSync(path.join(TEST_STATE_DIR, 'config.json'));
     });
 

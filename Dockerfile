@@ -68,7 +68,7 @@ ENV NODE_ENV=production
 
 USER commanddeck
 
-EXPOSE 3001
+EXPOSE 3000
 
 ENTRYPOINT ["/home/commanddeck/app/entrypoint.sh"]
-CMD ["node", "q.js"]
+CMD ["node", "server.js"]

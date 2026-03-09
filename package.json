@@ -1,20 +1,20 @@
 {
   "name": "commanddeck",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Multi-agent development orchestration system for Claude Code",
-  "main": "q.js",
-  "bin": {
-    "commanddeck": "./cli.js"
-  },
+  "main": "server.js",
   "scripts": {
-    "start": "node q.js",
-    "cli": "node cli.js",
+    "start": "node server.js",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/resources": "^2.6.0",
+    "@opentelemetry/sdk-trace-base": "^2.6.0",
+    "@opentelemetry/sdk-trace-node": "^2.6.0",
     "@slack/bolt": "^4.1.0",
     "@slack/socket-mode": "^2.0.0",
-    "commander": "^12.1.0"
+    "better-sqlite3": "^12.6.2"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -11,8 +11,7 @@ At the start of every session, display the open GitHub issues from the session-i
 - **Install:** `npm install`
 - **Run all tests:** `npm test`
 - **Run a single test:** `node --test test/state.test.js`
-- **Run CLI locally:** `npm run cli -- <command>` (e.g., `npm run cli -- status`, `npm run cli -- run my-repo "task"`)
-- **Start Slack bot:** `npm start` (requires `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_SIGNING_SECRET`)
+- **Start server:** `npm start` (requires `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`, `SLACK_SIGNING_SECRET`)
 
 No build step — pure JavaScript, no transpilation.
 
@@ -67,7 +66,7 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 
 ### Mission Lifecycle
 
-1. **Entry:** User triggers via CLI (`cli.js`) or Slack bot (`q.js`) → creates a `Mission` instance (`lib/mission.js`)
+1. **Entry:** User triggers via Slack bot or dashboard (`server.js`) → creates a `Mission` instance (`lib/mission.js`)
 2. **Planning:** Captain Picard agent decomposes the task into phased objectives stored in `mission.json`
 3. **Execution:** Work loop launches up to `max_workers` (default 1, configurable via `COMMANDDECK_MAX_WORKERS`) Claude Code workers in parallel, each in an isolated git worktree on its own branch (`commanddeck/<mission-id>/<obj-id>`)
 4. **Integration:** Completed branches merge into an integration branch; O'Brien agent resolves conflicts when they occur
@@ -80,8 +79,12 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 
 | Module | Responsibility |
 |---|---|
+| `server.js` | Single entry point: Slack bot (Bolt) + HTTP server (dashboard + JSON API + action endpoints + health) |
+| `lib/db.js` | App SQLite layer (`app.db`): schema, migrations, typed query functions for application state |
+| `lib/telemetry-db.js` | Telemetry SQLite layer (`telemetry.db`): traces, events, logs, metrics queries |
+| `lib/telemetry.js` | OTel SDK init, Proxy-based `instrument()`, lifecycle event emitter, Unix socket listener, SSE |
 | `lib/mission.js` | Full mission lifecycle: decompose → workLoop → executeBatch → merge → review → PR |
-| `lib/state.js` | File-based state with atomic mkdir locking, mission CRUD, version tracking |
+| `lib/state.js` | Thin wrapper around db.js for mission CRUD, config loading |
 | `lib/worker.js` | Spawns `claude -p` subprocesses per agent; `loadAgentIdentity()` reads `agents/*.md` frontmatter for identity, tools, model |
 | `lib/worktree.js` | Git worktree create/remove/list for worker isolation |
 | `lib/risk.js` | Risk flag detection (file patterns on actual changes) → mandatory reviewer mapping |
@@ -94,40 +97,38 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 | `lib/thread.js` | Slack thread-based conversational iteration and mission follow-ups |
 | `lib/auth.js` | Claude CLI auth verification and OAuth failure detection |
 | `lib/deploy.js` | Caddy reverse proxy integration for app deployments |
-| `lib/http-health.js` | HTTP GET /health endpoint for container monitoring |
-| `lib/observability.js` | Structured event logging and health alert persistence |
+| `lib/observability.js` | Structured event logging (delegates to telemetry-db) |
 | `lib/validate.js` | Git ref and repo name validation against injection |
-| `q.js` | Slack bot entry point: command routing, approval reactions, health patrol |
-| `cli.js` | CLI entry point for local/non-Slack usage |
 | `entrypoint.sh` | Container startup: SSH known_hosts, gh auth from GH_TOKEN, git config |
 | `agents/*.md` | Agent identity files with YAML frontmatter (tools, model) and markdown identity text |
 | `defaults/` | Starter content for standards, crew preferences, and playbooks — seeded by `install.sh` |
-| `dashboard/server.js` | Status dashboard: vanilla HTTP server with JSON API + static file serving |
-| `dashboard/public/` | Dashboard frontend: single-page HTML/CSS/JS, dark theme, auto-refresh |
-| `dashboard/Dockerfile` | Lightweight dashboard container image (node only, no dev tools) |
+| `dashboard/public/` | Dashboard frontend: single-page HTML/CSS/JS, dark theme, auto-refresh, action modals |
 
 ### State Management
 
-All state lives under `~/.commanddeck/` (override with `COMMANDDECK_STATE_DIR`). Structure:
+State is split across two SQLite databases (separate failure domains). File artifacts remain on the filesystem.
+
+- **`app.db`** (renamed from `state.db`) — application state: missions, objectives, threads, approvals, channel_map, session_log
+- **`telemetry.db`** — observability: traces, events, logs (MELT)
+
 ```
 ~/.commanddeck/
+  app.db                   # Application state (missions, objectives, threads, approvals, channel_map)
+  telemetry.db             # Observability (traces, events, logs)
   config.json              # Global installation config
   projects/<repo>/
     config.json
     directives/*.md
-    missions/<id>/mission.json
+    missions/<id>/artifacts/   # Evidence bundles, health alerts
   standards/*.md
   crew/<agent>-preferences.md
   playbooks/*.md
-  channel-map.json
-  pr-approvals.json
-  proposed/index.json
 ```
 
-Critical patterns:
-- **Atomic locking:** All state mutations use `withMissionLock()` (mkdir-based lock)
-- **Atomic writes:** tmp file + rename pattern
-- **Version tracking:** Monotonic version counter on mission state
+Key `app.db` tables: `missions`, `objectives`, `threads`, `approvals`, `channel_map`, `session_log`.
+Key `telemetry.db` tables: `traces` (JSON span trees), `events` (append-only audit trail), `logs` (tool calls, stdout, system).
+
+On first startup, `server.js` auto-migrates legacy JSON state files into SQLite.
 
 ### Configuration
 
@@ -150,7 +151,6 @@ Critical patterns:
 |---|---|
 | `COMMANDDECK_STATE_DIR` | Override state directory (default `~/.commanddeck`) |
 | `COMMANDDECK_PROJECT_DIR` | Override project clone directory (default `~/projects`) |
-| `COMMANDDECK_CHANNEL_MAP` | Override channel-map.json path |
 | `COMMANDDECK_MAX_WORKERS` | Max parallel workers per mission |
 | `COMMANDDECK_MAX_SESSIONS` | Max sessions per mission |
 | `COMMANDDECK_MAX_HOURS` | Max elapsed hours per mission |
@@ -190,11 +190,11 @@ Loaded by `hooks/session-start.sh` in priority order:
 
 ### Container Deployment
 
-CommandDeck runs as a Docker container. Key setup:
+CommandDeck runs as a single Docker container (Slack bot + dashboard + API in one process). Key setup:
 - **Image:** Built via GH Actions → `ghcr.io/gulati8/commanddeck:latest`
 - **Entrypoint:** `entrypoint.sh` handles SSH known_hosts, gh auth from `GH_TOKEN` env var, git config
 - **Volumes:** State dir (persistent), projects dir (persistent), host SSH keys (read-only), Claude Code auth (read-write)
-- **Networking:** Slack bot uses Socket Mode (outbound WebSocket) — no inbound ports required
+- **Networking:** Slack bot uses Socket Mode (outbound WebSocket); HTTP server on port 3000 for dashboard + API
 - **PR creation:** Uses temp files instead of `/dev/stdin` for container compatibility
 
 ## Testing

@@ -1,0 +1,19 @@
+services:
+  commanddeck:
+    build: .
+    container_name: commanddeck-dev
+    env_file: .env.dev
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - commanddeck-dev-state:/home/commanddeck/.commanddeck
+      - commanddeck-dev-projects:/home/commanddeck/projects
+      - ${HOME}/.ssh/id_ed25519:/tmp/host-ssh-key:ro
+      - commanddeck-dev-claude:/home/commanddeck/.claude
+    ports:
+      - "3001:3000"
+
+volumes:
+  commanddeck-dev-state:
+  commanddeck-dev-projects:
+  commanddeck-dev-claude:

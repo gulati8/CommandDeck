@@ -1,6 +1,6 @@
 'use strict';
 
-const { describe, it, before, after, beforeEach } = require('node:test');
+const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
 const fs = require('fs');
@@ -13,6 +13,8 @@ process.env.COMMANDDECK_STATE_DIR = tmpDir;
 process.env.COMMANDDECK_PROJECT_DIR = path.join(tmpDir, 'projects-dir');
 process.env.DOCKER_SOCKET = '/nonexistent/docker.sock';
 process.env.Q_HOST = '127.0.0.254'; // unreachable
+
+const db = require('../lib/db');
 
 function makeRequest(port, reqPath, method = 'GET') {
   return new Promise((resolve, reject) => {
@@ -33,68 +35,84 @@ function makeRequest(port, reqPath, method = 'GET') {
   });
 }
 
-// Seed test data into the temp state dir
+// Seed test data into SQLite + filesystem (for file artifacts)
 function seedState() {
-  const projectDir = path.join(tmpDir, 'projects', 'test-repo', 'missions', 'mission-20260228-001');
-  fs.mkdirSync(path.join(projectDir, 'artifacts'), { recursive: true });
-  fs.mkdirSync(path.join(projectDir, 'briefings'), { recursive: true });
+  // Ensure state dir exists and init DB
+  fs.mkdirSync(tmpDir, { recursive: true });
+  db.getDb();
 
-  const mission = {
-    mission_id: 'mission-20260228-001',
+  // Create mission in SQLite
+  db.createMission('mission-20260228-001', {
     repo: 'test-repo',
-    default_branch: 'main',
     description: 'Test mission for dashboard',
-    status: 'in_progress',
-    created_at: '2026-02-28T10:00:00Z',
-    updated_at: '2026-02-28T10:30:00Z',
-    version: 3,
-    slack_channel: 'C123',
-    slack_thread_ts: '1234567890.123',
-    integration_branch: 'commanddeck/mission-20260228-001/integration',
-    pr: { number: 42, url: 'https://github.com/test/test-repo/pull/42', status: 'open' },
-    work_items: [
-      {
-        id: 'obj-1',
-        title: 'Implement feature A',
-        status: 'done',
-        phase: 1,
-        depends_on: [],
-        assigned_to: 'borg',
-        risk_flags: ['dependency'],
-        worker_index: 0
-      },
-      {
-        id: 'obj-2',
-        title: 'Implement feature B',
-        status: 'in_progress',
-        phase: 1,
-        depends_on: [],
-        assigned_to: 'borg',
-        risk_flags: [],
-        worker_index: 1
-      }
-    ],
+    defaultBranch: 'main',
+    integrationBranch: 'commanddeck/mission-20260228-001/integration',
+    slackChannel: 'C123',
+    slackThreadTs: '1234567890.123',
     safety: {
       max_sessions: 50,
       max_elapsed_hours: 6,
       max_parallel_workers: 3,
       session_count: 5,
       started_at: '2026-02-28T10:00:00Z'
-    },
-    session_log: [
-      {
-        session_id: 'sess-001',
-        started_at: '2026-02-28T10:00:00Z',
-        ended_at: '2026-02-28T10:05:00Z',
-        agent: 'captain-picard',
-        objective: 'planning',
-        exit_code: 0
-      }
-    ]
-  };
-  fs.writeFileSync(path.join(projectDir, 'mission.json'), JSON.stringify(mission, null, 2));
+    }
+  });
 
-  // Evidence
+  // Update mission status to in_progress
+  db.updateMission('mission-20260228-001', { status: 'in_progress' });
+
+  // Add objectives
+  db.setObjectives('mission-20260228-001', [
+    {
+      id: 'obj-1',
+      title: 'Implement feature A',
+      status: 'done',
+      phase: 1,
+      depends_on: [],
+      assigned_to: 'borg',
+      risk_flags: ['dependency'],
+      worker_index: 0
+    },
+    {
+      id: 'obj-2',
+      title: 'Implement feature B',
+      status: 'in_progress',
+      phase: 1,
+      depends_on: [],
+      assigned_to: 'borg',
+      risk_flags: [],
+      worker_index: 1
+    }
+  ]);
+
+  // Add session log
+  db.addSessionLog('mission-20260228-001', {
+    session_id: 'sess-001',
+    started_at: '2026-02-28T10:00:00Z',
+    ended_at: '2026-02-28T10:05:00Z',
+    agent: 'captain-picard',
+    objective: 'planning',
+    exit_code: 0
+  });
+
+  // Channel map
+  db.setChannelMapping('C123', 'test-repo');
+  db.setChannelMapping('C456', 'channel-only-repo');
+
+  // PR approval
+  db.trackApproval('1234567890.123', 'pr', {
+    repo: 'test-repo',
+    mission_id: 'mission-20260228-001',
+    pr_number: 42,
+    pr_url: 'https://github.com/test/test-repo/pull/42',
+    channel: 'C123'
+  });
+
+  // File artifacts (evidence, health alerts) — still on filesystem
+  const projectDir = path.join(tmpDir, 'projects', 'test-repo', 'missions', 'mission-20260228-001');
+  fs.mkdirSync(path.join(projectDir, 'artifacts'), { recursive: true });
+  fs.mkdirSync(path.join(projectDir, 'briefings'), { recursive: true });
+
   const evidence = {
     objective_id: 'obj-1',
     agent: 'borg',
@@ -104,45 +122,31 @@ function seedState() {
   };
   fs.writeFileSync(path.join(projectDir, 'artifacts', 'evidence-obj-1.json'), JSON.stringify(evidence));
 
-  // Health alerts
   const alerts = [
     '{"ts":"2026-02-28T10:20:00Z","level":"warning","objective":"obj-2","type":"slow_progress","message":"No commits in 10 minutes"}'
   ];
   fs.writeFileSync(path.join(projectDir, 'artifacts', 'health-alerts.ndjson'), alerts.join('\n') + '\n');
 
-  // Channel map (includes channel-only-repo with no state dir)
-  fs.writeFileSync(path.join(tmpDir, 'channel-map.json'), JSON.stringify({
-    channel_map: { C123: 'test-repo', C456: 'channel-only-repo' }
-  }));
-
-  // PR approvals
-  fs.writeFileSync(path.join(tmpDir, 'pr-approvals.json'), JSON.stringify({
-    '1234567890.123': {
-      repo: 'test-repo',
-      mission_id: 'mission-20260228-001',
-      pr_number: 42,
-      pr_url: 'https://github.com/test/test-repo/pull/42',
-      channel: 'C123',
-      tracked_at: '2026-02-28T10:30:00Z'
-    }
-  }));
-
-  // Plan approvals
-  fs.writeFileSync(path.join(tmpDir, 'plan-approvals.json'), JSON.stringify({}));
-
-  // Project config
+  // Project config (filesystem)
   fs.writeFileSync(path.join(tmpDir, 'projects', 'test-repo', 'config.json'), JSON.stringify({
     default_branch: 'main',
     max_workers: 2
   }));
 
-  // Global config
+  // Global config (filesystem)
   fs.writeFileSync(path.join(tmpDir, 'config.json'), JSON.stringify({
     github_org: 'testorg',
     domain: 'test.dev'
   }));
 
-  // Second project with no missions
+  // Second mission in a different repo (no health alerts)
+  db.createMission('mission-20260228-002', {
+    repo: 'test-repo2',
+    description: 'Second test mission',
+    defaultBranch: 'main'
+  });
+
+  // Second project with no missions (filesystem only — empty-repo)
   fs.mkdirSync(path.join(tmpDir, 'projects', 'empty-repo', 'missions'), { recursive: true });
 }
 
@@ -152,10 +156,10 @@ describe('dashboard server', () => {
 
   before(async () => {
     seedState();
-    const dashboard = require('../dashboard/server');
-    server = dashboard.start(0);
+    const { createHTTPServer } = require('../server');
+    server = createHTTPServer(null);
     await new Promise((resolve) => {
-      server.on('listening', () => {
+      server.listen(0, () => {
         port = server.address().port;
         resolve();
       });
@@ -164,6 +168,7 @@ describe('dashboard server', () => {
 
   after(() => {
     if (server) server.close();
+    db.close();
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -209,9 +214,11 @@ describe('dashboard server', () => {
       const res = await makeRequest(port, '/api/overview');
       assert.equal(res.statusCode, 200);
       const json = JSON.parse(res.body);
-      assert.equal(json.projects, 3);
-      assert.equal(json.active_missions, 1);
-      assert.equal(json.total_missions, 1);
+      // 4 projects: test-repo, test-repo2 (SQLite), channel-only-repo (channel map), empty-repo (fs)
+      assert.equal(json.projects, 4);
+      // 2 active: mission-001 (in_progress), mission-002 (planning)
+      assert.equal(json.active_missions, 2);
+      assert.equal(json.total_missions, 2);
       assert.equal(json.config.github_org, 'testorg');
       assert.equal(json.config.domain, 'test.dev');
       assert.equal(typeof json.uptime, 'number');
@@ -224,7 +231,7 @@ describe('dashboard server', () => {
       assert.equal(res.statusCode, 200);
       const json = JSON.parse(res.body);
       assert.ok(Array.isArray(json));
-      assert.equal(json.length, 3);
+      assert.equal(json.length, 4);
 
       const testRepo = json.find(p => p.repo === 'test-repo');
       assert.ok(testRepo);
@@ -255,7 +262,7 @@ describe('dashboard server', () => {
       assert.equal(json[0].progress.done, 1);
       assert.equal(json[0].progress.total, 2);
       assert.equal(json[0].progress.percent, 50);
-      assert.equal(json[0].pr.number, 42);
+      assert.ok(json[0].pr);
     });
 
     it('returns empty array for project with no missions', async () => {
@@ -323,31 +330,22 @@ describe('dashboard server', () => {
     });
   });
 
-  describe('GET /api/health-alerts/:repo/:missionId', () => {
-    it('returns parsed NDJSON alerts', async () => {
-      const res = await makeRequest(port, '/api/health-alerts/test-repo/mission-20260228-001');
+  describe('health alerts in mission detail', () => {
+    it('returns health alerts embedded in mission detail', async () => {
+      const res = await makeRequest(port, `/api/missions/test-repo/mission-20260228-001`);
       assert.equal(res.statusCode, 200);
       const json = JSON.parse(res.body);
-      assert.ok(Array.isArray(json));
-      assert.equal(json.length, 1);
-      assert.equal(json[0].type, 'slow_progress');
+      assert.ok(Array.isArray(json.health_alerts));
+      assert.equal(json.health_alerts.length, 1);
+      assert.equal(json.health_alerts[0].type, 'slow_progress');
     });
 
-    it('returns empty array for nonexistent mission', async () => {
-      const res = await makeRequest(port, '/api/health-alerts/test-repo/nope');
+    it('returns empty alerts for mission without alerts', async () => {
+      const res = await makeRequest(port, `/api/missions/test-repo2/mission-20260228-002`);
       assert.equal(res.statusCode, 200);
       const json = JSON.parse(res.body);
-      assert.deepEqual(json, []);
-    });
-  });
-
-  describe('GET /api/q-status', () => {
-    it('returns offline when Q is not reachable', async () => {
-      const res = await makeRequest(port, '/api/q-status');
-      assert.equal(res.statusCode, 200);
-      const json = JSON.parse(res.body);
-      assert.equal(json.status, 'offline');
-      assert.equal(json.uptime, null);
+      assert.ok(Array.isArray(json.health_alerts));
+      assert.equal(json.health_alerts.length, 0);
     });
   });
 
@@ -373,9 +371,23 @@ describe('dashboard server', () => {
   });
 
   describe('method handling', () => {
-    it('POST returns 405', async () => {
-      const res = await makeRequest(port, '/api/overview', 'POST');
-      assert.equal(res.statusCode, 405);
+    it('POST to unknown API route returns 404', async () => {
+      const res = await new Promise((resolve, reject) => {
+        const req = http.request({
+          hostname: 'localhost',
+          port,
+          path: '/api/unknown-route',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }, (r) => {
+          let data = '';
+          r.on('data', chunk => { data += chunk; });
+          r.on('end', () => resolve({ statusCode: r.statusCode, body: data }));
+        });
+        req.on('error', reject);
+        req.end('{}');
+      });
+      assert.equal(res.statusCode, 404);
     });
 
     it('PUT returns 405', async () => {

@@ -6,8 +6,12 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+const db = require('../lib/db');
+
 function freshThreadModule(tempDir) {
   process.env.COMMANDDECK_STATE_DIR = tempDir;
+  db.close();
+  db.getDb();
   delete require.cache[require.resolve('../lib/thread')];
   return require('../lib/thread');
 }
@@ -16,6 +20,7 @@ describe('thread', () => {
   let tempDir;
 
   afterEach(() => {
+    db.close();
     if (tempDir && fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
@@ -114,7 +119,7 @@ describe('thread', () => {
       assert.equal(mod.getThread('C123', '111.222'), null);
     });
 
-    it('should persist to disk across module reloads', () => {
+    it('should persist across module reloads (SQLite)', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const modA = freshThreadModule(tempDir);
 
@@ -127,14 +132,14 @@ describe('thread', () => {
         original_description: 'task'
       });
 
-      // Reload module — data should persist from disk
+      // Reload module — data should persist from SQLite
       const modB = freshThreadModule(tempDir);
       const t = modB.getThread('C123', '111.222');
       assert.equal(t.repo, 'TestRepo');
       assert.equal(t.mission_id, 'mission-001');
 
-      // Verify file exists
-      assert.ok(fs.existsSync(path.join(tempDir, 'active-threads.json')));
+      // Verify SQLite db exists
+      assert.ok(fs.existsSync(path.join(tempDir, 'app.db')));
     });
 
     it('should reset stale assessing threads on startup', () => {
@@ -172,7 +177,6 @@ describe('thread', () => {
 
       mod.updateThreadStatus('C123', '111.222', 'working');
       mod.resetStaleThreads();
-      // working status should NOT be reset (only assessing is stale)
       assert.equal(mod.getThread('C123', '111.222').status, 'working');
     });
   });
@@ -189,7 +193,6 @@ describe('thread', () => {
       });
       mod.debounce('C123', '111.222', 'message 2', (msgs) => {
         collected.push(...msgs);
-        // After debounce fires, should have both messages
         assert.deepEqual(collected, ['message 1', 'message 2']);
         done();
       });
@@ -216,7 +219,7 @@ describe('thread', () => {
   });
 
   describe('parseClassification', () => {
-    it('should parse valid work classification', () => {
+    it('should parse valid JSON with work action', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
@@ -231,55 +234,31 @@ describe('thread', () => {
       assert.equal(result.task_description, 'Fix the button color to blue');
     });
 
-    it('should parse converse classification', () => {
-      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
-      const mod = freshThreadModule(tempDir);
-
-      const result = mod.parseClassification(JSON.stringify({
-        action: 'converse',
-        message: 'What kind of auth are you thinking about?'
-      }));
-
-      assert.equal(result.action, 'converse');
-      assert.ok(result.message.includes('auth'));
-      assert.equal(result.task_description, null);
-    });
-
-    it('should parse inquiry classification', () => {
-      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
-      const mod = freshThreadModule(tempDir);
-
-      const result = mod.parseClassification(JSON.stringify({
-        action: 'inquiry',
-        message: 'The test suite currently has 95% coverage.'
-      }));
-
-      assert.equal(result.action, 'inquiry');
-    });
-
     it('should parse JSON embedded in surrounding text', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
       const result = mod.parseClassification(
-        'Here is my assessment:\n' +
-        '{"action": "work", "message": "Got it.", "task_description": "Build the login page"}\n' +
-        'End.'
+        'Here is my classification:\n' +
+        '{"action": "converse", "message": "Could you clarify what you mean?", "task_description": null}\n' +
+        'End of classification.'
       );
 
-      assert.equal(result.action, 'work');
-      assert.equal(result.task_description, 'Build the login page');
+      assert.equal(result.action, 'converse');
+      assert.equal(result.message, 'Could you clarify what you mean?');
     });
 
-    it('should fallback to converse on malformed JSON', () => {
+    it('should fallback on malformed JSON', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
       const result = mod.parseClassification('this is not json at all');
+
       assert.equal(result.action, 'converse');
+      assert.ok(result.message.includes('help'));
     });
 
-    it('should fallback to converse on empty/null input', () => {
+    it('should fallback on empty/null input', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
@@ -288,7 +267,7 @@ describe('thread', () => {
       assert.equal(mod.parseClassification(undefined).action, 'converse');
     });
 
-    it('should fallback to converse on invalid action', () => {
+    it('should fallback on missing or invalid action', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
@@ -318,61 +297,90 @@ describe('thread', () => {
       assert.equal(result.action, 'inquiry');
       assert.equal(result.message, 'Got it, thanks!');
     });
-  });
 
-  describe('resetStaleThreads with conversing threads', () => {
-    it('should reset assessing pre-mission threads to conversing', () => {
+    it('should accept all valid actions', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
-      mod.trackThread('C123', '111.222', {
-        repo: 'TestRepo',
-        mission_id: null,
-        original_description: 'thinking about auth',
-        status: 'conversing'
-      });
-
-      mod.updateThreadStatus('C123', '111.222', 'assessing');
-      assert.equal(mod.getThread('C123', '111.222').status, 'assessing');
-
-      mod.resetStaleThreads();
-      // No mission_id → resets to conversing, not idle
-      assert.equal(mod.getThread('C123', '111.222').status, 'conversing');
+      for (const action of ['work', 'converse', 'inquiry', 'onboard', 'create']) {
+        const result = mod.parseClassification(JSON.stringify({ action, message: 'test' }));
+        assert.equal(result.action, action);
+      }
     });
 
-    it('should reset launching threads to conversing', () => {
+    it('should parse onboard action with project_name', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
-      mod.trackThread('C123', '111.222', {
-        repo: 'TestRepo',
-        mission_id: null,
-        original_description: 'add auth',
-        status: 'launching'
-      });
+      const result = mod.parseClassification(JSON.stringify({
+        action: 'onboard',
+        message: 'Setting course to onboard eastvillageeverything.',
+        project_name: 'eastvillageeverything'
+      }));
 
-      mod.resetStaleThreads();
-      assert.equal(mod.getThread('C123', '111.222').status, 'conversing');
+      assert.equal(result.action, 'onboard');
+      assert.equal(result.project_name, 'eastvillageeverything');
+    });
+
+    it('should parse create action with project_name', () => {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
+      const mod = freshThreadModule(tempDir);
+
+      const result = mod.parseClassification(JSON.stringify({
+        action: 'create',
+        message: 'Creating project myapp.',
+        project_name: 'myapp',
+        task_description: 'A weather dashboard'
+      }));
+
+      assert.equal(result.action, 'create');
+      assert.equal(result.project_name, 'myapp');
+      assert.equal(result.task_description, 'A weather dashboard');
     });
   });
 
   describe('pre-mission thread tracking', () => {
-    it('should track conversing threads with null mission fields', () => {
+    it('should track a thread without a mission', () => {
       tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
       const mod = freshThreadModule(tempDir);
 
       mod.trackThread('C123', '111.222', {
         repo: 'TestRepo',
-        mission_id: null,
-        original_description: 'thinking about improvements',
         status: 'conversing'
       });
 
       const t = mod.getThread('C123', '111.222');
-      assert.equal(t.status, 'conversing');
       assert.equal(t.repo, 'TestRepo');
+      assert.equal(t.status, 'conversing');
       assert.equal(t.mission_id, null);
-      assert.equal(t.pr_number, undefined);
+    });
+
+    it('should reset stale launching threads to conversing', () => {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
+      const mod = freshThreadModule(tempDir);
+
+      mod.trackThread('C123', '111.222', {
+        repo: 'TestRepo',
+        status: 'launching'
+      });
+
+      mod.updateThreadStatus('C123', '111.222', 'launching');
+      mod.resetStaleThreads();
+      assert.equal(mod.getThread('C123', '111.222').status, 'conversing');
+    });
+
+    it('should reset stale assessing pre-mission threads to conversing', () => {
+      tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-thread-'));
+      const mod = freshThreadModule(tempDir);
+
+      mod.trackThread('C123', '111.222', {
+        repo: 'TestRepo',
+        status: 'conversing'
+      });
+
+      mod.updateThreadStatus('C123', '111.222', 'assessing');
+      mod.resetStaleThreads();
+      assert.equal(mod.getThread('C123', '111.222').status, 'conversing');
     });
   });
 });

@@ -239,26 +239,9 @@ cd "$SCRIPT_DIR"
 npm install --production
 ok "npm dependencies installed"
 
-# --- 8. CLI symlink ---
+# --- 8. systemd service (Linux only) ---
 echo ""
-echo "Step 8: CLI setup"
-echo "------------------"
-
-chmod +x "$SCRIPT_DIR/cli.js"
-if [[ -w /usr/local/bin ]]; then
-  ln -sf "$SCRIPT_DIR/cli.js" /usr/local/bin/commanddeck
-  ok "CLI linked: commanddeck → $SCRIPT_DIR/cli.js"
-elif [[ -w "$HOME/.local/bin" ]] || mkdir -p "$HOME/.local/bin"; then
-  ln -sf "$SCRIPT_DIR/cli.js" "$HOME/.local/bin/commanddeck"
-  ok "CLI linked: ~/.local/bin/commanddeck → $SCRIPT_DIR/cli.js"
-  warn "Make sure ~/.local/bin is in your PATH"
-else
-  warn "Could not create symlink. Run directly: node $SCRIPT_DIR/cli.js"
-fi
-
-# --- 9. systemd service (Linux only) ---
-echo ""
-echo "Step 9: systemd service"
+echo "Step 8: systemd service"
 echo "------------------------"
 
 if command -v systemctl &>/dev/null; then
@@ -274,7 +257,7 @@ Type=simple
 User=${CURRENT_USER}
 WorkingDirectory=${SCRIPT_DIR}
 EnvironmentFile=${ENV_FILE}
-ExecStart=/usr/bin/node q.js
+ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=5
 
@@ -297,8 +280,8 @@ EOF
     fi
   fi
 else
-  warn "systemd not found (macOS?). Start manually: node $SCRIPT_DIR/q.js"
-  warn "Or use: source $ENV_FILE && node $SCRIPT_DIR/q.js"
+  warn "systemd not found (macOS?). Start manually: node $SCRIPT_DIR/server.js"
+  warn "Or use: source $ENV_FILE && node $SCRIPT_DIR/server.js"
 fi
 
 # --- Done ---
@@ -307,7 +290,6 @@ echo "========================"
 echo "🖖 CommandDeck installed!"
 echo ""
 echo "Next steps:"
-echo "  1. Scaffold a project:  commanddeck scaffold org/repo-name"
-echo "  2. Start a mission:     commanddeck run repo-name \"build a feature\""
-echo "  3. Or from Slack:       @CommandDeck in repo-name build a feature"
+echo "  1. From Slack:       @CommandDeck in repo-name build a feature"
+echo "  2. Or via dashboard: http://localhost:3000"
 echo ""
