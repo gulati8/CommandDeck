@@ -479,6 +479,26 @@ function startSlackApp() {
       return;
     }
 
+    // Detect GitHub URL → auto-onboard
+    const ghUrlMatch = prompt.match(/github\.com[:/][^/]+\/([^/\s.>]+)/);
+    if (ghUrlMatch) {
+      const projectName = ghUrlMatch[1];
+      await say({ text: `📦 Onboarding project "${projectName}"...`, thread_ts: threadTs });
+      try {
+        const result = await scaffold.onboardProject(projectName, { slackApp: app, reporter });
+        const summary = result.steps
+          .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
+          .join('\n');
+        await reporter.post(
+          `🖖 Project "${projectName}" onboarded!\n${summary}\n\n` +
+          `Use: @CommandDeck in ${projectName} <task> to start a mission.`
+        );
+      } catch (err) {
+        await reporter.post(`❌ Failed to onboard project: ${err.message}`);
+      }
+      return;
+    }
+
     // Detect repo from channel map or "in <project>" syntax
     let repo = slack.detectRepoFromChannel(channel);
     let task = prompt;
@@ -675,6 +695,27 @@ function startSlackApp() {
     if (threadContext.status === 'working' || threadContext.status === 'launching') {
       const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
       await reporter.post("I'm still working on the previous task. I'll respond when it's done.");
+      return;
+    }
+
+    // Detect GitHub URL in thread reply → auto-onboard
+    const ghUrlMatch = (event.text || '').match(/github\.com[:/][^/]+\/([^/\s.>]+)/);
+    if (ghUrlMatch) {
+      const projectName = ghUrlMatch[1];
+      const reporter = slack.slackReporter(app, event.channel, event.thread_ts);
+      await reporter.post(`📦 Onboarding project "${projectName}"...`);
+      try {
+        const result = await scaffold.onboardProject(projectName, { slackApp: app, reporter });
+        const summary = result.steps
+          .map(s => `  ${s.status === 'ok' ? '✅' : '❌'} ${s.step}${s.error ? ': ' + s.error : ''}`)
+          .join('\n');
+        await reporter.post(
+          `🖖 Project "${projectName}" onboarded!\n${summary}\n\n` +
+          `Use: @CommandDeck in ${projectName} <task> to start a mission.`
+        );
+      } catch (err) {
+        await reporter.post(`❌ Failed to onboard project: ${err.message}`);
+      }
       return;
     }
 
