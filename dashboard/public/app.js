@@ -580,7 +580,16 @@ async function loadSlidePanel(repo, missionId) {
   }
   html += '</div>';
 
+  // Placeholder for waterfall — loaded async
+  html += '<div id="slide-waterfall"></div>';
+
   document.getElementById('slide-body').innerHTML = html;
+
+  // Load trace waterfall async
+  renderSlidePanelWaterfall(missionId).then(wfHtml => {
+    const wfEl = document.getElementById('slide-waterfall');
+    if (wfEl && wfHtml) wfEl.innerHTML = wfHtml;
+  });
 }
 
 // --- Render: Projects view ---
@@ -665,6 +674,8 @@ async function renderSystem() {
   info.innerHTML = uptime != null
     ? `Uptime: ${formatUptime(uptime)} &middot; ${appState.overview?.active_workers ?? 0} active workers &middot; ${appState.overview?.total_missions ?? 0} total missions`
     : 'Loading...';
+
+  renderMetrics();
 
   const data = await fetchJSON('/api/containers');
   const grid = document.getElementById('containers-grid');
@@ -905,6 +916,365 @@ function toggleLogsPoll() {
   }
 }
 
+// --- Traces view ---
+
+async function loadTraces() {
+  const repoFilter = document.getElementById('traces-repo-filter')?.value || '';
+  const statusFilter = document.getElementById('traces-status-filter')?.value || '';
+
+  let url = '/api/traces?limit=50';
+  if (repoFilter) url += `&repo=${encodeURIComponent(repoFilter)}`;
+  if (statusFilter) url += `&status=${encodeURIComponent(statusFilter)}`;
+
+  const data = await fetchJSON(url);
+  renderTraces(data || []);
+}
+
+function renderTraces(traces) {
+  const container = document.getElementById('traces-list');
+  if (!container) return;
+
+  // Populate repo filter
+  const repoSelect = document.getElementById('traces-repo-filter');
+  if (repoSelect && repoSelect.options.length <= 1) {
+    const repos = [...new Set(traces.map(t => t.repo).filter(Boolean))];
+    for (const r of repos) {
+      const opt = document.createElement('option');
+      opt.value = r;
+      opt.textContent = r;
+      repoSelect.appendChild(opt);
+    }
+  }
+
+  if (!traces.length) {
+    container.innerHTML = '<div class="empty-state">No traces yet. Traces appear when missions run.</div>';
+    return;
+  }
+
+  let html = `<table class="data-table"><thead><tr>
+    <th>Status</th><th>Mission</th><th>Project</th><th>Duration</th><th>Spans</th><th>Started</th>
+  </tr></thead><tbody>`;
+
+  for (const t of traces) {
+    const dur = t.duration_ms != null ? formatDuration(t.duration_ms) : '--';
+    html += `<tr onclick="showTraceDetail('${escapeHtml(t.trace_id)}')">
+      <td>${traceBadge(t.status)}</td>
+      <td style="font-size:11px;color:var(--text-dim)">${escapeHtml(t.mission_id || '--')}</td>
+      <td>${escapeHtml(t.repo || '--')}</td>
+      <td style="font-family:var(--font-mono);font-size:12px">${dur}</td>
+      <td>${t.span_count || 0}</td>
+      <td style="color:var(--text-dim);font-size:11px">${relativeTime(t.started_at)}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function traceBadge(status) {
+  const colors = {
+    completed: 'done',
+    error: 'failed',
+    in_progress: 'in_progress'
+  };
+  return badge(colors[status] || status);
+}
+
+function formatDuration(ms) {
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  const mins = Math.floor(ms / 60000);
+  const secs = Math.floor((ms % 60000) / 1000);
+  return `${mins}m ${secs}s`;
+}
+
+// --- Trace detail + waterfall ---
+
+async function showTraceDetail(traceId) {
+  appState.currentView = 'trace-detail';
+  hideAllViews();
+  document.getElementById('view-trace-detail').classList.add('active');
+  document.getElementById('bc-trace-label').textContent = traceId.substring(0, 12) + '...';
+  history.pushState(null, '', `#/traces/${traceId}`);
+
+  const data = await fetchJSON(`/api/traces/${encodeURIComponent(traceId)}`);
+  renderTraceDetail(data);
+}
+
+function renderTraceDetail(trace) {
+  const container = document.getElementById('trace-detail-content');
+  if (!trace) {
+    container.innerHTML = '<div class="empty-state">Trace not found</div>';
+    return;
+  }
+
+  let html = '';
+
+  // Header
+  html += `<div class="trace-header">
+    <div class="trace-header-row">
+      ${traceBadge(trace.status)}
+      <span class="trace-repo">${escapeHtml(trace.repo || '')}</span>
+      <span class="trace-id">${escapeHtml(trace.trace_id)}</span>
+    </div>
+    <div class="trace-meta-row">
+      <span>Mission: ${escapeHtml(trace.mission_id || '--')}</span>
+      <span>Duration: ${trace.duration_ms != null ? formatDuration(trace.duration_ms) : '--'}</span>
+      <span>Spans: ${trace.span_count || 0}</span>
+      <span>Started: ${formatTime(trace.started_at)}</span>
+    </div>
+  </div>`;
+
+  // Waterfall
+  if (trace.spans?.length) {
+    html += '<div class="waterfall-title">Trace Waterfall</div>';
+    html += renderWaterfall(trace.spans, trace.started_at, trace.ended_at || new Date().toISOString());
+  }
+
+  container.innerHTML = html;
+}
+
+function renderWaterfall(spans, traceStart, traceEnd) {
+  const allSpans = flattenSpans(spans);
+  if (!allSpans.length) return '<div class="empty-state">No spans</div>';
+
+  const startMs = new Date(traceStart).getTime();
+  const endMs = new Date(traceEnd).getTime();
+  const totalMs = Math.max(endMs - startMs, 1);
+
+  let html = '<div class="waterfall">';
+  for (const { span, depth } of allSpans) {
+    const spanStart = new Date(span.start_time).getTime();
+    const spanEnd = span.end_time ? new Date(span.end_time).getTime() : Date.now();
+    const left = ((spanStart - startMs) / totalMs * 100).toFixed(2);
+    const width = Math.max(((spanEnd - spanStart) / totalMs * 100), 0.5).toFixed(2);
+    const dur = span.duration_ms != null ? formatDuration(span.duration_ms) : '';
+    const statusClass = span.status === 'error' ? 'wf-error' : span.end_time ? 'wf-ok' : 'wf-active';
+    const indent = depth * 20;
+
+    html += `<div class="wf-row" onclick="this.classList.toggle('expanded')">
+      <div class="wf-label" style="padding-left:${indent + 8}px">
+        <span class="wf-dot ${statusClass}"></span>
+        <span class="wf-name">${escapeHtml(span.name)}</span>
+        <span class="wf-dur">${dur}</span>
+      </div>
+      <div class="wf-bar-area">
+        <div class="wf-bar ${statusClass}" style="left:${left}%;width:${width}%"></div>
+      </div>
+    </div>`;
+
+    // Show attributes on expand
+    const attrs = span.attributes || {};
+    const attrKeys = Object.keys(attrs);
+    if (attrKeys.length) {
+      html += `<div class="wf-attrs">`;
+      for (const k of attrKeys) {
+        html += `<span class="wf-attr"><span class="wf-attr-key">${escapeHtml(k)}:</span> ${escapeHtml(String(attrs[k]))}</span>`;
+      }
+      html += '</div>';
+    }
+  }
+  html += '</div>';
+  return html;
+}
+
+function flattenSpans(spans, depth = 0) {
+  const result = [];
+  for (const span of spans) {
+    result.push({ span, depth });
+    if (span.children?.length) {
+      result.push(...flattenSpans(span.children, depth + 1));
+    }
+  }
+  return result;
+}
+
+// --- Waterfall in slide panel ---
+
+function renderSlidePanelWaterfall(missionId) {
+  return fetchJSON(`/api/missions/${encodeURIComponent(appState.currentRepo)}/${encodeURIComponent(missionId)}/trace`)
+    .then(trace => {
+      if (!trace || !trace.spans?.length) return '';
+      return `<div class="slide-section-title">Trace Waterfall</div>` +
+        renderWaterfall(trace.spans, trace.started_at, trace.ended_at || new Date().toISOString());
+    })
+    .catch(() => '');
+}
+
+// --- Live streaming via SSE ---
+
+let _sseConnection = null;
+let _liveStreamActive = false;
+
+function toggleLiveStream() {
+  const panel = document.getElementById('live-stream-panel');
+  const btn = document.getElementById('logs-live-btn');
+
+  if (_liveStreamActive) {
+    closeLiveStream();
+    panel.style.display = 'none';
+    btn.classList.remove('active');
+    _liveStreamActive = false;
+  } else {
+    openLiveStream();
+    panel.style.display = 'block';
+    btn.classList.add('active');
+    _liveStreamActive = true;
+  }
+}
+
+function openLiveStream() {
+  if (_sseConnection) _sseConnection.close();
+  _sseConnection = new EventSource('/api/telemetry/stream');
+
+  _sseConnection.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'connected') return;
+      appendLiveEntry(data);
+    } catch { /* ignore */ }
+  };
+
+  _sseConnection.onerror = () => {
+    // Will auto-reconnect
+  };
+}
+
+function closeLiveStream() {
+  if (_sseConnection) {
+    _sseConnection.close();
+    _sseConnection = null;
+  }
+}
+
+function appendLiveEntry(data) {
+  const container = document.getElementById('live-stream-list');
+  if (!container) return;
+
+  const ts = data.ts ? formatTimeShort(data.ts) : formatTimeShort(new Date().toISOString());
+  const source = data.source || data.type || '';
+  const msg = data.message || data.name || JSON.stringify(data).substring(0, 100);
+  const agent = data.agent || '';
+
+  const el = document.createElement('div');
+  el.className = 'live-entry';
+  el.innerHTML = `
+    <span class="live-time">${ts}</span>
+    ${agent ? `<span class="live-agent">${escapeHtml(agent)}</span>` : ''}
+    <span class="live-source">${escapeHtml(source)}</span>
+    <span class="live-msg">${escapeHtml(msg)}</span>
+  `;
+
+  container.appendChild(el);
+  // Keep max 200 entries
+  while (container.children.length > 200) container.removeChild(container.firstChild);
+  container.scrollTop = container.scrollHeight;
+}
+
+function clearLiveStream() {
+  const container = document.getElementById('live-stream-list');
+  if (container) container.innerHTML = '';
+}
+
+// --- Metrics (System view) ---
+
+let _statusChart = null;
+let _durationChart = null;
+
+async function renderMetrics() {
+  const data = await fetchJSON('/api/metrics');
+  if (!data) return;
+
+  // Summary
+  const summary = document.getElementById('metrics-summary');
+  if (summary) {
+    const t = data.traces || {};
+    summary.innerHTML = `
+      <div class="metrics-stat"><span class="metrics-stat-val">${t.total || 0}</span><span class="metrics-stat-label">Total traces</span></div>
+      <div class="metrics-stat"><span class="metrics-stat-val">${t.completed || 0}</span><span class="metrics-stat-label">Completed</span></div>
+      <div class="metrics-stat"><span class="metrics-stat-val">${t.failed || 0}</span><span class="metrics-stat-label">Failed</span></div>
+      <div class="metrics-stat"><span class="metrics-stat-val">${t.in_progress || 0}</span><span class="metrics-stat-label">In progress</span></div>
+      <div class="metrics-stat"><span class="metrics-stat-val">${data.avg_duration_ms != null ? formatDuration(data.avg_duration_ms) : '--'}</span><span class="metrics-stat-label">Avg duration</span></div>
+    `;
+  }
+
+  // Status doughnut chart
+  if (typeof Chart !== 'undefined') {
+    const statusCtx = document.getElementById('chart-status');
+    if (statusCtx) {
+      if (_statusChart) _statusChart.destroy();
+      const t = data.traces || {};
+      _statusChart = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Completed', 'Failed', 'In Progress'],
+          datasets: [{
+            data: [t.completed || 0, t.failed || 0, t.in_progress || 0],
+            backgroundColor: ['#4ade80', '#e05252', '#60a5fa'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#6b6a63', font: { family: 'Space Mono', size: 10 } } },
+            title: { display: true, text: 'Traces by Status', color: '#e8e4d9', font: { family: 'Orbitron', size: 11 } }
+          }
+        }
+      });
+    }
+
+    // Duration trend line chart
+    const durCtx = document.getElementById('chart-duration');
+    if (durCtx && data.duration_trend?.length) {
+      if (_durationChart) _durationChart.destroy();
+      const trend = data.duration_trend.reverse();
+      _durationChart = new Chart(durCtx, {
+        type: 'line',
+        data: {
+          labels: trend.map(t => {
+            const d = new Date(t.started_at);
+            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+          }),
+          datasets: [{
+            label: 'Duration (s)',
+            data: trend.map(t => Math.round(t.duration_ms / 1000)),
+            borderColor: '#c8a04a',
+            backgroundColor: 'rgba(200, 160, 74, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            pointBackgroundColor: '#e4c462'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { ticks: { color: '#3d3d3d', font: { family: 'Space Mono', size: 9 } }, grid: { color: '#1a1a2a' } },
+            y: { ticks: { color: '#3d3d3d', font: { family: 'Space Mono', size: 9 } }, grid: { color: '#1a1a2a' } }
+          },
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: 'Mission Duration Trend', color: '#e8e4d9', font: { family: 'Orbitron', size: 11 } }
+          }
+        }
+      });
+    }
+  }
+
+  // Top agents
+  if (data.top_agents?.length) {
+    const summary2 = document.getElementById('metrics-summary');
+    if (summary2) {
+      let agentHtml = '<div class="metrics-agents"><span class="metrics-agents-label">Top agents:</span>';
+      for (const a of data.top_agents.slice(0, 5)) {
+        agentHtml += `<span class="metrics-agent-chip">${escapeHtml(a.agent)} (${a.count})</span>`;
+      }
+      agentHtml += '</div>';
+      summary2.innerHTML += agentHtml;
+    }
+  }
+}
+
 // --- Navigation ---
 
 function hideAllViews() {
@@ -931,6 +1301,10 @@ function showView(name) {
     document.getElementById('view-projects').classList.add('active');
     history.pushState(null, '', '#/projects');
     renderProjects();
+  } else if (name === 'traces') {
+    document.getElementById('view-traces').classList.add('active');
+    history.pushState(null, '', '#/traces');
+    loadTraces();
   } else if (name === 'logs') {
     document.getElementById('view-logs').classList.add('active');
     history.pushState(null, '', '#/logs');
@@ -940,6 +1314,7 @@ function showView(name) {
     document.getElementById('view-system').classList.add('active');
     history.pushState(null, '', '#/system');
     renderSystem();
+    renderMetrics();
   }
 }
 
@@ -952,6 +1327,10 @@ function routeFromHash() {
   const parts = hash.split('/');
   if (parts[0] === 'system') return showView('system');
   if (parts[0] === 'logs') return showView('logs');
+  if (parts[0] === 'traces') {
+    if (parts[1]) return showTraceDetail(parts[1]);
+    return showView('traces');
+  }
   if (parts[0] === 'projects') {
     if (parts[1]) return showProjectMissions(parts[1]);
     return showView('projects');

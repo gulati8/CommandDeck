@@ -8,6 +8,10 @@
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/resources": "^2.6.0",
+    "@opentelemetry/sdk-trace-base": "^2.6.0",
+    "@opentelemetry/sdk-trace-node": "^2.6.0",
     "@slack/bolt": "^4.1.0",
     "@slack/socket-mode": "^2.0.0",
     "better-sqlite3": "^12.6.2"

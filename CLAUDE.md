@@ -80,7 +80,9 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 | Module | Responsibility |
 |---|---|
 | `server.js` | Single entry point: Slack bot (Bolt) + HTTP server (dashboard + JSON API + action endpoints + health) |
-| `lib/db.js` | SQLite layer: schema, migrations, typed query functions for all state |
+| `lib/db.js` | App SQLite layer (`app.db`): schema, migrations, typed query functions for application state |
+| `lib/telemetry-db.js` | Telemetry SQLite layer (`telemetry.db`): traces, events, logs, metrics queries |
+| `lib/telemetry.js` | OTel SDK init, Proxy-based `instrument()`, lifecycle event emitter, Unix socket listener, SSE |
 | `lib/mission.js` | Full mission lifecycle: decompose → workLoop → executeBatch → merge → review → PR |
 | `lib/state.js` | Thin wrapper around db.js for mission CRUD, config loading |
 | `lib/worker.js` | Spawns `claude -p` subprocesses per agent; `loadAgentIdentity()` reads `agents/*.md` frontmatter for identity, tools, model |
@@ -95,7 +97,7 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 | `lib/thread.js` | Slack thread-based conversational iteration and mission follow-ups |
 | `lib/auth.js` | Claude CLI auth verification and OAuth failure detection |
 | `lib/deploy.js` | Caddy reverse proxy integration for app deployments |
-| `lib/observability.js` | Structured event logging to SQLite events table |
+| `lib/observability.js` | Structured event logging (delegates to telemetry-db) |
 | `lib/validate.js` | Git ref and repo name validation against injection |
 | `entrypoint.sh` | Container startup: SSH known_hosts, gh auth from GH_TOKEN, git config |
 | `agents/*.md` | Agent identity files with YAML frontmatter (tools, model) and markdown identity text |
@@ -104,11 +106,15 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 
 ### State Management
 
-All state lives in SQLite (`~/.commanddeck/state.db`) managed by `lib/db.js`. File artifacts (evidence bundles, health alerts NDJSON, captain's log) remain on the filesystem under `~/.commanddeck/projects/<repo>/missions/<id>/artifacts/`.
+State is split across two SQLite databases (separate failure domains). File artifacts remain on the filesystem.
+
+- **`app.db`** (renamed from `state.db`) — application state: missions, objectives, threads, approvals, channel_map, session_log
+- **`telemetry.db`** — observability: traces, events, logs (MELT)
 
 ```
 ~/.commanddeck/
-  state.db                 # SQLite database (missions, objectives, threads, approvals, events, channel_map)
+  app.db                   # Application state (missions, objectives, threads, approvals, channel_map)
+  telemetry.db             # Observability (traces, events, logs)
   config.json              # Global installation config
   projects/<repo>/
     config.json
@@ -119,7 +125,8 @@ All state lives in SQLite (`~/.commanddeck/state.db`) managed by `lib/db.js`. Fi
   playbooks/*.md
 ```
 
-Key SQLite tables: `missions`, `objectives`, `threads`, `approvals`, `channel_map`, `session_log`, `events` (append-only audit trail).
+Key `app.db` tables: `missions`, `objectives`, `threads`, `approvals`, `channel_map`, `session_log`.
+Key `telemetry.db` tables: `traces` (JSON span trees), `events` (append-only audit trail), `logs` (tool calls, stdout, system).
 
 On first startup, `server.js` auto-migrates legacy JSON state files into SQLite.
 

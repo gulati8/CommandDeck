@@ -139,7 +139,7 @@ describe('thread', () => {
       assert.equal(t.mission_id, 'mission-001');
 
       // Verify SQLite db exists
-      assert.ok(fs.existsSync(path.join(tempDir, 'state.db')));
+      assert.ok(fs.existsSync(path.join(tempDir, 'app.db')));
     });
 
     it('should reset stale assessing threads on startup', () => {

@@ -17,6 +17,8 @@ const auth = require('./lib/auth');
 const scaffold = require('./lib/scaffold');
 const { validateRepoName } = require('./lib/validate');
 const { logEvent } = require('./lib/observability');
+const telemetry = require('./lib/telemetry');
+const tdb = require('./lib/telemetry-db');
 
 // Active missions tracked for health patrol
 const activeMissions = new Map();
@@ -27,7 +29,20 @@ async function runMission(repo, prompt, context) {
   validateRepoName(repo);
   const mission = new Mission(repo, prompt, context);
 
-  const startPromise = mission.start();
+  // Wrap mission with telemetry instrumentation
+  const traced = telemetry.instrument(mission, [
+    'start', 'decompose', 'workLoop', 'executeBatch',
+    'mergeCompleted', 'runMandatoryReviews', 'approvePlan'
+  ], {
+    type: 'mission',
+    repo,
+    attributeExtractors: {
+      start: () => ({ description: prompt }),
+      executeBatch: (args) => ({ batch_size: args[0]?.length || 0 })
+    }
+  });
+
+  const startPromise = traced.start();
   startPromise.catch(() => {});
 
   await waitForMissionId(mission, 5000).catch(() => {});
@@ -775,7 +790,7 @@ function matchRoute(pathname) {
 }
 
 // GET API handlers
-function handleGetAPI(pathname, res) {
+function handleGetAPI(pathname, res, url) {
   if (pathname === '/api/health') {
     return sendJSON(res, 200, { status: 'ok', uptime: process.uptime() });
   }
@@ -836,11 +851,55 @@ function handleGetAPI(pathname, res) {
   }
 
   if (pathname === '/api/events/recent') {
-    return sendJSON(res, 200, db.recentEvents(30));
+    return sendJSON(res, 200, tdb.recentEvents(30));
   }
 
   if (pathname === '/api/events/all') {
-    return sendJSON(res, 200, db.recentEvents(200));
+    return sendJSON(res, 200, tdb.recentEvents(200));
+  }
+
+  // --- Telemetry API endpoints ---
+
+  if (pathname === '/api/traces') {
+    const params = {
+      limit: parseInt(url?.searchParams?.get('limit') || '50', 10),
+      status: url?.searchParams?.get('status') || undefined,
+      repo: url?.searchParams?.get('repo') || undefined,
+      mission_id: url?.searchParams?.get('mission_id') || undefined
+    };
+    return sendJSON(res, 200, tdb.listTraces(params));
+  }
+
+  // Parse traces routes: /api/traces/:traceId
+  const traceMatch = pathname.match(/^\/api\/traces\/([^/]+)$/);
+  if (traceMatch) {
+    const traceData = tdb.getTrace(decodeURIComponent(traceMatch[1]));
+    if (!traceData) return sendJSON(res, 404, { error: 'trace not found' });
+    return sendJSON(res, 200, traceData);
+  }
+
+  // Mission trace: /api/missions/:repo/:missionId/trace
+  const missionTraceMatch = pathname.match(/^\/api\/missions\/([^/]+)\/([^/]+)\/trace$/);
+  if (missionTraceMatch) {
+    const traceData = tdb.getTraceByMission(decodeURIComponent(missionTraceMatch[2]));
+    if (!traceData) return sendJSON(res, 404, { error: 'no trace for this mission' });
+    return sendJSON(res, 200, traceData);
+  }
+
+  if (pathname === '/api/logs') {
+    const params = {
+      mission_id: url?.searchParams?.get('mission_id') || undefined,
+      trace_id: url?.searchParams?.get('trace_id') || undefined,
+      since: url?.searchParams?.get('since') || undefined,
+      level: url?.searchParams?.get('level') || undefined,
+      source: url?.searchParams?.get('source') || undefined,
+      limit: parseInt(url?.searchParams?.get('limit') || '100', 10)
+    };
+    return sendJSON(res, 200, tdb.queryLogs(params));
+  }
+
+  if (pathname === '/api/metrics') {
+    return sendJSON(res, 200, tdb.getMetrics());
   }
 
   if (pathname === '/api/containers') {
@@ -1122,9 +1181,27 @@ function createHTTPServer(slackApp) {
     }
 
     if (req.method === 'GET') {
+      // SSE endpoint for live telemetry streaming
+      if (url.pathname === '/api/telemetry/stream') {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.write('data: {"type":"connected"}\n\n');
+        telemetry.addSSEClient(res);
+        // Keep connection alive with periodic heartbeats
+        const heartbeat = setInterval(() => {
+          try { res.write(': heartbeat\n\n'); } catch { clearInterval(heartbeat); }
+        }, 30000);
+        res.on('close', () => clearInterval(heartbeat));
+        return;
+      }
+
       if (url.pathname.startsWith('/api/')) {
         try {
-          return handleGetAPI(url.pathname, res);
+          return handleGetAPI(url.pathname, res, url);
         } catch (err) {
           console.error('API error:', err.message);
           return sendJSON(res, 500, { error: 'internal server error' });
@@ -1163,9 +1240,13 @@ function createHTTPServer(slackApp) {
 async function main() {
   console.log('🖖 CommandDeck v4 starting...');
 
-  // Initialize SQLite database
+  // Initialize SQLite databases
   db.getDb();
-  console.log('  ✅ SQLite database initialized');
+  console.log('  ✅ App database initialized');
+
+  // Initialize telemetry (OTel + telemetry.db + Unix socket)
+  telemetry.init();
+  console.log('  ✅ Telemetry initialized (OTel + telemetry.db + socket)');
 
   // Migrate existing JSON state if needed
   const missionCount = db.missionOverview().total;

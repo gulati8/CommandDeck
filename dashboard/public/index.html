@@ -20,6 +20,7 @@
     <div class="topbar-right">
       <nav class="topbar-nav">
         <a href="#/projects" class="nav-link" onclick="showView('projects'); return false;">Projects</a>
+        <a href="#/traces" class="nav-link" onclick="showView('traces'); return false;">Traces</a>
         <a href="#/logs" class="nav-link" onclick="showView('logs'); return false;">Logs</a>
         <a href="#/system" class="nav-link" onclick="showView('system'); return false;">System</a>
       </nav>
@@ -50,6 +51,35 @@
     <div id="project-missions-list"></div>
   </main>
 
+  <!-- Traces -->
+  <main id="view-traces" class="page">
+    <nav class="page-nav">
+      <a href="#/" onclick="showFeed(); return false;">&larr; Home</a>
+    </nav>
+    <div class="traces-toolbar">
+      <select id="traces-repo-filter" class="traces-filter-select" onchange="loadTraces()">
+        <option value="">All projects</option>
+      </select>
+      <select id="traces-status-filter" class="traces-filter-select" onchange="loadTraces()">
+        <option value="">All statuses</option>
+        <option value="in_progress">In progress</option>
+        <option value="completed">Completed</option>
+        <option value="error">Error</option>
+      </select>
+    </div>
+    <div id="traces-list" class="traces-list"></div>
+  </main>
+
+  <!-- Trace Detail -->
+  <main id="view-trace-detail" class="page">
+    <nav class="page-nav">
+      <a href="#/traces" onclick="showView('traces'); return false;">&larr; Traces</a>
+      <span> / </span>
+      <span id="bc-trace-label"></span>
+    </nav>
+    <div id="trace-detail-content"></div>
+  </main>
+
   <!-- Logs -->
   <main id="view-logs" class="page">
     <nav class="page-nav">
@@ -57,9 +87,17 @@
     </nav>
     <div class="logs-toolbar">
       <input type="text" id="logs-filter" class="logs-filter" placeholder="Filter events..." oninput="renderLogs()">
+      <button class="btn btn-ghost logs-live-btn" id="logs-live-btn" onclick="toggleLiveStream()">Live</button>
       <label class="logs-auto-label">
         <input type="checkbox" id="logs-auto" checked onchange="toggleLogsPoll()"> Auto-refresh
       </label>
+    </div>
+    <div id="live-stream-panel" class="live-stream-panel" style="display:none">
+      <div class="live-stream-header">
+        <span class="live-dot"></span> Live Stream
+        <button class="btn btn-ghost" style="font-size:9px;padding:2px 6px;margin-left:auto;" onclick="clearLiveStream()">Clear</button>
+      </div>
+      <div id="live-stream-list" class="live-stream-list"></div>
     </div>
     <div id="logs-list" class="logs-list"></div>
   </main>
@@ -78,6 +116,16 @@
         <div class="system-meta" id="server-info"></div>
       </div>
     </div>
+    <h3 class="section-title">Metrics</h3>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <canvas id="chart-status" width="200" height="200"></canvas>
+      </div>
+      <div class="metric-card">
+        <canvas id="chart-duration" width="400" height="200"></canvas>
+      </div>
+    </div>
+    <div id="metrics-summary" class="metrics-summary"></div>
     <h3 class="section-title" id="containers-title">Containers</h3>
     <div id="containers-grid" class="containers-grid"></div>
   </main>
@@ -145,6 +193,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
