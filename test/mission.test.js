@@ -87,8 +87,8 @@ describe('objective count cap', () => {
   });
 });
 
-describe('decompose retry', () => {
-  it('should retry readMission when work_items is initially empty', async () => {
+describe('decompose file sync', () => {
+  it('should sync mission.json file into SQLite after decompose', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'commanddeck-decompose-'));
     const oldStateDir = process.env.COMMANDDECK_STATE_DIR;
     const oldProjectDir = process.env.COMMANDDECK_PROJECT_DIR;
@@ -116,18 +116,14 @@ describe('decompose retry', () => {
         reporter: { post: async () => {} }
       });
 
-      // Stub decompose to simulate Picard writing work_items after a delay.
-      // The delay simulates filesystem sync lag after Picard writes.
-      // Use mission.missionId (set by start() before decompose is called).
+      // Stub decompose to simulate Picard writing mission.json to disk
       mission.decompose = async () => {
-        setTimeout(async () => {
-          await stateModule.withMissionLock('retry-repo', mission.missionId, (s) => {
-            s.work_items = [
-              { id: 'obj-1', title: 'Test', status: 'ready', depends_on: [], phase: 1 }
-            ];
-            return s;
-          });
-        }, 200);
+        const missionFile = stateModule.missionPath('retry-repo', mission.missionId);
+        fs.writeFileSync(missionFile, JSON.stringify({
+          work_items: [
+            { id: 'obj-1', title: 'Test', status: 'ready', depends_on: [], phase: 1 }
+          ]
+        }), 'utf-8');
       };
 
       // Stub other lifecycle methods
@@ -138,8 +134,9 @@ describe('decompose retry', () => {
 
       await mission.start();
 
-      // Verify that the retry found the work_items
-      assert.ok(mission.state.work_items.length > 0, 'Should have found work_items after retry');
+      // Verify that syncMissionFile picked up work_items from the file
+      assert.ok(mission.state.work_items.length > 0, 'Should have synced work_items from mission.json');
+      assert.equal(mission.state.work_items[0].id, 'obj-1');
     } finally {
       process.env.COMMANDDECK_STATE_DIR = oldStateDir;
       process.env.COMMANDDECK_PROJECT_DIR = oldProjectDir;
