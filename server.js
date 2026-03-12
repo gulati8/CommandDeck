@@ -1185,7 +1185,8 @@ async function handlePostAPI(pathname, body, res, slackApp) {
     try {
       const m = db.getMission(route.missionId);
       if (!m) return sendJSON(res, 404, { error: 'mission not found' });
-      if (m.status !== 'in_progress' && m.status !== 'paused') {
+      const resumable = ['in_progress', 'paused', 'failed', 'merging'];
+      if (!resumable.includes(m.status)) {
         return sendJSON(res, 400, { error: `mission is ${m.status}, cannot resume` });
       }
 
