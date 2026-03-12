@@ -895,7 +895,7 @@ function matchRoute(pathname) {
   if (m) return { handler: 'timeline', repo: decodeURIComponent(m[1]), missionId: decodeURIComponent(m[2]) };
 
   // Action routes
-  m = pathname.match(/^\/api\/missions\/([^/]+)\/([^/]+)\/(approve|reject|reconnect)$/);
+  m = pathname.match(/^\/api\/missions\/([^/]+)\/([^/]+)\/(approve|reject|reconnect|resume)$/);
   if (m) return { handler: m[3], repo: decodeURIComponent(m[1]), missionId: decodeURIComponent(m[2]) };
 
   m = pathname.match(/^\/api\/missions\/([^/]+)\/([^/]+)\/pr\/(merge|close)$/);
@@ -1176,6 +1176,38 @@ async function handlePostAPI(pathname, body, res, slackApp) {
       mission.state = await state.readMission(m.repo, m.mission_id);
       await mission.rejectPlan();
       return sendJSON(res, 200, { ok: true });
+    } catch (err) {
+      return sendJSON(res, 500, { error: err.message });
+    }
+  }
+
+  if (route.handler === 'resume') {
+    try {
+      const m = db.getMission(route.missionId);
+      if (!m) return sendJSON(res, 404, { error: 'mission not found' });
+      if (m.status !== 'in_progress') {
+        return sendJSON(res, 400, { error: `mission is ${m.status}, not in_progress` });
+      }
+
+      const reporter = (slackApp && m.slack_channel && m.slack_thread_ts)
+        ? slack.slackReporter(slackApp, m.slack_channel, m.slack_thread_ts)
+        : { post: async (msg) => { console.log('[dashboard]', msg); return null; } };
+
+      const mission = new Mission(m.repo, m.description, {
+        channel: m.slack_channel,
+        threadTs: m.slack_thread_ts,
+        reporter
+      });
+      mission.missionId = m.mission_id;
+      mission.state = await state.readMission(m.repo, m.mission_id);
+      mission.prompt = m.description;
+
+      // Run work loop + PR in background so the API responds immediately
+      mission.approvePlan().catch(err => {
+        console.error(`[resume] Mission ${m.mission_id} failed: ${err.message}`);
+      });
+
+      return sendJSON(res, 200, { ok: true, mission_id: m.mission_id });
     } catch (err) {
       return sendJSON(res, 500, { error: err.message });
     }
