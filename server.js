@@ -1185,8 +1185,8 @@ async function handlePostAPI(pathname, body, res, slackApp) {
     try {
       const m = db.getMission(route.missionId);
       if (!m) return sendJSON(res, 404, { error: 'mission not found' });
-      if (m.status !== 'in_progress') {
-        return sendJSON(res, 400, { error: `mission is ${m.status}, not in_progress` });
+      if (m.status !== 'in_progress' && m.status !== 'paused') {
+        return sendJSON(res, 400, { error: `mission is ${m.status}, cannot resume` });
       }
 
       const reporter = (slackApp && m.slack_channel && m.slack_thread_ts)
