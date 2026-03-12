@@ -129,7 +129,7 @@ function classifyMissions(missions) {
   const running = [];
   const waiting = [];
   const completed = [];
-  const terminalStatuses = ['done', 'completed', 'merged', 'failed', 'aborted', 'cancelled'];
+  const terminalStatuses = ['done', 'completed', 'merged', 'failed', 'aborted', 'cancelled', 'upstream_failed', 'skipped'];
 
   for (const m of missions) {
     if (terminalStatuses.includes(m.status)) {
@@ -1215,15 +1215,15 @@ async function renderMetrics() {
           labels: ['Completed', 'Failed', 'In Progress'],
           datasets: [{
             data: [t.completed || 0, t.failed || 0, t.in_progress || 0],
-            backgroundColor: ['#4ade80', '#e05252', '#60a5fa'],
+            backgroundColor: ['#10b981', '#ef4444', '#06b6d4'],
             borderWidth: 0
           }]
         },
         options: {
           responsive: true,
           plugins: {
-            legend: { position: 'bottom', labels: { color: '#6b6a63', font: { family: 'Space Mono', size: 10 } } },
-            title: { display: true, text: 'Traces by Status', color: '#e8e4d9', font: { family: 'Orbitron', size: 11 } }
+            legend: { position: 'bottom', labels: { color: '#64748b', font: { family: 'IBM Plex Sans', size: 11 } } },
+            title: { display: true, text: 'Traces by Status', color: '#f1f5f9', font: { family: 'Exo 2', size: 12 } }
           }
         }
       });
@@ -1244,23 +1244,23 @@ async function renderMetrics() {
           datasets: [{
             label: 'Duration (s)',
             data: trend.map(t => Math.round(t.duration_ms / 1000)),
-            borderColor: '#c8a04a',
-            backgroundColor: 'rgba(200, 160, 74, 0.1)',
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
             fill: true,
             tension: 0.3,
             pointRadius: 3,
-            pointBackgroundColor: '#e4c462'
+            pointBackgroundColor: '#fbbf24'
           }]
         },
         options: {
           responsive: true,
           scales: {
-            x: { ticks: { color: '#3d3d3d', font: { family: 'Space Mono', size: 9 } }, grid: { color: '#1a1a2a' } },
-            y: { ticks: { color: '#3d3d3d', font: { family: 'Space Mono', size: 9 } }, grid: { color: '#1a1a2a' } }
+            x: { ticks: { color: '#64748b', font: { family: 'IBM Plex Sans', size: 10 } }, grid: { color: '#1e293b' } },
+            y: { ticks: { color: '#64748b', font: { family: 'IBM Plex Sans', size: 10 } }, grid: { color: '#1e293b' } }
           },
           plugins: {
             legend: { display: false },
-            title: { display: true, text: 'Mission Duration Trend', color: '#e8e4d9', font: { family: 'Orbitron', size: 11 } }
+            title: { display: true, text: 'Mission Duration Trend', color: '#f1f5f9', font: { family: 'Exo 2', size: 12 } }
           }
         }
       });

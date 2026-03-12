@@ -73,7 +73,7 @@ Each work item in `mission.json` must have:
   "id": "obj-001",
   "title": "Short descriptive title",
   "description": "Detailed description of what to build",
-  "status": "ready",
+  "status": "pending",
   "phase": 1,
   "parallel_group": "alpha",
   "depends_on": [],

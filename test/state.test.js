@@ -127,8 +127,8 @@ describe('state', () => {
       // Add work items
       await state.withMissionLock('item-repo', mission.mission_id, (s) => {
         s.work_items = [
-          { id: 'obj-1', title: 'First', status: 'ready', depends_on: [] },
-          { id: 'obj-2', title: 'Second', status: 'ready', depends_on: ['obj-1'] }
+          { id: 'obj-1', title: 'First', status: 'pending', depends_on: [] },
+          { id: 'obj-2', title: 'Second', status: 'pending', depends_on: ['obj-1'] }
         ];
         return s;
       });
@@ -140,7 +140,7 @@ describe('state', () => {
       const read = await state.readMission('item-repo', mission.mission_id);
       assert.equal(read.work_items[0].status, 'done');
       assert.equal(read.work_items[0].completed_at, '2025-01-01T00:00:00Z');
-      assert.equal(read.work_items[1].status, 'ready'); // unchanged
+      assert.equal(read.work_items[1].status, 'pending'); // unchanged
     });
 
     it('should throw for non-existent objective', async () => {
@@ -157,31 +157,82 @@ describe('state', () => {
     });
   });
 
-  describe('getReadyItems', () => {
-    it('should return items whose dependencies are all done', () => {
+  describe('evaluateReadiness', () => {
+    it('should queue items whose dependencies are all done', () => {
       const mockState = {
         work_items: [
           { id: 'obj-1', status: 'done', depends_on: [] },
-          { id: 'obj-2', status: 'ready', depends_on: ['obj-1'] },
-          { id: 'obj-3', status: 'ready', depends_on: ['obj-1', 'obj-4'] },
+          { id: 'obj-2', status: 'pending', depends_on: ['obj-1'] },
+          { id: 'obj-3', status: 'pending', depends_on: ['obj-1', 'obj-4'] },
           { id: 'obj-4', status: 'in_progress', depends_on: [] }
         ]
       };
 
-      const ready = state.getReadyItems(mockState);
-      assert.equal(ready.length, 1);
-      assert.equal(ready[0].id, 'obj-2');
+      const queued = state.evaluateReadiness(mockState);
+      assert.equal(queued.length, 1);
+      assert.equal(queued[0].id, 'obj-2');
+      assert.equal(queued[0].status, 'queued');
     });
 
-    it('should return empty array when nothing is ready', () => {
+    it('should queue pending items with no dependencies', () => {
+      const mockState = {
+        work_items: [
+          { id: 'obj-1', status: 'pending', depends_on: [] }
+        ]
+      };
+
+      const queued = state.evaluateReadiness(mockState);
+      assert.equal(queued.length, 1);
+      assert.equal(queued[0].status, 'queued');
+    });
+
+    it('should return empty array when nothing can be queued', () => {
       const mockState = {
         work_items: [
           { id: 'obj-1', status: 'in_progress', depends_on: [] }
         ]
       };
 
+      const queued = state.evaluateReadiness(mockState);
+      assert.equal(queued.length, 0);
+    });
+
+    it('should mark items upstream_failed when a dependency failed', () => {
+      const mockState = {
+        work_items: [
+          { id: 'obj-1', status: 'failed', depends_on: [] },
+          { id: 'obj-2', status: 'pending', depends_on: ['obj-1'] }
+        ]
+      };
+
+      const queued = state.evaluateReadiness(mockState);
+      assert.equal(queued.length, 0);
+      assert.equal(mockState.work_items[1].status, 'upstream_failed');
+    });
+
+    it('should cascade upstream_failed through dependency chain', () => {
+      const mockState = {
+        work_items: [
+          { id: 'obj-1', status: 'failed', depends_on: [] },
+          { id: 'obj-2', status: 'pending', depends_on: ['obj-1'] },
+          { id: 'obj-3', status: 'pending', depends_on: ['obj-2'] }
+        ]
+      };
+
+      state.evaluateReadiness(mockState);
+      assert.equal(mockState.work_items[1].status, 'upstream_failed');
+      assert.equal(mockState.work_items[2].status, 'upstream_failed');
+    });
+
+    it('should keep legacy getReadyItems alias working', () => {
+      const mockState = {
+        work_items: [
+          { id: 'obj-1', status: 'pending', depends_on: [] }
+        ]
+      };
+
       const ready = state.getReadyItems(mockState);
-      assert.equal(ready.length, 0);
+      assert.equal(ready.length, 1);
     });
   });
 
@@ -279,7 +330,7 @@ describe('state', () => {
       await state.withMissionLock('progress-repo', mission.mission_id, (s) => {
         s.work_items = [
           { id: 'a', title: 'Alpha', status: 'done', depends_on: [] },
-          { id: 'b', title: 'Beta', status: 'ready', depends_on: [] }
+          { id: 'b', title: 'Beta', status: 'pending', depends_on: [] }
         ];
         return s;
       });

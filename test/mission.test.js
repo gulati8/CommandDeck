@@ -25,13 +25,27 @@ describe('shouldOpenPR', () => {
 
   it('should return false when some items are not done', () => {
     assert.equal(
-      shouldOpenPR({ status: 'merging', work_items: [{ status: 'done' }, { status: 'ready' }] }),
+      shouldOpenPR({ status: 'merging', work_items: [{ status: 'done' }, { status: 'pending' }] }),
       false
     );
   });
 
   it('should return false for null state', () => {
     assert.equal(shouldOpenPR(null), false);
+  });
+
+  it('should return true when items are done + upstream_failed', () => {
+    assert.equal(
+      shouldOpenPR({ status: 'merging', work_items: [{ status: 'done' }, { status: 'upstream_failed' }] }),
+      true
+    );
+  });
+
+  it('should return false when all items are upstream_failed (nothing done)', () => {
+    assert.equal(
+      shouldOpenPR({ status: 'merging', work_items: [{ status: 'upstream_failed' }] }),
+      false
+    );
   });
 });
 
@@ -67,7 +81,7 @@ describe('objective count cap', () => {
       mission.decompose = async () => {
         await stateModule.withMissionLock('cap-repo', mission.missionId, (s) => {
           s.work_items = Array.from({ length: 15 }, (_, i) => ({
-            id: `obj-${i + 1}`, title: `Task ${i + 1}`, status: 'ready',
+            id: `obj-${i + 1}`, title: `Task ${i + 1}`, status: 'pending',
             depends_on: [], phase: 1
           }));
           return s;
@@ -121,7 +135,7 @@ describe('decompose file sync', () => {
         const missionFile = stateModule.missionPath('retry-repo', mission.missionId);
         fs.writeFileSync(missionFile, JSON.stringify({
           work_items: [
-            { id: 'obj-1', title: 'Test', status: 'ready', depends_on: [], phase: 1 }
+            { id: 'obj-1', title: 'Test', status: 'pending', depends_on: [], phase: 1 }
           ]
         }), 'utf-8');
       };
@@ -165,7 +179,7 @@ describe('resume', () => {
       await state.withMissionLock('resume-repo', missionState.mission_id, (s) => {
         s.status = 'pending_approval';
         s.work_items = [
-          { id: 'obj-1', title: 'task', status: 'ready', depends_on: [] }
+          { id: 'obj-1', title: 'task', status: 'pending', depends_on: [] }
         ];
         return s;
       });
@@ -230,7 +244,7 @@ describe('rejectPlan', () => {
       await state.withMissionLock('reject-repo', missionState.mission_id, (s) => {
         s.status = 'pending_approval';
         s.work_items = [
-          { id: 'obj-1', title: 'task', status: 'ready', depends_on: [] }
+          { id: 'obj-1', title: 'task', status: 'pending', depends_on: [] }
         ];
         return s;
       });
@@ -275,7 +289,7 @@ describe('start auto-approve', () => {
       mission.decompose = async () => {
         await stateModule.withMissionLock('auto-repo', mission.missionId, (s) => {
           s.work_items = [
-            { id: 'obj-1', title: 'Test', status: 'ready', depends_on: [], phase: 1, assigned_to: 'borg' }
+            { id: 'obj-1', title: 'Test', status: 'pending', depends_on: [], phase: 1, assigned_to: 'borg' }
           ];
           return s;
         });
