@@ -70,7 +70,7 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 2. **Planning:** Captain Picard agent decomposes the task into phased objectives stored in `mission.json`
 3. **Execution:** Work loop launches up to `max_workers` (default 1, configurable via `COMMANDDECK_MAX_WORKERS`) Claude Code workers in parallel, each in an isolated git worktree on its own branch (`commanddeck/<mission-id>/<obj-id>`)
 4. **Integration:** Completed branches merge into an integration branch; O'Brien agent resolves conflicts when they occur
-5. **Review:** Risk-flagged objectives trigger mandatory specialist reviews (Worf for security, Geordi for infra, Spock for dependencies). Risk flags come from Picard's initial assignment and post-execution evidence-based file analysis — not speculative keyword matching.
+5. **Review:** Risk-flagged objectives trigger mandatory specialist reviews (Worf for security, Geordi for infra, Spock for dependencies/accessibility). Risk flags come from Picard's initial assignment and post-execution evidence-based file analysis — not speculative keyword matching.
 6. **PR:** `lib/pr.js` creates a PR via `gh pr create` with evidence body and Slack thread metadata
 7. **Deploy:** GitHub Actions builds images, deploys PR preview environment, notifies Slack thread with UAT URL
 8. **Approval:** User reacts in Slack thread — checkmark merges PR and cleans up, X closes PR and cleans up
@@ -100,7 +100,7 @@ CommandDeck is a multi-agent orchestration system that decomposes development ta
 | `lib/observability.js` | Structured event logging (delegates to telemetry-db) |
 | `lib/validate.js` | Git ref and repo name validation against injection |
 | `entrypoint.sh` | Container startup: SSH known_hosts, gh auth from GH_TOKEN, git config |
-| `agents/*.md` | Agent identity files with YAML frontmatter (tools, model) and markdown identity text |
+| `agents/*.md` | Agent identity files with YAML frontmatter (tools, model) and markdown identity text. Crew: captain-picard (planning), scotty (architecture), troi (UX/design), borg (backend), redshirts (frontend), spock (QA), worf (security), geordi (DevOps), guinan (documentation), obrien (merge), mr-data (data, reserve) |
 | `defaults/` | Starter content for standards, crew preferences, and playbooks — seeded by `install.sh` |
 | `dashboard/public/` | Dashboard frontend: single-page HTML/CSS/JS, dark theme, auto-refresh, action modals |
 
