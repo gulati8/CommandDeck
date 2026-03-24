@@ -1,0 +1,2457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommandDeck v2 — Proposed System Architecture</title>
+<style>
+  /* ─── Base ─── */
+  :root {
+    --ink: #1a1a2e;
+    --muted: #555;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --border: #d1d5db;
+    --bg-code: #f3f4f6;
+    --bg-diagram: #f8fafc;
+    --bg-callout: #fffbeb;
+    --callout-border: #f59e0b;
+    --preserved: #2563eb;
+    --modified: #7c3aed;
+    --new-code: #059669;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: var(--ink);
+    line-height: 1.7;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.75in;
+    background: #fff;
+  }
+
+  /* ─── Typography ─── */
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0 0 0.3rem 0;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 2.5rem 0 1rem 0;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--ink);
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 1.8rem 0 0.6rem 0;
+    page-break-after: avoid;
+  }
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 1.2rem 0 0.4rem 0;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+  }
+
+  p { margin: 0 0 0.8rem 0; }
+
+  strong { font-weight: 700; }
+
+  a { color: var(--accent); text-decoration: none; }
+
+  ul, ol { margin: 0 0 0.8rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+
+  /* ─── Subtitle / Meta ─── */
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 0.2rem;
+  }
+
+  .meta {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .version-tag {
+    display: inline-block;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* ─── Table of Contents ─── */
+  .toc {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0 2rem 0;
+    page-break-inside: avoid;
+  }
+
+  .toc h3 {
+    margin: 0 0 0.6rem 0;
+    font-size: 1rem;
+  }
+
+  .toc ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    columns: 2;
+    column-gap: 2rem;
+  }
+
+  .toc li {
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+    break-inside: avoid;
+  }
+
+  .toc a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--border);
+  }
+
+  /* ─── Diagrams ─── */
+  .diagram {
+    background: var(--bg-diagram);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0 1.5rem 0;
+    overflow-x: auto;
+    page-break-inside: avoid;
+  }
+
+  .diagram pre {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    white-space: pre;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .diagram-caption {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 0.4rem;
+    font-style: italic;
+  }
+
+  /* ─── Code ─── */
+  code {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.85em;
+    background: var(--bg-code);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+  }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 0.5rem 0 1rem 0;
+    overflow-x: auto;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    page-break-inside: avoid;
+  }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8rem 0 1.2rem 0;
+    font-size: 0.85rem;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--bg-code);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  tr:nth-child(even) { background: #fafafa; }
+
+  /* ─── Callouts ─── */
+  .callout {
+    background: var(--bg-callout);
+    border-left: 4px solid var(--callout-border);
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    page-break-inside: avoid;
+  }
+
+  .callout strong { color: var(--callout-border); }
+
+  .callout-blue {
+    background: #eff6ff;
+    border-left-color: var(--accent);
+  }
+
+  .callout-blue strong { color: var(--accent); }
+
+  .callout-green {
+    background: #ecfdf5;
+    border-left-color: var(--new-code);
+  }
+
+  .callout-green strong { color: var(--new-code); }
+
+  .callout-purple {
+    background: #f5f3ff;
+    border-left-color: var(--modified);
+  }
+
+  .callout-purple strong { color: var(--modified); }
+
+  /* ─── Legend ─── */
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    margin: 0.5rem 0 1rem 0;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .swatch-new { background: var(--new-code); }
+  .swatch-preserved { background: var(--preserved); }
+  .swatch-modified { background: var(--modified); }
+
+  /* ─── Section numbering ─── */
+  .section-num {
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 0.3rem;
+  }
+
+  /* ─── Page breaks ─── */
+  .page-break { page-break-before: always; }
+
+  /* ─── Print ─── */
+  @media print {
+    body {
+      padding: 0;
+      font-size: 10pt;
+      max-width: none;
+    }
+
+    h2 { font-size: 14pt; }
+    h3 { font-size: 12pt; }
+
+    .diagram pre { font-size: 7pt; }
+    pre { font-size: 7.5pt; }
+    table { font-size: 8pt; }
+
+    .no-print { display: none; }
+
+    a { color: var(--ink); }
+
+    .toc { background: #f5f5f5; }
+  }
+
+  /* ─── Two-col layout for compact sections ─── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .two-col > * { min-width: 0; }
+
+  @media (max-width: 600px) {
+    .two-col { grid-template-columns: 1fr; }
+    .toc ol { columns: 1; }
+  }
+
+  /* ─── Comparison blocks ─── */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+
+  .compare-side {
+    padding: 0.8rem 1rem;
+  }
+
+  .compare-side:first-child {
+    border-right: 1px solid var(--border);
+    background: #fef2f2;
+  }
+
+  .compare-side:last-child {
+    background: #ecfdf5;
+  }
+
+  .compare-label {
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+  }
+
+  /* ─── Three-col comparison ─── */
+  .compare-three {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+
+  .compare-three > div {
+    padding: 0.8rem 1rem;
+    border-right: 1px solid var(--border);
+  }
+
+  .compare-three > div:last-child {
+    border-right: none;
+  }
+
+  .compare-three > div:nth-child(1) { background: #fef2f2; }
+  .compare-three > div:nth-child(2) { background: #ecfdf5; }
+  .compare-three > div:nth-child(3) { background: #f5f3ff; }
+
+  /* ─── Highlight spans ─── */
+  .hl-new { color: var(--new-code); font-weight: 700; }
+  .hl-preserved { color: var(--preserved); font-weight: 700; }
+  .hl-modified { color: var(--modified); font-weight: 700; }
+
+  /* ─── Conversation example ─── */
+  .convo {
+    background: var(--bg-diagram);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0 1.5rem 0;
+    font-size: 0.85rem;
+    page-break-inside: avoid;
+  }
+
+  .convo .msg {
+    margin-bottom: 0.6rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+  }
+
+  .convo .msg-user {
+    background: #dbeafe;
+    margin-left: 2rem;
+  }
+
+  .convo .msg-picard {
+    background: #f5f3ff;
+    margin-right: 2rem;
+  }
+
+  .convo .msg-system {
+    background: #ecfdf5;
+    text-align: center;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  .convo .speaker {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.2rem;
+  }
+
+  .convo .speaker-user { color: var(--accent); }
+  .convo .speaker-picard { color: var(--modified); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TITLE PAGE                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h1>CommandDeck v2 — Proposed System Architecture</h1>
+<p class="subtitle">Modernize in Place: Agent SDK, Persistent Sessions, Container Isolation, Credential Proxy</p>
+<p class="meta">
+  <span class="version-tag">DRAFT v1.0</span> &nbsp;
+  March 17, 2026 &nbsp;|&nbsp; Amit Gulati &nbsp;|&nbsp; Architecture Document
+</p>
+
+<div class="callout callout-blue">
+  <strong>Purpose:</strong> This document describes the proposed architecture for CommandDeck v2 &mdash; a surgical upgrade of the existing system. Four targeted changes (Agent SDK, persistent conversational sessions, Docker container isolation, credential proxy) are added on top of the current codebase. The mission lifecycle, risk detection, evidence system, PR pipeline, dashboard, and all 11 agent identities are preserved unchanged. Estimated scope: ~500 lines of new code across 3 new files and 2 modified files. Zero lines of mission lifecycle rewritten.
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-swatch swatch-new"></span> New (added code/modules)</div>
+  <div class="legend-item"><span class="legend-swatch swatch-preserved"></span> Preserved (unchanged)</div>
+  <div class="legend-item"><span class="legend-swatch swatch-modified"></span> Modified (targeted changes)</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#s1">Executive Summary</a></li>
+    <li><a href="#s2">Architecture Overview</a></li>
+    <li><a href="#s3">The Conversational Model</a></li>
+    <li><a href="#s4">Agent SDK Integration</a></li>
+    <li><a href="#s5">Container Isolation Architecture</a></li>
+    <li><a href="#s6">Credential Proxy</a></li>
+    <li><a href="#s7">Mission Lifecycle (Preserved)</a></li>
+    <li><a href="#s8">Git Workflow (Preserved)</a></li>
+    <li><a href="#s9">Inter-Agent Communication (Enhanced)</a></li>
+    <li><a href="#s10">Risk Detection &amp; Reviews (Preserved)</a></li>
+    <li><a href="#s11">Channel Architecture (Future-Ready)</a></li>
+    <li><a href="#s12">Security Model (Upgraded)</a></li>
+    <li><a href="#s13">Data Architecture</a></li>
+    <li><a href="#s14">Observability (Preserved)</a></li>
+    <li><a href="#s15">Configuration (Preserved)</a></li>
+    <li><a href="#s16">Module-by-Module Diff</a></li>
+    <li><a href="#s17">Migration Plan</a></li>
+    <li><a href="#s18">Comparison: Current vs. Proposed vs. NanoClaw Fork</a></li>
+    <li><a href="#s19">Appendix: Conversation Flow Examples</a></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 1. EXECUTIVE SUMMARY                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s1"><span class="section-num">1.</span> Executive Summary</h2>
+
+<p>CommandDeck is a self-hosted agentic software development platform: a user sends a Slack message, and a crew of specialized AI agents decomposes the task, implements it in parallel branches, runs tests, reviews for security and quality, creates a PR with structured evidence, deploys a preview environment, and waits for human approval to merge.</p>
+
+<p><strong>The problem:</strong> CommandDeck currently operates in a transactional mode. Every Slack message is a one-shot classification &mdash; Picard reads it, classifies it, and either launches a mission or sends a single response. There is no memory between messages. The user cannot brainstorm with Picard, refine an approach, or ask follow-up questions outside of an active mission. Additionally, workers run as raw <code>claude -p</code> subprocesses sharing the host's environment with no container isolation or credential protection.</p>
+
+<p><strong>The strategy:</strong> Upgrade CommandDeck in place with four targeted changes. No fork, no rewrite, no new framework dependency. The entire mission lifecycle remains untouched.</p>
+
+<h3>The Four Upgrades</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:5%">#</th>
+      <th style="width:22%">Change</th>
+      <th style="width:38%">What It Does</th>
+      <th style="width:35%">Scope</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td><strong>Agent SDK</strong></td>
+      <td>Replace <code>claude -p</code> subprocess with Agent SDK <code>query()</code> &mdash; session resume, streaming, proper API</td>
+      <td><code>lib/worker.js</code> &mdash; ~80 lines modified</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><strong>Persistent Sessions</strong></td>
+      <td>Every Slack thread becomes a persistent Picard conversation with memory. Mission creation becomes a tool call, not a classification.</td>
+      <td><code>lib/worker.js</code> new <code>converse()</code> method + <code>lib/thread.js</code> session tracking &mdash; ~200 lines new</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><strong>Container Isolation</strong></td>
+      <td>Implementation workers (Borg, Redshirts, etc.) run in Docker containers with restricted mounts</td>
+      <td><code>lib/container.js</code> new module &mdash; ~150 lines new</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><strong>Credential Proxy</strong></td>
+      <td>Lightweight HTTP proxy on localhost:3001; containers get placeholder keys, proxy injects real credentials</td>
+      <td><code>lib/credential-proxy.js</code> new module &mdash; ~120 lines new</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>What We Preserve</h3>
+<ul>
+  <li>The full mission lifecycle: decompose &rarr; parallel execute &rarr; merge &rarr; review &rarr; PR &rarr; deploy &rarr; approve (<code>lib/mission.js</code> &mdash; 907 lines unchanged)</li>
+  <li>Evidence-based risk detection with mandatory specialist reviews (<code>lib/risk.js</code> &mdash; 133 lines unchanged)</li>
+  <li>Evidence bundle validation and PR body generation (<code>lib/evidence.js</code> &mdash; 169 lines unchanged)</li>
+  <li>PR creation, merge, close, and branch cleanup (<code>lib/pr.js</code> &mdash; 194 lines unchanged)</li>
+  <li>Git workflow: worktrees, integration branches, O'Brien conflict resolution (<code>lib/worktree.js</code> &mdash; 186 lines unchanged)</li>
+  <li>Health patrol: stuck detection, thrashing, test failure loops (<code>lib/health.js</code> &mdash; 250 lines unchanged)</li>
+  <li>Dashboard + telemetry: traces, logs, metrics, SSE streaming</li>
+  <li>Database schema: <code>app.db</code> + <code>telemetry.db</code> (one column addition to <code>threads</code> table)</li>
+  <li>All 11 agent identities from <code>agents/*.md</code></li>
+  <li>Hooks system, configuration, standards, crew preferences, playbooks</li>
+</ul>
+
+<div class="callout callout-green">
+  <strong>Key metric:</strong> ~500 lines of new code, 3 new files, 2 modified files, 0 lines of mission lifecycle rewritten. The entire upgrade is contained in the worker layer and the Slack-facing conversation layer. The orchestration engine is untouched.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 2. ARCHITECTURE OVERVIEW                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s2" class="page-break"><span class="section-num">2.</span> Architecture Overview</h2>
+
+<div class="diagram">
+<pre>
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│                          COMMANDDECK v2 — SYSTEM ARCHITECTURE                        │
+│                                                                                      │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │                          SLACK (Socket Mode)                                 │    │
+│  │                                                                              │    │
+│  │  #command-deck     #weather-aggregator    #furever-care     #reef-rush       │    │
+│  │  (meta-channel)    (per-project)          (per-project)    (per-project)     │    │
+│  └──────────────┬───────────────────────────────────────────────────────────────┘    │
+│                 │                                                                    │
+│                 ▼                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │                    server.js (Bolt + HTTP) ── PRESERVED                      │    │
+│  │                                                                              │    │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────────┐   │    │
+│  │  │  Slack Handlers  │  │  Dashboard + API │  │  Health Patrol           │   │    │
+│  │  │  (reactions,     │  │  (port 3000)     │  │  (2-min interval)       │   │    │
+│  │  │   messages)      │  │                  │  │                         │   │    │
+│  │  └────────┬─────────┘  └──────────────────┘  └─────────────────────────┘   │    │
+│  └───────────┼────────────────────────────────────────────────────────────────┘    │
+│              │                                                                      │
+│              ▼                                                                      │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │                      CONVERSATION LAYER  ── <span class="hl-new">NEW</span>                              │    │
+│  │                                                                              │    │
+│  │  ┌──────────────────────────────────────────────────────────────────────┐   │    │
+│  │  │  worker.converse()  ── Persistent Picard Session via Agent SDK      │   │    │
+│  │  │                                                                      │   │    │
+│  │  │  Picard has tools:                                                   │   │    │
+│  │  │    create_mission(repo, description) → triggers Mission.start()     │   │    │
+│  │  │    get_mission_status(mission_id) → reads from app.db               │   │    │
+│  │  │    list_projects() → returns onboarded repos                        │   │    │
+│  │  │                                                                      │   │    │
+│  │  │  Session ID stored in threads table (session_id column)             │   │    │
+│  │  │  Full conversation context carries into decomposition               │   │    │
+│  │  └──────────────────────────────────────────────────────────────────────┘   │    │
+│  └──────────────┬───────────────────────────────────────────────────────────────┘    │
+│                 │  create_mission tool call                                          │
+│                 ▼                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │               MISSION LIFECYCLE (lib/mission.js)  ── <span class="hl-preserved">PRESERVED</span>               │    │
+│  │                                                                              │    │
+│  │  decompose() → workLoop() → executeBatch() → mergeCompleted()              │    │
+│  │  → runMandatoryReviews() → pr.create() → deploy → approve                  │    │
+│  │                                                                              │    │
+│  │  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌─────────┐ ┌─────────────┐ │    │
+│  │  │  risk.js   │ │evidence.js │ │   pr.js    │ │state.js │ │  health.js  │ │    │
+│  │  │ <span class="hl-preserved">PRESERVED</span> │ │ <span class="hl-preserved">PRESERVED</span> │ │ <span class="hl-preserved">PRESERVED</span> │ │<span class="hl-preserved">PRESERVED</span>│ │  <span class="hl-preserved">PRESERVED</span> │ │    │
+│  │  └────────────┘ └────────────┘ └────────────┘ └─────────┘ └─────────────┘ │    │
+│  └──────────────┬───────────────────────────────────────────────────────────────┘    │
+│                 │  executeBatch() calls worker.execute()                             │
+│                 ▼                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │                 WORKER LAYER (lib/worker.js)  ── <span class="hl-modified">MODIFIED</span>                    │    │
+│  │                                                                              │    │
+│  │  execute()          → Agent SDK query()  (was: claude -p subprocess)        │    │
+│  │  executeSpecialist() → Agent SDK query()  (was: claude -p subprocess)       │    │
+│  │  converse()         → Agent SDK query() with session resume  ── <span class="hl-new">NEW</span>         │    │
+│  │  executeTriage()    → REMOVED (replaced by converse())                      │    │
+│  │                                                                              │    │
+│  │  loadAgentIdentity() reads agents/*.md → passes to SDK  ── PRESERVED       │    │
+│  └──────────────┬───────────────────────────────────────────────────────────────┘    │
+│                 │                                                                    │
+│       ┌─────────┴──────────┐                                                        │
+│       │ Implementation     │  Picard (conversational) does NOT need a container      │
+│       │ workers only       │  Reviewers (Worf, Spock, Geordi) get read-only mounts   │
+│       ▼                    ▼                                                         │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │            CONTAINER ISOLATION (lib/container.js)  ── <span class="hl-new">NEW</span>                    │    │
+│  │                                                                              │    │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐          │    │
+│  │  │ Container: Borg  │  │ Container:       │  │ Container:       │          │    │
+│  │  │                  │  │ Redshirts        │  │ Worf (reviewer)  │   ...    │    │
+│  │  │ MOUNTS:          │  │                  │  │                  │          │    │
+│  │  │  worktree (rw)   │  │ MOUNTS:          │  │ MOUNTS:          │          │    │
+│  │  │  mission  (ro)   │  │  worktree (rw)   │  │  worktree (ro)   │          │    │
+│  │  │  project  (ro)   │  │  mission  (ro)   │  │  mission  (ro)   │          │    │
+│  │  │                  │  │  project  (ro)   │  │                  │          │    │
+│  │  │ ENV:             │  │                  │  │                  │          │    │
+│  │  │  ANTHROPIC_BASE  │  │ ENV:             │  │ ENV:             │          │    │
+│  │  │  _URL=proxy:3001 │  │  (same)         │  │  (same)         │          │    │
+│  │  │  ANTHROPIC_API   │  │                  │  │                  │          │    │
+│  │  │  _KEY=placeholder│  │                  │  │                  │          │    │
+│  │  └──────────────────┘  └──────────────────┘  └──────────────────┘          │    │
+│  └──────────────────────────────────────────────────────────────────────────────┘    │
+│                 │                                                                    │
+│                 │  API calls routed through proxy                                    │
+│                 ▼                                                                    │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │          CREDENTIAL PROXY (lib/credential-proxy.js)  ── <span class="hl-new">NEW</span>                  │    │
+│  │                                                                              │    │
+│  │  HTTP proxy on localhost:3001                                                │    │
+│  │  Intercepts: Authorization header → replaces placeholder with real key      │    │
+│  │  Real credentials: loaded from process.env (never mounted into containers)  │    │
+│  └──────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                      │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │                      PERSISTENCE LAYER  ── <span class="hl-preserved">PRESERVED</span>                        │    │
+│  │                                                                              │    │
+│  │  ┌────────────────┐  ┌──────────────────┐  ┌───────────────────────────┐   │    │
+│  │  │    app.db      │  │  telemetry.db    │  │  Filesystem State         │   │    │
+│  │  │                │  │                  │  │                           │   │    │
+│  │  │  missions      │  │  traces          │  │  ~/.commanddeck/          │   │    │
+│  │  │  objectives    │  │  events          │  │    projects/              │   │    │
+│  │  │  threads  <span class="hl-modified">+col</span> │  │  logs            │  │    standards/              │   │    │
+│  │  │  approvals     │  │                  │  │    crew/                  │   │    │
+│  │  │  channel_map   │  │                  │  │    playbooks/             │   │    │
+│  │  └────────────────┘  └──────────────────┘  └───────────────────────────┘   │    │
+│  └──────────────────────────────────────────────────────────────────────────────┘    │
+│                                                                                      │
+│  ┌──────────────────────────────────────────────────────────────────────────────┐    │
+│  │                      EXTERNAL SERVICES  ── <span class="hl-preserved">PRESERVED</span>                        │    │
+│  │                                                                              │    │
+│  │  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │    │
+│  │  │ GitHub  │  │  Caddy   │  │  Docker   │  │ Anthropic│  │ GH Actions   │  │    │
+│  │  │  API    │  │ (proxy)  │  │  Engine   │  │   API    │  │   (CI/CD)    │  │    │
+│  │  └─────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────┘  │    │
+│  └──────────────────────────────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 1: Full system architecture — four new components layered onto the preserved foundation</p>
+</div>
+
+<h3>Architectural Principles</h3>
+
+<ol>
+  <li><strong>Upgrade, don't rewrite.</strong> Every new component is additive. The mission lifecycle code (<code>mission.js</code>, 907 lines) is not modified at all. New functionality wraps around the existing system.</li>
+  <li><strong>The conversation is the interface.</strong> Persistent Picard sessions replace transactional classification. Mission creation becomes a tool call from within a conversation, not a separate code path.</li>
+  <li><strong>Isolation is layered.</strong> Containers add OS-level isolation on top of existing worktree-based file isolation. The worktree system is preserved; containers are wrapped around it.</li>
+  <li><strong>Credentials stay on the host.</strong> The credential proxy is the single point where real API keys exist. Containers see only placeholders. The <code>.env</code> file is never mounted.</li>
+</ol>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 3. THE CONVERSATIONAL MODEL (KEY SECTION)                          -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s3" class="page-break"><span class="section-num">3.</span> The Conversational Model</h2>
+
+<p>This is the headline feature of CommandDeck v2. Today, every Slack message is a transaction: Picard reads it, classifies it (work / converse / inquiry / onboard / create), and either launches a mission or sends a single response with no memory. Tomorrow, every Slack thread becomes a persistent conversation with Captain Picard who has full context of everything discussed.</p>
+
+<div class="callout callout-purple">
+  <strong>The shift:</strong> Mission creation moves from being an <em>action the system takes on a classified message</em> to being a <em>tool call Picard makes during a conversation</em>. Picard decides when the user's intent is clear enough to launch work &mdash; and by that point, the full conversation context flows into the decomposition, producing better plans.
+</div>
+
+<h3>Current vs. Proposed Flow</h3>
+
+<div class="compare">
+  <div class="compare-side">
+    <p class="compare-label" style="color: #dc2626;">Current: Transactional</p>
+    <ol style="font-size: 0.85rem;">
+      <li>User sends message</li>
+      <li>Thread.js debounces (4s)</li>
+      <li><code>classifyMessage()</code> &mdash; one-shot <code>claude -p</code></li>
+      <li>Returns JSON: {action, message, task_description}</li>
+      <li>If action=work: launch mission immediately</li>
+      <li>If action=converse: send single response, forget</li>
+      <li>Next message starts over from scratch</li>
+    </ol>
+    <p style="font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem;"><strong>No conversation memory. Every message is independent.</strong></p>
+  </div>
+  <div class="compare-side">
+    <p class="compare-label" style="color: var(--new-code);">Proposed: Conversational</p>
+    <ol style="font-size: 0.85rem;">
+      <li>User sends message</li>
+      <li>Thread.js debounces (4s)</li>
+      <li><code>worker.converse()</code> &mdash; persistent Agent SDK session</li>
+      <li>Picard responds conversationally (full thread context)</li>
+      <li>User and Picard go back and forth (N messages)</li>
+      <li>When ready, Picard calls <code>create_mission</code> tool</li>
+      <li>Mission launches with full conversation context</li>
+      <li>Conversation continues &mdash; status updates, follow-ups</li>
+    </ol>
+    <p style="font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem;"><strong>Full memory. Picard remembers everything.</strong></p>
+  </div>
+</div>
+
+<h3>Session Lifecycle</h3>
+
+<div class="diagram">
+<pre>
+  USER SENDS FIRST MESSAGE IN A SLACK THREAD
+         │
+         ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  1. Thread Created                                                      │
+  │                                                                         │
+  │  thread.js:                                                             │
+  │    - Looks up thread in threads table → not found                       │
+  │    - Creates thread row: status='conversing', session_id=null           │
+  │    - Calls worker.converse(prompt, { channel, threadTs })               │
+  │    - Agent SDK creates new Picard session → returns session_id          │
+  │    - Stores session_id in threads table                                 │
+  └────────────────────────────┬────────────────────────────────────────────┘
+                               │
+                               ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  2. Conversation Phase (may span many messages)                         │
+  │                                                                         │
+  │  Each subsequent message:                                               │
+  │    - thread.js looks up thread → found, has session_id                  │
+  │    - Calls worker.converse(prompt, { sessionId })                       │
+  │    - Agent SDK resumes existing session → Picard has full context       │
+  │    - Picard responds with text → posted to Slack thread                 │
+  │                                                                         │
+  │  Picard can:                                                            │
+  │    - Ask clarifying questions                                           │
+  │    - Suggest approaches                                                 │
+  │    - Read code and answer questions (via tools)                         │
+  │    - Brainstorm solutions                                               │
+  │    - Review code (via Read, Grep, Glob tools)                           │
+  └────────────────────────────┬────────────────────────────────────────────┘
+                               │  Picard decides the user's intent is clear
+                               │  enough to launch work
+                               ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  3. Mission Launch (create_mission tool call)                           │
+  │                                                                         │
+  │  Picard calls create_mission tool:                                      │
+  │    {                                                                    │
+  │      "repo": "WeatherAggregator",                                      │
+  │      "description": "Add OAuth2 login with Google, using the           │
+  │        passport.js approach we discussed. Include refresh tokens        │
+  │        and store sessions in Redis as per user preference."             │
+  │    }                                                                    │
+  │                                                                         │
+  │  Tool handler:                                                          │
+  │    - Calls Mission.start(repo, enrichedDescription, context)            │
+  │    - enrichedDescription includes conversation summary                  │
+  │    - Mission enters decompose() → Picard's decomposition session        │
+  │      starts with the full context already discussed                     │
+  │    - Thread status → 'executing'                                        │
+  │    - Returns mission_id to the conversation                             │
+  └────────────────────────────┬────────────────────────────────────────────┘
+                               │
+                               ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  4. Execution Phase (existing mission lifecycle — PRESERVED)            │
+  │                                                                         │
+  │  workLoop() → executeBatch() → mergeCompleted() → reviews → PR         │
+  │                                                                         │
+  │  Status updates posted to Slack thread via existing reporter             │
+  │  Thread status → 'reviewing' when PR is created                        │
+  └────────────────────────────┬────────────────────────────────────────────┘
+                               │
+                               ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │  5. Post-Mission Conversation (session resumes)                         │
+  │                                                                         │
+  │  User sends follow-up message in the same thread:                       │
+  │    - thread.js finds existing session_id                                │
+  │    - Calls worker.converse() → resumes Picard's session                 │
+  │    - Picard knows what was built, what the PR contains                  │
+  │    - Can answer questions, suggest changes, or launch new mission       │
+  │                                                                         │
+  │  Thread status → 'conversing' (back to conversation)                   │
+  │  Cycle can repeat: converse → new mission → converse → ...             │
+  └─────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 2: Session lifecycle — from first message through multiple mission cycles</p>
+</div>
+
+<h3>Thread State Machine</h3>
+
+<div class="diagram">
+<pre>
+                           first message
+  ┌─────────┐  ──────────────────────────────────►  ┌──────────────┐
+  │  (new)  │                                        │  conversing  │ ◄─────────────────┐
+  └─────────┘                                        └──────┬───────┘                   │
+                                                            │                            │
+                                       create_mission       │  user sends                │
+                                       tool call            │  follow-up                 │
+                                            │               │                            │
+                                            ▼               │                            │
+                                     ┌─────────────┐       │                            │
+                                     │  planning    │       │                            │
+                                     └──────┬───────┘       │                            │
+                                            │               │                            │
+                              plan posted   │               │                            │
+                              to Slack      │               │                            │
+                                            ▼               │                            │
+                                     ┌───────────────────┐  │                            │
+                                     │ pending_approval   │  │                            │
+                                     └──────┬────────────┘  │                            │
+                                            │               │                            │
+                              ✅ approved   │   ❌ rejected │                            │
+                                            ▼               │                            │
+                                     ┌─────────────┐       │                            │
+                                     │  executing   │       │                            │
+                                     └──────┬───────┘       │                            │
+                                            │               │                            │
+                            all objectives  │               │                            │
+                            complete        │               │                            │
+                                            ▼               │                            │
+                                     ┌─────────────┐       │                            │
+                                     │  reviewing   │───────┼────────────────────────────┘
+                                     └──────┬───────┘       │
+                                            │               │
+                       ✅ PR merged  or     │               │
+                       ❌ PR closed         │               │
+                                            ▼               │
+                                     ┌─────────────┐       │
+                                     │    idle      │ ◄─────┘
+                                     └─────────────┘
+                                       (thread complete,
+                                        session preserved
+                                        for future reuse)
+</pre>
+<p class="diagram-caption">Figure 3: Thread state machine — the conversing state is both the entry point and the return point</p>
+</div>
+
+<h3>The create_mission Tool</h3>
+
+<p>This is the bridge between conversation and execution. When Picard determines the user's intent is clear and actionable, Picard calls this tool within the conversation session.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:20%">Aspect</th>
+      <th style="width:80%">Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Receives</strong></td>
+      <td><code>{ repo: string, description: string }</code> &mdash; Picard writes the description based on the full conversation context. The description is richer than what a user would type in a single message because Picard has already discussed the approach, constraints, and preferences.</td>
+    </tr>
+    <tr>
+      <td><strong>Context Available</strong></td>
+      <td>Picard's session has the complete conversation history. When <code>decompose()</code> runs, the agent prompt includes the enriched description. Picard already knows the approach because it was discussed during the conversation.</td>
+    </tr>
+    <tr>
+      <td><strong>Returns</strong></td>
+      <td><code>{ mission_id: string, status: "planning" }</code> &mdash; returned to the conversation so Picard can tell the user the mission has been launched and what to expect.</td>
+    </tr>
+    <tr>
+      <td><strong>Side Effects</strong></td>
+      <td>Calls <code>Mission.start()</code> (existing code, unchanged). Updates thread row: <code>mission_id</code>, <code>status='executing'</code>. Posts plan to Slack thread via existing reporter.</td>
+    </tr>
+    <tr>
+      <td><strong>Error Handling</strong></td>
+      <td>If mission creation fails, the error is returned to Picard's session. Picard can explain the issue to the user and suggest fixes. The conversation continues.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Why Conversation Context Produces Better Plans</h3>
+
+<div class="diagram">
+<pre>
+  ┌─── CURRENT: One-Shot Classification ──────────────────────────────────────┐
+  │                                                                            │
+  │  User message: "Add auth"                                                  │
+  │                                                                            │
+  │  Picard sees: 2 words. No context on:                                     │
+  │    - Which auth provider?                                                  │
+  │    - Session storage preference?                                           │
+  │    - Existing auth code?                                                   │
+  │    - Token strategy?                                                       │
+  │    - Role-based access needed?                                             │
+  │                                                                            │
+  │  Result: Generic decomposition with assumptions                           │
+  └────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─── PROPOSED: After 5-Message Conversation ────────────────────────────────┐
+  │                                                                            │
+  │  Picard knows (from conversation):                                        │
+  │    - Google OAuth2 via passport.js                                         │
+  │    - Sessions in Redis (user has Redis running already)                    │
+  │    - Refresh tokens with 7-day expiry                                      │
+  │    - No role-based access yet, just authenticated/anonymous               │
+  │    - Existing /api/users endpoint needs auth middleware                    │
+  │    - User wants to keep the current session cookie approach for now       │
+  │                                                                            │
+  │  Picard's create_mission description:                                     │
+  │    "Add Google OAuth2 authentication using passport.js. Store sessions    │
+  │     in Redis using connect-redis. Implement refresh tokens with 7-day     │
+  │     expiry. Add auth middleware to existing /api/users endpoint.           │
+  │     Authenticated vs. anonymous only — no roles. Keep existing            │
+  │     session cookie approach."                                              │
+  │                                                                            │
+  │  Result: Precise decomposition with zero assumptions                      │
+  └────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 4: Conversation context eliminates guesswork in decomposition</p>
+</div>
+
+<h3>Thread Table Change</h3>
+
+<p>One column is added to the existing <code>threads</code> table:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Column</th>
+      <th>Type</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>session_id</code></td>
+      <td>TEXT, nullable</td>
+      <td>Agent SDK session identifier. Null until first <code>converse()</code> call. Used to resume the persistent Picard session for this thread.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Migration: <code>ALTER TABLE threads ADD COLUMN session_id TEXT;</code> &mdash; one line, backward compatible, nullable column.</p>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 4. AGENT SDK INTEGRATION                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s4" class="page-break"><span class="section-num">4.</span> Agent SDK Integration</h2>
+
+<p>The Agent SDK replaces raw <code>claude -p</code> subprocess spawning with a proper programmatic API. This is a targeted change to <code>lib/worker.js</code> &mdash; the function signatures remain the same, callers (mission.js, thread.js) are unaffected.</p>
+
+<h3>Current vs. Proposed Worker Methods</h3>
+
+<div class="diagram">
+<pre>
+┌─── CURRENT worker.js ──────────────────────┐  ┌─── PROPOSED worker.js ────────────────────┐
+│                                              │  │                                            │
+│  execute(wtPath, obj, mission, opts)         │  │  execute(wtPath, obj, mission, opts)       │
+│    → spawn('claude', ['-p', prompt, ...])    │  │    → sdk.query({ prompt, model, tools,     │
+│    → pipe stdout/stderr                      │  │        allowedTools, cwd: wtPath })         │
+│    → resolve { code, stdout, stderr }        │  │    → resolve { code, stdout, stderr }      │
+│                                              │  │                                            │
+│  executeSpecialist(dir, agent, prompt, ...)  │  │  executeSpecialist(dir, agent, prompt, ...) │
+│    → spawn('claude', ['-p', prompt, ...])    │  │    → sdk.query({ prompt, model, tools })    │
+│    → resolve { code, stdout, stderr }        │  │    → resolve { code, stdout, stderr }      │
+│                                              │  │                                            │
+│  executeTriage(prompt, opts)                 │  │  converse(prompt, opts)  ── <span class="hl-new">NEW</span>             │
+│    → spawn('claude', ['-p', prompt, ...])    │  │    → sdk.query({ prompt, model, tools,     │
+│    → resolve { code, stdout, stderr }        │  │        sessionId: opts.sessionId })         │
+│    → ONE-SHOT, no session                    │  │    → Persistent session, resume support     │
+│                                              │  │    → Returns { sessionId, response, ... }   │
+│                                              │  │                                            │
+│  loadAgentIdentity(name) ── PRESERVED       │  │  loadAgentIdentity(name) ── PRESERVED      │
+│  kill(objectiveId) ── PRESERVED             │  │  kill(objectiveId) ── PRESERVED            │
+│  activeCount() ── PRESERVED                 │  │  activeCount() ── PRESERVED               │
+└──────────────────────────────────────────────┘  └────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 5: Worker method comparison — same signatures, different implementation</p>
+</div>
+
+<h3>SDK query() Options</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:22%">Option</th>
+      <th style="width:28%">Source</th>
+      <th style="width:50%">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>prompt</code></td>
+      <td>Built from agent identity + objective (same as today)</td>
+      <td>Full prompt including agent identity text prepended, same as current behavior</td>
+    </tr>
+    <tr>
+      <td><code>model</code></td>
+      <td>Same precedence: project config &gt; frontmatter &gt; env &gt; default</td>
+      <td>Model selection logic in <code>getModelForAgent()</code> is preserved unchanged</td>
+    </tr>
+    <tr>
+      <td><code>allowedTools</code></td>
+      <td>From <code>agents/*.md</code> frontmatter <code>tools</code> array</td>
+      <td>Same tool restrictions, now passed as SDK option instead of CLI flag</td>
+    </tr>
+    <tr>
+      <td><code>cwd</code></td>
+      <td>worktreePath for execute(), projectDir for specialists</td>
+      <td>Working directory &mdash; same paths as today</td>
+    </tr>
+    <tr>
+      <td><code>sessionId</code></td>
+      <td>From <code>threads</code> table (converse() only)</td>
+      <td><span class="hl-new">NEW</span> &mdash; enables session resume for persistent conversations</td>
+    </tr>
+    <tr>
+      <td><code>maxTurns</code></td>
+      <td>Default: 1 for execute/specialist, unlimited for converse</td>
+      <td>Controls whether the SDK runs a single tool-use loop or stays interactive</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Streaming</h3>
+
+<p>The Agent SDK provides native streaming. Worker output that currently flows through <code>proc.stdout</code> and <code>proc.stderr</code> event handlers transitions to SDK streaming callbacks. The <code>streamLog()</code> function and telemetry.db logging remain unchanged &mdash; they just receive data from a different source.</p>
+
+<div class="diagram">
+<pre>
+  ┌── Current ──────────────────────────────────┐
+  │                                              │
+  │  proc.stdout.on('data', (chunk) => {        │
+  │    stdout += chunk;                          │
+  │    streamLog(agent, objId, 'out', chunk);    │
+  │  });                                         │
+  └──────────────────────────────────────────────┘
+
+  ┌── Proposed ─────────────────────────────────┐
+  │                                              │
+  │  const result = await sdk.query({            │
+  │    ...,                                      │
+  │    onStream: (chunk) => {                    │
+  │      stdout += chunk;                        │
+  │      streamLog(agent, objId, 'out', chunk);  │
+  │    }                                         │
+  │  });                                         │
+  └──────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 6: Streaming migration — same streamLog() destination, different source</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 5. CONTAINER ISOLATION ARCHITECTURE                                -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s5" class="page-break"><span class="section-num">5.</span> Container Isolation Architecture</h2>
+
+<p>Implementation workers run inside Docker containers with restricted filesystem mounts. The host manages worktrees and mounts them into containers. Conversational Picard does <strong>not</strong> need a container &mdash; it runs on the host since it plans rather than executes code. Reviewers get read-only mounts.</p>
+
+<h3>Container Mount Strategy</h3>
+
+<div class="diagram">
+<pre>
+┌──────────────────────── HOST ──────────────────────────────────────────────────┐
+│                                                                                │
+│  worktree.create(repo, 0, branch)                                             │
+│    → ~/projects/WeatherAggregator-wt-0/                                       │
+│                                                                                │
+│  container.run({                                                               │
+│    image: 'commanddeck-worker:latest',                                         │
+│    mounts: [                                                                   │
+│      { src: '~/projects/WeatherAggregator-wt-0', dst: '/workspace', rw: true },│
+│      { src: '~/.commanddeck/projects/WA/missions/M-001', dst: '/mission', rw: false },│
+│      { src: '~/projects/WeatherAggregator', dst: '/project', rw: false },     │
+│    ],                                                                          │
+│    env: {                                                                      │
+│      ANTHROPIC_BASE_URL: 'http://host.docker.internal:3001',                  │
+│      ANTHROPIC_API_KEY: 'sk-placeholder-not-real',                            │
+│      COMMANDDECK_AGENT: 'borg',                                               │
+│      COMMANDDECK_MISSION_ID: 'M-001',                                         │
+│      COMMANDDECK_OBJECTIVE_ID: 'obj-001',                                     │
+│    }                                                                           │
+│  })                                                                            │
+│         │                                                                      │
+│         ▼                                                                      │
+│  ┌─────────────────────────── CONTAINER ───────────────────────────────────┐   │
+│  │                                                                         │   │
+│  │  /workspace/          ← worktree (rw) — agent works here              │   │
+│  │    ├── src/                                                            │   │
+│  │    ├── test/                                                           │   │
+│  │    ├── package.json                                                    │   │
+│  │    └── .git/          ← git branch: commanddeck/M-001/obj-001        │   │
+│  │                                                                         │   │
+│  │  /mission/            ← mission state (ro) — agent reads context      │   │
+│  │    ├── mission.json                                                    │   │
+│  │    ├── captains-log.md                                                 │   │
+│  │    ├── briefings/                                                      │   │
+│  │    └── artifacts/                                                      │   │
+│  │                                                                         │   │
+│  │  /project/            ← main repo (ro) — reference only               │   │
+│  │    ├── CLAUDE.md                                                       │   │
+│  │    └── docs/adr/                                                       │   │
+│  │                                                                         │   │
+│  │  NO .env file                                                          │   │
+│  │  NO SSH keys                                                           │   │
+│  │  NO real API keys                                                      │   │
+│  │  NO access to host filesystem beyond explicit mounts                   │   │
+│  │                                                                         │   │
+│  │  Agent SDK query() → calls Anthropic API via credential proxy         │   │
+│  │  git commit → writes to /workspace (worktree)                          │   │
+│  │  npm test → runs in /workspace                                         │   │
+│  └─────────────────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 7: Container mount strategy — three mount points, strict access control</p>
+</div>
+
+<h3>Which Agents Get Containers</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Agent</th>
+      <th>Container?</th>
+      <th>Mounts</th>
+      <th>Rationale</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Picard</strong> (conversational)</td><td>No</td><td>N/A (runs on host)</td><td>Planning and conversation &mdash; no code execution</td></tr>
+    <tr><td><strong>Picard</strong> (decompose)</td><td>No</td><td>N/A (runs on host)</td><td>Reads project code, writes mission.json &mdash; trusted planner</td></tr>
+    <tr><td><strong>Borg</strong></td><td>Yes</td><td>worktree (rw), mission (ro), project (ro)</td><td>Backend implementation &mdash; executes arbitrary code</td></tr>
+    <tr><td><strong>Redshirts</strong></td><td>Yes</td><td>worktree (rw), mission (ro), project (ro)</td><td>Frontend implementation &mdash; executes arbitrary code</td></tr>
+    <tr><td><strong>Scotty</strong></td><td>Yes</td><td>worktree (rw), mission (ro), project (ro)</td><td>Architecture &mdash; may write ADRs, run analysis</td></tr>
+    <tr><td><strong>Troi</strong></td><td>Yes</td><td>worktree (rw), mission (ro), project (ro)</td><td>Design &mdash; may run browser tools</td></tr>
+    <tr><td><strong>Mr. Data</strong></td><td>Yes</td><td>worktree (rw), mission (ro), project (ro)</td><td>Data &mdash; runs migrations, queries</td></tr>
+    <tr><td><strong>Geordi</strong></td><td>Yes</td><td>worktree (rw), mission (ro), project (ro)</td><td>DevOps &mdash; writes Dockerfiles, CI configs</td></tr>
+    <tr><td><strong>Guinan</strong></td><td>Yes</td><td>worktree (rw), mission (ro), project (ro)</td><td>Documentation &mdash; writes docs</td></tr>
+    <tr><td><strong>Worf</strong> (reviewer)</td><td>Yes</td><td>worktree (<strong>ro</strong>), mission (ro)</td><td>Security review &mdash; read-only, cannot modify code</td></tr>
+    <tr><td><strong>Spock</strong> (reviewer)</td><td>Yes</td><td>worktree (rw), mission (ro)</td><td>QA review &mdash; may run tests</td></tr>
+    <tr><td><strong>O'Brien</strong></td><td>No</td><td>N/A (operates on main repo)</td><td>Merge resolution &mdash; needs direct access to main clone</td></tr>
+  </tbody>
+</table>
+
+<h3>Container Image</h3>
+
+<pre>
+FROM node:22-slim
+
+RUN apt-get update && apt-get install -y \
+    git \
+    gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user
+RUN useradd -m -u 1000 worker
+USER worker
+
+WORKDIR /workspace
+
+# Claude Code SDK is provided via the host's Agent SDK query()
+# The container just needs the runtime environment for the project
+</pre>
+
+<h3>Container Lifecycle</h3>
+
+<div class="diagram">
+<pre>
+  mission.executeBatch()
+         │
+         │  For each objective in batch:
+         ▼
+  1. worktree.create(repo, idx, branch)     ── existing code, unchanged
+         │
+         ▼
+  2. container.run(image, mounts, env)       ── NEW lib/container.js
+         │
+         │  Docker: docker run --rm
+         │    -v worktree:/workspace:rw
+         │    -v mission:/mission:ro
+         │    -v project:/project:ro
+         │    -e ANTHROPIC_BASE_URL=...
+         │    -e ANTHROPIC_API_KEY=placeholder
+         │    commanddeck-worker:latest
+         │
+         ▼
+  3. Agent SDK query() runs inside container
+         │
+         │  Agent works: read code, write code, run tests,
+         │  git commit, write evidence bundle
+         │
+         ▼
+  4. Container exits (--rm auto-removes)
+         │
+         ▼
+  5. Host reads evidence from worktree       ── existing readEvidence()
+         │
+         ▼
+  6. Host runs risk detection                ── existing detectRiskFlags()
+         │
+         ▼
+  7. worktree.remove(repo, idx)              ── existing code, unchanged
+</pre>
+<p class="diagram-caption">Figure 8: Container lifecycle — wraps around existing worktree management</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 6. CREDENTIAL PROXY                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s6" class="page-break"><span class="section-num">6.</span> Credential Proxy</h2>
+
+<p>A standalone HTTP proxy (~120 lines) on <code>localhost:3001</code>. Containers set <code>ANTHROPIC_BASE_URL=http://host.docker.internal:3001</code> and <code>ANTHROPIC_API_KEY=sk-placeholder</code>. The proxy intercepts API calls and injects real credentials before forwarding to Anthropic.</p>
+
+<h3>Proxy Flow</h3>
+
+<div class="diagram">
+<pre>
+  CONTAINER                         HOST                              ANTHROPIC
+  ─────────                         ────                              ─────────
+
+  Agent SDK query()
+    │
+    │  POST http://host.docker.internal:3001/v1/messages
+    │  Authorization: Bearer sk-placeholder
+    │  Content-Type: application/json
+    │  Body: { model, messages, tools, ... }
+    │
+    ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │  CREDENTIAL PROXY (lib/credential-proxy.js)              │
+  │  localhost:3001                                          │
+  │                                                          │
+  │  1. Receive request from container                       │
+  │  2. Validate: is request from Docker network?            │
+  │  3. Strip placeholder Authorization header               │
+  │  4. Inject real key: Authorization: Bearer ${REAL_KEY}   │
+  │  5. Forward to: https://api.anthropic.com/v1/messages    │
+  │  6. Stream response back to container                    │
+  └──────────────────────┬───────────────────────────────────┘
+                         │
+                         │  POST https://api.anthropic.com/v1/messages
+                         │  Authorization: Bearer sk-ant-api03-REAL-KEY
+                         │
+                         ▼
+                    ┌──────────┐
+                    │ Anthropic│
+                    │   API    │
+                    └──────────┘
+</pre>
+<p class="diagram-caption">Figure 9: Credential proxy flow — containers never see real API keys</p>
+</div>
+
+<h3>Module Design</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:25%">Aspect</th>
+      <th style="width:75%">Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>File</strong></td>
+      <td><code>lib/credential-proxy.js</code> &mdash; new standalone module, ~120 lines</td>
+    </tr>
+    <tr>
+      <td><strong>Port</strong></td>
+      <td><code>COMMANDDECK_CREDENTIAL_PROXY_PORT</code> env var, default 3001</td>
+    </tr>
+    <tr>
+      <td><strong>Startup</strong></td>
+      <td>Called from <code>server.js</code> on startup, alongside Slack bot and HTTP server</td>
+    </tr>
+    <tr>
+      <td><strong>Real key source</strong></td>
+      <td><code>process.env.ANTHROPIC_API_KEY</code> (same env var as today, loaded from <code>.env</code>)</td>
+    </tr>
+    <tr>
+      <td><strong>Forwarding</strong></td>
+      <td>Proxies all paths under <code>/v1/</code> to <code>https://api.anthropic.com</code>. Streaming responses passed through.</td>
+    </tr>
+    <tr>
+      <td><strong>Auth modes</strong></td>
+      <td>If running without containers (dev mode), proxy is optional &mdash; Agent SDK calls Anthropic directly using the host env var.</td>
+    </tr>
+    <tr>
+      <td><strong>Logging</strong></td>
+      <td>Logs request count and error rate to telemetry.db (same <code>writeLog()</code> function).</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 7. MISSION LIFECYCLE (PRESERVED)                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s7" class="page-break"><span class="section-num">7.</span> Mission Lifecycle (Preserved)</h2>
+
+<p>The mission lifecycle in <code>lib/mission.js</code> is <strong>completely unchanged</strong>. The same 907-line file drives decomposition, the work loop, batch execution, merging, reviews, and PR creation. The only difference: the upstream trigger (how missions get created) and the downstream execution (how workers run) are enhanced.</p>
+
+<div class="diagram">
+<pre>
+                    ┌──────────────────────────────────────────┐
+                    │            USER MESSAGE                  │
+                    │  "Add user authentication with OAuth"    │
+                    └─────────────────┬────────────────────────┘
+                                      │
+                                      ▼
+                    ┌──────────────────────────────────────────┐
+                    │         PERSISTENT CONVERSATION           │  ◄── <span class="hl-new">NEW</span>
+                    │                                          │
+                    │  Picard session: brainstorm, refine,     │
+                    │  answer questions, discuss approaches.   │
+                    │  Then: create_mission tool call           │
+                    └─────────────────┬────────────────────────┘
+                                      │
+                    ┌─────────────────┼────────────────────────────── PRESERVED ──┐
+                    │                 ▼                                            │
+                    │  ┌──────────────────────────────────────────┐               │
+                    │  │    1. DECOMPOSE (Picard)                  │               │
+                    │  │    mission.json + captains-log.md         │               │
+                    │  └─────────────────┬────────────────────────┘               │
+                    │                    │                                         │
+                    │                    ▼                                         │
+                    │  ┌──────────────────────────────────────────┐               │
+                    │  │    2. PLAN APPROVAL (Slack reaction)      │               │
+                    │  └─────────────────┬────────────────────────┘               │
+                    │                    │ ✅                                      │
+                    │                    ▼                                         │
+                    │  ┌──────────────────────────────────────────┐               │
+                    │  │    3. WORK LOOP                           │               │
+                    │  │    evaluateReadiness() → executeBatch()   │               │
+                    │  │    → mergeCompleted() → reviews           │               │
+                    │  │                                           │  ◄── Workers  │
+                    │  │    Workers now run via Agent SDK query()  │      now in   │
+                    │  │    inside Docker containers               │      containers│
+                    │  └─────────────────┬────────────────────────┘               │
+                    │                    │                                         │
+                    │                    ▼                                         │
+                    │  ┌──────────────────────────────────────────┐               │
+                    │  │    4. PR CREATION                         │               │
+                    │  │    push → gh pr create → post to Slack   │               │
+                    │  └─────────────────┬────────────────────────┘               │
+                    │                    │                                         │
+                    │                    ▼                                         │
+                    │  ┌──────────────────────────────────────────┐               │
+                    │  │    5. DEPLOY + APPROVE                    │               │
+                    │  │    GH Actions → preview → Slack reaction │               │
+                    │  └──────────────────────────────────────────┘               │
+                    └─────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 10: Mission lifecycle — the core loop (steps 1-5) is unchanged, only the entry point and worker execution are enhanced</p>
+</div>
+
+<div class="callout">
+  <strong>Where Agent SDK touches the lifecycle:</strong> <code>mission.js</code> calls <code>worker.execute()</code> and <code>worker.executeSpecialist()</code>. These functions maintain the same signature and return the same result shape <code>{ code, stdout, stderr, success }</code>. The change is internal to <code>worker.js</code>: they now use <code>sdk.query()</code> instead of <code>spawn('claude', [...])</code>. Mission.js is oblivious to this change.
+</div>
+
+<h3>Safety Guards (Preserved)</h3>
+
+<table>
+  <thead>
+    <tr><th>Guard</th><th>Limit</th><th>Action</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Max objectives</td><td>10 per mission</td><td>Reject over-decomposition</td></tr>
+    <tr><td>Max workers</td><td>3 parallel (configurable)</td><td>Queue excess</td></tr>
+    <tr><td>Max sessions</td><td>50 per mission</td><td>Pause mission</td></tr>
+    <tr><td>Worker timeout</td><td>45 minutes per objective</td><td>Kill worker</td></tr>
+    <tr><td>Health patrol</td><td>Every 2 minutes</td><td>Alert/restart stuck workers</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 8. GIT WORKFLOW (PRESERVED)                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s8" class="page-break"><span class="section-num">8.</span> Git Workflow (Preserved)</h2>
+
+<p>The git workflow is unchanged. The only difference: worktrees that were previously the worker's CWD (the directory <code>claude -p</code> ran in) are now <em>mounted into Docker containers</em>. The worktree lifecycle on the host is identical.</p>
+
+<div class="diagram">
+<pre>
+main ─────────────────────────────────────────────────────────────────────────►
+  │
+  │  Mission M-001 created (via Picard's create_mission tool call)
+  │
+  ├──── commanddeck/M-001/integration ─────────────────────────────────────►
+  │         │                                        ▲  ▲  ▲
+  │         │                                        │  │  │
+  │         ├──── commanddeck/M-001/obj-001 ─────────┘  │  │  (Borg in container)
+  │         │     [worktree wt-0, mounted to container]  │  │
+  │         │                                            │  │
+  │         ├──── commanddeck/M-001/obj-002 ─────────────┘  │  (Redshirts in container)
+  │         │     [worktree wt-1, mounted to container]     │
+  │         │                                                │
+  │         └──── commanddeck/M-001/obj-003 ─────────────────┘  (Geordi in container)
+  │               [worktree wt-2, mounted to container]
+  │
+  │  After all merged into integration:
+  │  gh pr create (integration → main)
+  │
+  │  ✅ Slack approval → merge → cleanup all branches
+  ├──── (integration merged) ───────────────────────────────────────────────►
+</pre>
+<p class="diagram-caption">Figure 11: Branch strategy — identical to current, worktrees now mounted into containers</p>
+</div>
+
+<h3>Worktree Lifecycle: Host Manages, Container Consumes</h3>
+
+<div class="diagram">
+<pre>
+HOST (lib/worktree.js — PRESERVED)               CONTAINER (new)
+──────────────────────────────                    ─────────────────
+
+1. worktree.create(repo, 0, branch)
+   → ~/projects/myapp-wt-0/
+        │
+        ▼
+2. container.run({                                ┌───────────────────────────┐
+     mounts: [                                    │  /workspace/              │
+       { src: wt-0, dst: /workspace, rw }         │  ← agent works here      │
+     ]                                            │                           │
+   })                                             │  git add, git commit      │
+                                                  │  npm test, npm run lint   │
+                                                  │  → write evidence bundle  │
+                                                  └──────────────┬────────────┘
+                                                                 │
+        ◄────── container exits ─────────────────────────────────┘
+        │
+        ▼
+3. host reads evidence: readEvidence(repo, missionId, objId)
+        │
+        ▼
+4. host detects risks: detectRiskFlags(files)
+        │
+        ▼
+5. host merges: git merge obj-001 into integration
+        │
+        ▼
+6. worktree.remove(repo, 0)
+</pre>
+<p class="diagram-caption">Figure 12: Worktree lifecycle — host creates/removes, container works within</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 9. INTER-AGENT COMMUNICATION (ENHANCED)                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s9" class="page-break"><span class="section-num">9.</span> Inter-Agent Communication (Enhanced)</h2>
+
+<p>The briefing system is preserved unchanged. Agents write JSON briefings to the mission state directory; downstream agents read them. The enhancement: Picard's persistent session provides an additional communication channel &mdash; Picard remembers the conversation context and passes it into decomposition, giving downstream agents richer context.</p>
+
+<div class="diagram">
+<pre>
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                   INTER-AGENT COMMUNICATION CHANNELS                         │
+│                                                                              │
+│  ┌───────── Briefings (filesystem) ── PRESERVED ────────────┐               │
+│  │                                                           │               │
+│  │  missions/{id}/briefings/                                 │               │
+│  │    scotty-output-{obj-id}.json   → Architecture decisions │               │
+│  │    troi-design-spec.json          → Design specifications │               │
+│  │    borg-output-{obj-id}.json      → Implementation notes  │               │
+│  │    worf-review.json               → Security findings     │               │
+│  │    spock-report.json              → QA report             │               │
+│  │    geordi-output.json             → Infra decisions       │               │
+│  │    guinan-docs.json               → Documentation plan    │               │
+│  │                                                           │               │
+│  │  Workers read upstream briefings via context_sources      │               │
+│  │  field in their objective definition                      │               │
+│  └───────────────────────────────────────────────────────────┘               │
+│                                                                              │
+│  ┌───────── Mission State (filesystem) ── PRESERVED ────────┐               │
+│  │                                                           │               │
+│  │  missions/{id}/                                           │               │
+│  │    mission.json        → Objectives, phases, assignments  │               │
+│  │    captains-log.md     → Commander's log                  │               │
+│  │    artifacts/          → Evidence bundles                  │               │
+│  │                                                           │               │
+│  │  Mounted read-only into containers at /mission/           │               │
+│  └───────────────────────────────────────────────────────────┘               │
+│                                                                              │
+│  ┌───────── Conversational Context ── <span class="hl-new">NEW</span> ──────────────────────┐             │
+│  │                                                           │               │
+│  │  Picard's persistent session carries:                     │               │
+│  │    - Full user conversation (brainstorming, preferences)  │               │
+│  │    - Agreed-upon approach and constraints                 │               │
+│  │    - User's answers to clarifying questions               │               │
+│  │                                                           │               │
+│  │  This context flows into:                                 │               │
+│  │    - create_mission description (richer task description) │               │
+│  │    - decompose() prompt (Picard already knows the plan)   │               │
+│  │    - Follow-up conversations (Picard remembers outcomes)  │               │
+│  └───────────────────────────────────────────────────────────┘               │
+└──────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 13: Three communication channels — briefings, mission state, and conversational context</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 10. RISK DETECTION & REVIEWS (PRESERVED)                           -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s10" class="page-break"><span class="section-num">10.</span> Risk Detection &amp; Reviews (Preserved)</h2>
+
+<p><code>lib/risk.js</code> (133 lines) and the mandatory review pipeline are <strong>completely unchanged</strong>. Risk detection runs on actual files changed (evidence-based), not on keywords. The pipeline:</p>
+
+<div class="diagram">
+<pre>
+  Agent completes objective (in container)
+         │
+         ▼
+  Worker writes evidence bundle to worktree:
+  artifacts/evidence-{obj-id}.json
+         │
+         ▼  (container exits, host reads from worktree)
+  ┌──────────────────────────────────────────────────────────┐
+  │  readEvidence(repo, missionId, objId)   ── PRESERVED    │
+  │  → { files_changed: { created, modified, deleted } }    │
+  └────────────┬─────────────────────────────────────────────┘
+               │
+               ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │  detectRiskFlags(actualFiles, repo)     ── PRESERVED    │
+  │  Glob pattern matching on file paths                    │
+  │    **/auth/**           → 'auth'                        │
+  │    .github/workflows/** → 'ci-workflow'                 │
+  │    infra/**             → 'infra'                       │
+  │    package.json         → 'dependency'                  │
+  └────────────┬─────────────────────────────────────────────┘
+               │
+               ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │  getMandatoryReviewers(riskFlags)       ── PRESERVED    │
+  │    auth/security → Worf (in container, read-only mount) │
+  │    ci/infra/deploy → Geordi (in container)              │
+  │    dependency/a11y → Spock (in container)               │
+  │    migration → human (Slack approval)                   │
+  └──────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 14: Risk detection pipeline — unchanged, reviewers now run in containers</p>
+</div>
+
+<h3>Risk Flag to Reviewer Mapping (Unchanged)</h3>
+
+<table>
+  <thead>
+    <tr><th>Risk Flag</th><th>File Patterns</th><th>Mandatory Reviewer</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>auth</td><td><code>**/auth/**</code>, <code>**/security/**</code>, <code>**/middleware/auth*</code></td><td>Worf (security)</td></tr>
+    <tr><td>security</td><td>(same as auth)</td><td>Worf (security)</td></tr>
+    <tr><td>ci-workflow</td><td><code>.github/workflows/**</code></td><td>Geordi (infra)</td></tr>
+    <tr><td>infra</td><td><code>infra/**</code>, <code>terraform/**</code>, <code>Dockerfile</code>, <code>docker-compose*.yml</code></td><td>Geordi (infra)</td></tr>
+    <tr><td>migration</td><td><code>db/migrate/**</code>, <code>prisma/migrations/**</code>, <code>migrations/**</code></td><td>Human (blocks)</td></tr>
+    <tr><td>dependency</td><td><code>package.json</code>, lock files, <code>requirements.txt</code>, <code>go.mod</code></td><td>Spock (QA)</td></tr>
+    <tr><td>accessibility</td><td><code>**/a11y/**</code>, <code>**/accessibility/**</code></td><td>Spock (QA)</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 11. CHANNEL ARCHITECTURE (FUTURE-READY)                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s11" class="page-break"><span class="section-num">11.</span> Channel Architecture (Future-Ready)</h2>
+
+<p>Slack remains the only channel today. The conversational session model naturally extends to other channels in the future because the session is channel-agnostic &mdash; it is stored as a session_id, not as a Slack-specific construct.</p>
+
+<div class="diagram">
+<pre>
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       CHANNEL ARCHITECTURE                                │
+│                                                                          │
+│                     TODAY                         FUTURE                  │
+│                     ─────                         ──────                  │
+│                                                                          │
+│  ┌──────────────────────────┐        ┌──────────────────────────┐       │
+│  │     Slack (primary)      │        │     Slack (primary)      │       │
+│  │                          │        │     WhatsApp             │       │
+│  │  - Missions              │        │     Telegram             │       │
+│  │  - Conversations         │        │     Discord              │       │
+│  │  - Approvals             │        │     Web Chat             │       │
+│  │  - Status updates        │        └────────────┬─────────────┘       │
+│  └────────────┬─────────────┘                     │                      │
+│               │                                   │                      │
+│               ▼                                   ▼                      │
+│  ┌──────────────────────────┐        ┌──────────────────────────┐       │
+│  │  Agent SDK Session       │        │  Agent SDK Session       │       │
+│  │  (session_id)            │        │  (session_id)            │       │
+│  │                          │        │                          │       │
+│  │  Channel-agnostic.       │        │  Same session_id can     │       │
+│  │  Session knows nothing   │        │  be accessed from any    │       │
+│  │  about Slack.            │        │  channel. Thread table   │       │
+│  │                          │        │  maps channel → session. │       │
+│  └──────────────────────────┘        └──────────────────────────┘       │
+│                                                                          │
+│  The session_id column in threads enables this:                          │
+│  • threads table already stores (channel, thread_ts) as PK              │
+│  • Adding session_id makes the session portable                         │
+│  • A future Discord thread could resume the same Picard session         │
+│  • Approval flows remain Slack-specific (reactions are Slack-native)    │
+└──────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 15: Channel architecture — session-agnostic design enables future multi-channel</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 12. SECURITY MODEL (UPGRADED)                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s12" class="page-break"><span class="section-num">12.</span> Security Model (Upgraded)</h2>
+
+<h3>Security Posture: Current vs. Proposed</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:25%">Security Control</th>
+      <th style="width:37%">Current</th>
+      <th style="width:38%">Proposed</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Process isolation</strong></td>
+      <td>Workers share host PID namespace. Same user, same filesystem access.</td>
+      <td><span class="hl-new">Docker containers</span> with separate PID/mount/network namespaces.</td>
+    </tr>
+    <tr>
+      <td><strong>Filesystem access</strong></td>
+      <td>Workers can access any file on host. Only hook guards prevent bad writes.</td>
+      <td><span class="hl-new">Explicit mount allowlist</span>. Workers only see worktree (rw), mission (ro), project (ro).</td>
+    </tr>
+    <tr>
+      <td><strong>API credentials</strong></td>
+      <td>Workers inherit <code>process.env</code> including <code>ANTHROPIC_API_KEY</code>, <code>SLACK_*</code> tokens.</td>
+      <td><span class="hl-new">Credential proxy</span>. Containers get placeholder keys. Real keys on host only.</td>
+    </tr>
+    <tr>
+      <td><strong>.env protection</strong></td>
+      <td>Hook guards block writes to <code>.env</code> files. Reads not prevented.</td>
+      <td><span class="hl-new">.env never mounted</span> into containers. Cannot be read at all.</td>
+    </tr>
+    <tr>
+      <td><strong>SSH keys</strong></td>
+      <td>Mounted into container at <code>/tmp/host-ssh-key</code> for git operations.</td>
+      <td><span class="hl-new">Not mounted</span>. Git operations happen on host, not in worker containers.</td>
+    </tr>
+    <tr>
+      <td><strong>Pre-write guard</strong></td>
+      <td>Hook blocks writes to <code>.env</code>, <code>.pem</code>, <code>.key</code> files. <span class="hl-preserved">PRESERVED.</span></td>
+      <td>Same hook, plus container mount restrictions provide defense-in-depth.</td>
+    </tr>
+    <tr>
+      <td><strong>Pre-bash guard</strong></td>
+      <td>Hook blocks <code>rm -rf /</code>, <code>dd</code>, <code>mkfs</code>, fork bombs. <span class="hl-preserved">PRESERVED.</span></td>
+      <td>Same hook, plus container limits blast radius of any command.</td>
+    </tr>
+    <tr>
+      <td><strong>Risk-based reviews</strong></td>
+      <td>Evidence-based risk detection with mandatory specialist reviews. <span class="hl-preserved">PRESERVED.</span></td>
+      <td>Unchanged. Reviewers now run in read-only containers for additional isolation.</td>
+    </tr>
+    <tr>
+      <td><strong>Git ref validation</strong></td>
+      <td><code>lib/validate.js</code> prevents shell injection via branch names. <span class="hl-preserved">PRESERVED.</span></td>
+      <td>Unchanged.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Trust Boundaries</h3>
+
+<div class="diagram">
+<pre>
+┌────────────────────────────────────────────────────────────────────┐
+│                    TRUST BOUNDARY: HOST                            │
+│                                                                    │
+│  ┌────────────────────┐  ┌────────────────────────────────────┐   │
+│  │  TRUSTED            │  │  TRUSTED                           │   │
+│  │                     │  │                                    │   │
+│  │  Credential Proxy   │  │  Mission Lifecycle                 │   │
+│  │  (real API keys)    │  │  (git ops, PR creation,            │   │
+│  │                     │  │   risk detection, approvals)       │   │
+│  │  .env file          │  │                                    │   │
+│  │  GH_TOKEN           │  │  Picard conversational sessions    │   │
+│  │  SLACK_*_TOKEN      │  │  (planning, not code execution)    │   │
+│  └────────────────────┘  └────────────────────────────────────┘   │
+│                                                                    │
+│  ═════════════════════ CONTAINER BOUNDARY ════════════════════     │
+│                                                                    │
+│  ┌────────────────────────────────────────────────────────────┐   │
+│  │  SANDBOXED (per container)                                 │   │
+│  │                                                            │   │
+│  │  - Placeholder API key (never real)                        │   │
+│  │  - No .env, no SSH keys, no credentials                   │   │
+│  │  - Only explicit filesystem mounts                        │   │
+│  │  - Non-root user (uid 1000)                               │   │
+│  │  - Ephemeral (--rm on exit)                               │   │
+│  │  - Tool restrictions via Agent SDK allowedTools            │   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ═════════════════════ NETWORK BOUNDARY ══════════════════════     │
+│                                                                    │
+│  ┌────────────────────────────────────────────────────────────┐   │
+│  │  UNTRUSTED                                                 │   │
+│  │  - User messages from Slack                                │   │
+│  │  - Prompt injection attempts                               │   │
+│  │  - External API responses                                  │   │
+│  └────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 16: Three-layer trust model — host, container, network</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 13. DATA ARCHITECTURE                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s13" class="page-break"><span class="section-num">13.</span> Data Architecture</h2>
+
+<p>Two SQLite databases, each with a separate failure domain. The only schema change: one nullable column added to the <code>threads</code> table.</p>
+
+<div class="diagram">
+<pre>
+┌──────────────── app.db (PRESERVED, one addition) ──────────────────────────┐
+│                                                                             │
+│  ┌────────────────────────┐  ┌──────────────────────────┐                  │
+│  │       missions          │  │      objectives           │                  │
+│  │                        │  │                          │                  │
+│  │  id (PK)               │  │  mission_id (FK)         │                  │
+│  │  repo                  │  │  id                      │                  │
+│  │  description           │  │  title, description      │                  │
+│  │  status                │  │  status, phase           │                  │
+│  │  default_branch        │  │  assigned_to, git_branch │                  │
+│  │  integration_branch    │  │  risk_flags (JSON)       │                  │
+│  │  slack_channel         │  │  depends_on (JSON)       │                  │
+│  │  slack_thread_ts       │  │  evidence_path           │                  │
+│  │  pr_number, pr_url     │  │  reviewed_by (JSON)      │                  │
+│  │  plan_message_ts       │  │  merged, error           │                  │
+│  │  config (JSON)         │  │  started_at, completed_at│                  │
+│  │  safety (JSON)         │  └──────────────────────────┘                  │
+│  │  created_at, updated_at│                                                │
+│  └────────────────────────┘                                                │
+│                                                                             │
+│  ┌────────────────────────┐  ┌──────────────────────────┐                  │
+│  │       threads           │  │      approvals            │                  │
+│  │                        │  │                          │                  │
+│  │  channel (PK)          │  │  message_ts (PK)         │                  │
+│  │  thread_ts (PK)        │  │  type (plan/pr)          │                  │
+│  │  repo                  │  │  repo, mission_id        │                  │
+│  │  mission_id            │  │  pr_number, pr_url       │                  │
+│  │  integration_branch    │  │  channel, thread_ts      │                  │
+│  │  pr_number, pr_url     │  └──────────────────────────┘                  │
+│  │  original_description  │                                                │
+│  │  status                │  ┌──────────────────────────┐                  │
+│  │  follow_up_count       │  │      channel_map          │                  │
+│  │  <span class="hl-new">session_id</span>  ◄── NEW   │  │  channel_id (PK) → repo  │                  │
+│  │  tracked_at, updated_at│  └──────────────────────────┘                  │
+│  └────────────────────────┘                                                │
+│                                                                             │
+│  ┌────────────────────────┐  ┌──────────────────────────┐                  │
+│  │      session_log        │  │      proposals            │                  │
+│  │  (PRESERVED)           │  │  (PRESERVED)             │                  │
+│  └────────────────────────┘  └──────────────────────────┘                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────── telemetry.db (PRESERVED, no changes) ──────────────────────┐
+│                                                                             │
+│  ┌─────────────────────┐  ┌─────────────────────┐  ┌────────────────────┐ │
+│  │     traces           │  │      events          │  │       logs         │ │
+│  │                     │  │                     │  │                    │ │
+│  │  trace_id (PK)      │  │  id (auto)          │  │  id (auto)        │ │
+│  │  mission_id, repo   │  │  ts, event          │  │  ts, trace_id     │ │
+│  │  status             │  │  mission_id, repo   │  │  mission_id, repo │ │
+│  │  started_at         │  │  actor, payload     │  │  source, agent    │ │
+│  │  ended_at           │  │                     │  │  objective_id     │ │
+│  │  duration_ms        │  │                     │  │  level, message   │ │
+│  │  span_count         │  │                     │  │  data (JSON)      │ │
+│  │  spans (JSON tree)  │  │                     │  │                    │ │
+│  └─────────────────────┘  └─────────────────────┘  └────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 17: Database schema — one column addition (session_id) highlighted in green</p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 14. OBSERVABILITY (PRESERVED)                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s14" class="page-break"><span class="section-num">14.</span> Observability (Preserved)</h2>
+
+<p>The full observability stack is preserved unchanged: OTel SDK, SQLite-backed trace storage, SSE broadcasting, and the dashboard frontend. Container workers emit telemetry the same way &mdash; via the streaming callback and <code>tdb.writeLog()</code>.</p>
+
+<div class="diagram">
+<pre>
+  CONTAINERS                    HOST                            DASHBOARD
+  ──────────                    ────                            ─────────
+
+  ┌───────────────┐
+  │ Worker: Borg  │                                            ┌───────────────┐
+  │               │            ┌────────────────────┐          │  Browser      │
+  │ Agent SDK     │──stream──►│  worker.js          │          │               │
+  │ query()       │           │  streamLog()        │          │  ┌─────────┐  │
+  │               │           │  tdb.writeLog()     │  SSE ──►│  │ Traces  │  │
+  └───────────────┘           │                     │          │  └─────────┘  │
+                              │  telemetry.js       │          │  ┌─────────┐  │
+  ┌───────────────┐           │  instrument()       │  SSE ──►│  │ Logs    │  │
+  │ Worker:       │           │  broadcastSSE()     │          │  └─────────┘  │
+  │ Redshirts     │──stream──►│                     │  REST ─►│  ┌─────────┐  │
+  └───────────────┘           │  All PRESERVED      │          │  │ Metrics │  │
+                              └────────────────────┘          │  └─────────┘  │
+  ┌───────────────┐                                            └───────────────┘
+  │ Health Patrol │
+  │ (2-min timer) ├──────────► persistHealthAlert()
+  └───────────────┘            logEvent()
+</pre>
+<p class="diagram-caption">Figure 18: Telemetry pipeline — agents stream via SDK callbacks instead of subprocess stdio</p>
+</div>
+
+<h3>Dashboard Views (Unchanged)</h3>
+
+<table>
+  <thead>
+    <tr><th>View</th><th>Data Source</th><th>What It Shows</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Mission List</strong></td><td><code>GET /api/missions</code></td><td>All missions with status, progress bars, PR links</td></tr>
+    <tr><td><strong>Mission Detail</strong></td><td><code>GET /api/missions/{repo}/{id}</code></td><td>Objectives table, agent assignments, risk flags, session log</td></tr>
+    <tr><td><strong>Traces</strong></td><td><code>GET /api/traces</code></td><td>Waterfall view of agent work &mdash; span trees with timing</td></tr>
+    <tr><td><strong>Live Logs</strong></td><td><code>GET /api/telemetry/stream</code> (SSE)</td><td>Real-time log entries filterable by mission and agent</td></tr>
+    <tr><td><strong>Metrics</strong></td><td><code>GET /api/metrics</code></td><td>Chart.js graphs: sessions over time, durations, active workers</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 15. CONFIGURATION (PRESERVED)                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s15" class="page-break"><span class="section-num">15.</span> Configuration (Preserved)</h2>
+
+<p>The layered context system, configuration precedence, and all customization mechanisms are preserved. Two new environment variables are added for container settings.</p>
+
+<div class="diagram">
+<pre>
+  HIGHEST PRIORITY
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Per-Project Config                                         │
+  │  ~/.commanddeck/projects/{repo}/config.json                 │
+  │  (max_workers, model_overrides, test_command, risk patterns)│
+  └─────────────────────────┬───────────────────────────────────┘
+                            │ overrides
+  ┌─────────────────────────▼───────────────────────────────────┐
+  │  Global Config                                               │
+  │  ~/.commanddeck/config.json                                  │
+  │  (github_org, domain, registry, caddyfile_path)             │
+  └─────────────────────────┬───────────────────────────────────┘
+                            │ overrides
+  ┌─────────────────────────▼───────────────────────────────────┐
+  │  Environment Variables                                       │
+  │  COMMANDDECK_MAX_WORKERS, COMMANDDECK_MAX_SESSIONS, etc.    │
+  │                                                              │
+  │  <span class="hl-new">NEW:</span>                                                       │
+  │  COMMANDDECK_CONTAINER_IMAGE  (default: commanddeck-worker) │
+  │  COMMANDDECK_CREDENTIAL_PROXY_PORT  (default: 3001)         │
+  │  COMMANDDECK_ENABLE_CONTAINERS  (default: false)            │
+  └─────────────────────────┬───────────────────────────────────┘
+                            │ overrides
+  ┌─────────────────────────▼───────────────────────────────────┐
+  │  Hardcoded Defaults                                          │
+  │  (1 worker, 50 sessions, opus model, containers off)        │
+  └─────────────────────────────────────────────────────────────┘
+  LOWEST PRIORITY
+</pre>
+<p class="diagram-caption">Figure 19: Configuration precedence — two new env vars added, everything else preserved</p>
+</div>
+
+<h3>Layered Context System (Unchanged)</h3>
+
+<table>
+  <thead>
+    <tr><th style="width:10%">Layer</th><th style="width:30%">Source</th><th style="width:60%">Content</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td>Global Standards</td><td><code>~/.commanddeck/standards/*.md</code> (7 files: code-quality, testing, security, backend, frontend, docs, cloud)</td></tr>
+    <tr><td>2</td><td>Crew Preferences</td><td><code>~/.commanddeck/crew/{agent}-preferences.md</code> (11 files)</td></tr>
+    <tr><td>3</td><td>Project Directives</td><td><code>~/.commanddeck/projects/{repo}/directives/*.md</code></td></tr>
+    <tr><td>4</td><td>Repo ADRs</td><td><code>{repo}/docs/adr/*.md</code></td></tr>
+    <tr><td>5</td><td>Active Mission</td><td><code>mission.json</code>, <code>captains-log.md</code>, briefings</td></tr>
+    <tr><td>6</td><td>Git History</td><td><code>git log --oneline -15</code></td></tr>
+  </tbody>
+</table>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 16. MODULE-BY-MODULE DIFF                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s16" class="page-break"><span class="section-num">16.</span> Module-by-Module Diff</h2>
+
+<p>This table shows every <code>lib/</code> file with its change status. The message: this is a surgical upgrade.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:22%">Module</th>
+      <th style="width:10%">Lines</th>
+      <th style="width:12%">Status</th>
+      <th style="width:56%">Changes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>lib/mission.js</code></td>
+      <td>907</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes. The entire mission lifecycle, work loop, batch execution, merge, review, and PR flow remain exactly as-is.</td>
+    </tr>
+    <tr>
+      <td><code>lib/worker.js</code></td>
+      <td>411</td>
+      <td><span class="hl-modified">Modified</span></td>
+      <td><code>execute()</code> and <code>executeSpecialist()</code> switch from <code>spawn('claude', ...)</code> to <code>sdk.query()</code>. <code>executeTriage()</code> replaced by new <code>converse()</code> method with session resume. <code>loadAgentIdentity()</code> and <code>getModelForAgent()</code> preserved. ~80 lines changed, ~60 lines added.</td>
+    </tr>
+    <tr>
+      <td><code>lib/thread.js</code></td>
+      <td>383</td>
+      <td><span class="hl-modified">Modified</span></td>
+      <td><code>classifyMessage()</code> replaced by call to <code>worker.converse()</code>. Session ID tracking added. <code>handleClassification()</code> simplified &mdash; Picard's tool calls drive routing instead of JSON classification parsing. ~50 lines changed.</td>
+    </tr>
+    <tr>
+      <td><code>lib/container.js</code></td>
+      <td>~150</td>
+      <td><span class="hl-new">New</span></td>
+      <td>Docker container management: <code>run()</code>, <code>stop()</code>, <code>buildMounts()</code>. Wraps <code>docker run</code> commands. Called by <code>worker.execute()</code> when containers are enabled.</td>
+    </tr>
+    <tr>
+      <td><code>lib/credential-proxy.js</code></td>
+      <td>~120</td>
+      <td><span class="hl-new">New</span></td>
+      <td>HTTP proxy on localhost:3001. Intercepts Anthropic API calls, injects real credentials. Started from <code>server.js</code>.</td>
+    </tr>
+    <tr>
+      <td><code>lib/risk.js</code></td>
+      <td>133</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/evidence.js</code></td>
+      <td>169</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/pr.js</code></td>
+      <td>194</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/worktree.js</code></td>
+      <td>186</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes. Worktrees are still created/removed by the host. Containers mount them.</td>
+    </tr>
+    <tr>
+      <td><code>lib/health.js</code></td>
+      <td>250</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/slack.js</code></td>
+      <td>165</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/state.js</code></td>
+      <td>324</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/db.js</code></td>
+      <td>838</td>
+      <td><span class="hl-modified">Modified</span></td>
+      <td>One migration: <code>ALTER TABLE threads ADD COLUMN session_id TEXT;</code> (~5 lines added).</td>
+    </tr>
+    <tr>
+      <td><code>lib/telemetry.js</code></td>
+      <td>438</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/telemetry-db.js</code></td>
+      <td>426</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/observability.js</code></td>
+      <td>~60</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/validate.js</code></td>
+      <td>~40</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/auth.js</code></td>
+      <td>~30</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/deploy.js</code></td>
+      <td>~80</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/scaffold.js</code></td>
+      <td>~120</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>lib/learn.js</code></td>
+      <td>~90</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes.</td>
+    </tr>
+    <tr>
+      <td><code>server.js</code></td>
+      <td>~600</td>
+      <td><span class="hl-modified">Modified</span></td>
+      <td>Start credential proxy on boot. Route thread messages through <code>worker.converse()</code> instead of <code>classifyMessage()</code>. ~20 lines changed.</td>
+    </tr>
+    <tr>
+      <td><code>agents/*.md</code></td>
+      <td>11 files</td>
+      <td><span class="hl-preserved">Unchanged</span></td>
+      <td>Zero changes. Same identities, tools, models.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-green">
+  <strong>Summary:</strong> 14 files unchanged, 4 files modified (worker.js, thread.js, db.js, server.js), 2 files new (container.js, credential-proxy.js). Total new code: ~500 lines. Total changed code: ~155 lines. Total preserved: ~5,000+ lines.
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 17. MIGRATION PLAN                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s17" class="page-break"><span class="section-num">17.</span> Migration Plan</h2>
+
+<p>Four phases, each independently deployable and valuable. No phase requires another to be useful.</p>
+
+<div class="diagram">
+<pre>
+Phase 1                Phase 2                Phase 3                Phase 4
+────────               ────────               ────────               ────────
+Agent SDK              Conversational         Container              Polish
+                       Sessions               Isolation
+
+┌───────────┐          ┌───────────┐          ┌───────────┐          ┌───────────┐
+│ worker.js │          │ Persistent│          │  Docker   │          │  Enhanced │
+│ uses SDK  │────────► │  Picard   │────────► │  workers  │────────► │  dashboard│
+│ query()   │          │  sessions │          │  + proxy  │          │  + multi- │
+│           │          │           │          │           │          │  channel  │
+└───────────┘          └───────────┘          └───────────┘          └───────────┘
+
+Value:                 Value:                 Value:                 Value:
+- Session resume       - Brainstorming        - OS-level isolation   - Conversation
+- Streaming            - Better plans         - Credential safety    view in UI
+- Clean API            - Picard remembers     - .env never exposed  - Multi-channel
+- No subprocess mgmt   - Natural interaction  - Blast radius limits  prep
+
+Effort:                Effort:                Effort:                Effort:
+Days                   Days                   Days                   Days
+
+Files changed:         Files changed:         Files changed:         Files changed:
+- worker.js            - worker.js (+converse)- container.js (new)   - dashboard/
+                       - thread.js            - credential-proxy.js  - server.js
+                       - db.js (+migration)     (new)
+                       - server.js            - worker.js (+container
+                                                wrapping)
+</pre>
+<p class="diagram-caption">Figure 20: Four-phase migration — each phase is independently deployable</p>
+</div>
+
+<h3>Phase 1: Agent SDK</h3>
+
+<p><strong>Goal:</strong> Replace <code>claude -p</code> subprocess with Agent SDK <code>query()</code> in <code>worker.js</code>.</p>
+
+<ul>
+  <li>Install <code>@anthropic-ai/claude-code</code> SDK package</li>
+  <li>Rewrite <code>execute()</code>: SDK <code>query()</code> with same prompt, model, tools</li>
+  <li>Rewrite <code>executeSpecialist()</code>: SDK <code>query()</code> with specialist prompt</li>
+  <li>Preserve return shape: <code>{ code, stdout, stderr, success }</code></li>
+  <li>Streaming via SDK callback replaces <code>proc.stdout.on('data')</code></li>
+  <li>Test: run existing test suite &mdash; all 218 tests should pass</li>
+  <li><strong>Deployable immediately.</strong> No other files change. Mission.js is oblivious.</li>
+</ul>
+
+<h3>Phase 2: Conversational Sessions</h3>
+
+<p><strong>Goal:</strong> Persistent Picard sessions per Slack thread. Mission creation via tool call.</p>
+
+<ul>
+  <li>Add <code>converse()</code> method to <code>worker.js</code> &mdash; SDK <code>query()</code> with <code>sessionId</code></li>
+  <li>Add <code>session_id</code> column to <code>threads</code> table (db.js migration)</li>
+  <li>Modify <code>thread.js</code>: replace <code>classifyMessage()</code> with <code>worker.converse()</code></li>
+  <li>Define <code>create_mission</code> tool for Picard's session</li>
+  <li>Wire up <code>server.js</code> to route thread messages through <code>converse()</code></li>
+  <li>Test: multi-turn Slack conversation leading to mission launch</li>
+  <li><strong>Deployable immediately.</strong> Backward compatible &mdash; existing threads with no session_id fall back to one-shot mode.</li>
+</ul>
+
+<h3>Phase 3: Container Isolation</h3>
+
+<p><strong>Goal:</strong> Implementation workers run in Docker containers with credential proxy.</p>
+
+<ul>
+  <li>Create <code>lib/container.js</code> &mdash; Docker container management</li>
+  <li>Create <code>lib/credential-proxy.js</code> &mdash; HTTP proxy for API credentials</li>
+  <li>Build worker container image (node:22-slim + git + gh)</li>
+  <li>Modify <code>worker.execute()</code>: wrap Agent SDK call in container when <code>COMMANDDECK_ENABLE_CONTAINERS=true</code></li>
+  <li>Start credential proxy from <code>server.js</code></li>
+  <li>Test: mission execution with containerized workers</li>
+  <li><strong>Deployable immediately.</strong> Feature-flagged &mdash; <code>COMMANDDECK_ENABLE_CONTAINERS</code> defaults to <code>false</code>.</li>
+</ul>
+
+<h3>Phase 4: Polish</h3>
+
+<p><strong>Goal:</strong> Enhanced dashboard, multi-channel prep, conversation view.</p>
+
+<ul>
+  <li>Add conversation view to dashboard &mdash; shows Picard session transcript per thread</li>
+  <li>Add container status view &mdash; running containers, resource usage</li>
+  <li>Prepare multi-channel support &mdash; abstract thread tracking for non-Slack channels</li>
+  <li>Performance tuning &mdash; SDK connection pooling, container image caching</li>
+  <li><strong>Incremental improvements, no schema changes.</strong></li>
+</ul>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 18. COMPARISON                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s18" class="page-break"><span class="section-num">18.</span> Comparison: Current vs. Proposed vs. NanoClaw Fork</h2>
+
+<div class="compare-three">
+  <div>
+    <p class="compare-label" style="color: #dc2626;">Current CommandDeck</p>
+  </div>
+  <div>
+    <p class="compare-label" style="color: var(--new-code);">Proposed v2 (This Document)</p>
+  </div>
+  <div>
+    <p class="compare-label" style="color: var(--modified);">NanoClaw Fork (Other Document)</p>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:18%">Dimension</th>
+      <th style="width:27%">Current</th>
+      <th style="width:27%">Proposed v2</th>
+      <th style="width:28%">NanoClaw Fork</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Conversation</strong></td>
+      <td>One-shot classification. No memory between messages.</td>
+      <td>Persistent Picard sessions. Full conversation context. Mission creation via tool call.</td>
+      <td>NanoClaw message loop with session resume. Similar capability, different substrate.</td>
+    </tr>
+    <tr>
+      <td><strong>Container isolation</strong></td>
+      <td>None. Workers share host environment.</td>
+      <td>Docker containers for implementation workers. Feature-flagged.</td>
+      <td>Docker containers for all agents. NanoClaw's container-runner.ts.</td>
+    </tr>
+    <tr>
+      <td><strong>Credential security</strong></td>
+      <td>Workers inherit all env vars including API keys.</td>
+      <td>Credential proxy. Containers get placeholders.</td>
+      <td>NanoClaw credential proxy (inherited).</td>
+    </tr>
+    <tr>
+      <td><strong>Multi-channel</strong></td>
+      <td>Slack only.</td>
+      <td>Slack only, but session model is channel-agnostic. Future-ready.</td>
+      <td>Slack, WhatsApp, Telegram, Discord, Gmail. Built-in.</td>
+    </tr>
+    <tr>
+      <td><strong>Scheduled tasks</strong></td>
+      <td>setInterval for health patrol.</td>
+      <td>Same (unchanged).</td>
+      <td>NanoClaw scheduler: cron, interval, one-shot.</td>
+    </tr>
+    <tr>
+      <td><strong>Migration effort</strong></td>
+      <td>N/A (current state)</td>
+      <td>~500 lines new code. 4 files modified. Days per phase.</td>
+      <td>Full rewrite in TypeScript. Port all modules to new framework. Weeks to months.</td>
+    </tr>
+    <tr>
+      <td><strong>Risk level</strong></td>
+      <td>N/A</td>
+      <td>Low. Mission lifecycle untouched. Each phase independently deployable and rollbackable.</td>
+      <td>High. New framework dependency. New language (TS). New IPC model. Full integration testing needed.</td>
+    </tr>
+    <tr>
+      <td><strong>Code preserved</strong></td>
+      <td>N/A</td>
+      <td>~95% of existing code preserved unchanged.</td>
+      <td>~30% of logic ported (content + algorithms). All code rewritten in TypeScript.</td>
+    </tr>
+    <tr>
+      <td><strong>Time to ship</strong></td>
+      <td>N/A</td>
+      <td>Phase 1+2 in days. Full v2 in 1-2 weeks.</td>
+      <td>Estimated 4-8 weeks for full parity.</td>
+    </tr>
+    <tr>
+      <td><strong>Upstream updates</strong></td>
+      <td>N/A</td>
+      <td>No external dependency. Full control of codebase.</td>
+      <td>Can cherry-pick NanoClaw improvements. Risk of upstream divergence.</td>
+    </tr>
+    <tr>
+      <td><strong>Testing</strong></td>
+      <td>218 tests passing.</td>
+      <td>Same 218 tests + new tests for converse(), container, proxy. Existing tests validate preserved code.</td>
+      <td>All tests must be rewritten for new framework.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>Honest tradeoff:</strong> The NanoClaw fork provides more out-of-the-box (multi-channel, scheduling, browser automation). The proposed v2 provides the highest-value features (conversations, containers, credential safety) with the lowest risk and fastest time to ship. Multi-channel and scheduling can be added later without the fork.
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 19. APPENDIX: CONVERSATION FLOW EXAMPLES                           -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s19" class="page-break"><span class="section-num">19.</span> Appendix: Conversation Flow Examples</h2>
+
+<h3>Example 1: Brainstorming a New Feature &rarr; Mission Launch</h3>
+
+<div class="convo">
+  <div class="msg msg-user">
+    <div class="speaker speaker-user">User (#weather-aggregator)</div>
+    I'm thinking about adding user accounts to the app. Right now it's all anonymous.
+  </div>
+  <div class="msg msg-picard">
+    <div class="speaker speaker-picard">Picard</div>
+    Interesting direction. A few questions to help me plan this well:
+    <br><br>
+    1. What's the primary benefit of user accounts? Saving preferences, API key management, usage limits?<br>
+    2. Do you want social login (Google, GitHub) or email/password, or both?<br>
+    3. Any preferences on session storage? The app currently has no database &mdash; we'd need to add one.
+  </div>
+  <div class="msg msg-user">
+    <div class="speaker speaker-user">User</div>
+    Good questions. Mainly for saving favorite locations and alert preferences. Google login would be great since most of our users are already in the Google ecosystem. And yeah, I've been meaning to add PostgreSQL &mdash; let's do that.
+  </div>
+  <div class="msg msg-picard">
+    <div class="speaker speaker-picard">Picard</div>
+    Got it. So the scope would be:
+    <br><br>
+    - Google OAuth2 login via passport.js<br>
+    - PostgreSQL for user data (accounts, saved locations, alert prefs)<br>
+    - Session management with express-session + connect-pg-simple<br>
+    - API endpoints: GET/PUT /api/me/locations, GET/PUT /api/me/alerts<br>
+    - No role-based access yet &mdash; just authenticated vs. anonymous<br>
+    <br>
+    Does that capture it, or should I adjust anything?
+  </div>
+  <div class="msg msg-user">
+    <div class="speaker speaker-user">User</div>
+    That's perfect. One thing &mdash; let's also add a "recently viewed" feature so users see their last 5 searched locations when they log in.
+  </div>
+  <div class="msg msg-picard">
+    <div class="speaker speaker-picard">Picard</div>
+    Added. I'll include a "recently viewed" history (last 5 locations, stored per user, updated on each search). Let me launch this.
+  </div>
+  <div class="msg msg-system">
+    Picard calls create_mission tool: { repo: "WeatherAggregator", description: "Add user accounts with Google OAuth2 via passport.js. Set up PostgreSQL for user data storage. Implement session management with express-session + connect-pg-simple. Create API endpoints for saved locations (GET/PUT /api/me/locations), alert preferences (GET/PUT /api/me/alerts), and recently-viewed history (last 5 searched locations). Authenticated vs. anonymous only, no roles." }
+  </div>
+  <div class="msg msg-picard">
+    <div class="speaker speaker-picard">Picard</div>
+    Mission launched (mission-20260317-482). I've decomposed it into 4 objectives:
+    <br><br>
+    1. obj-001: PostgreSQL setup + schema (Mr. Data) &mdash; Phase 1<br>
+    2. obj-002: Google OAuth2 + session management (Borg) &mdash; Phase 2<br>
+    3. obj-003: User API endpoints + recently-viewed (Borg) &mdash; Phase 2<br>
+    4. obj-004: Frontend login flow + saved locations UI (Redshirts) &mdash; Phase 3<br>
+    <br>
+    React with a checkmark to approve, or reply to adjust the plan.
+  </div>
+</div>
+
+<h3>Example 2: Reviewing a Completed PR &rarr; Follow-Up Mission</h3>
+
+<div class="convo">
+  <div class="msg msg-system">
+    Earlier in this thread: Mission completed, PR #47 created.
+  </div>
+  <div class="msg msg-user">
+    <div class="speaker speaker-user">User</div>
+    I reviewed the PR. The auth flow looks good but I noticed the error messages on login failure are too generic. Can we make them more specific? Like "Invalid email" vs "Wrong password" vs "Account locked."
+  </div>
+  <div class="msg msg-picard">
+    <div class="speaker speaker-picard">Picard</div>
+    I see the concern. The current implementation returns a generic "Authentication failed" for all cases. Making error messages more specific improves UX but does have a security tradeoff &mdash; it tells attackers which accounts exist (email enumeration).
+    <br><br>
+    Would you like to:<br>
+    A) Specific messages for all cases (best UX, minor security risk)<br>
+    B) Distinguish "wrong password" from "no account" but keep "account locked" generic<br>
+    C) Keep generic messages but add a "forgot password" link
+  </div>
+  <div class="msg msg-user">
+    <div class="speaker speaker-user">User</div>
+    Good call on the security angle. Let's go with option B and also add the forgot password link.
+  </div>
+  <div class="msg msg-system">
+    Picard calls create_mission tool: { repo: "WeatherAggregator", description: "Follow-up on PR #47: Improve login error messages. Distinguish 'wrong password' from 'no account found' (accept email enumeration risk per user decision). Keep 'account locked' generic. Add 'forgot password' link to login form. Existing auth flow in src/auth/." }
+  </div>
+  <div class="msg msg-picard">
+    <div class="speaker speaker-picard">Picard</div>
+    Follow-up mission launched. This is a single-objective mission &mdash; Borg will update the auth error handling and add the forgot password link. Should take about 10 minutes. I'll update this thread when it's done.
+  </div>
+</div>
+
+<h3>Example 3: Asking Questions &rarr; Deciding to Refactor</h3>
+
+<div class="convo">
+  <div class="msg msg-user">
+    <div class="speaker speaker-user">User (#furever-care)</div>
+    How is the pet vaccination scheduling currently implemented? I feel like it's getting slow.
+  </div>
+  <div class="msg msg-picard">
+    <div class="speaker speaker-picard">Picard</div>
+    Let me check the codebase.
+    <br><br>
+    The vaccination scheduling is in <code>src/services/vaccination-scheduler.ts</code>. It currently:
+    <br><br>
+    - Loads ALL pets for a clinic, then filters by vaccination due date in memory<br>
+    - Recalculates the schedule on every page load (no caching)<br>
+    - Makes N+1 database queries (one per pet to load vaccination history)<br>
+    <br>
+    That N+1 query pattern is almost certainly your performance issue. For a clinic with 500 pets, that's 501 database queries per page load.
+  </div>
+  <div class="msg msg-user">
+    <div class="speaker speaker-user">User</div>
+    Yep, that explains it. Some clinics have over 1000 pets. What would you recommend?
+  </div>
+  <div class="msg msg-picard">
+    <div class="speaker speaker-picard">Picard</div>
+    Three improvements, in order of impact:
+    <br><br>
+    1. <strong>Fix the N+1:</strong> Single SQL query with JOIN to load pets + vaccination history together. Biggest win.<br>
+    2. <strong>Database-side filtering:</strong> WHERE clause on due_date instead of loading all pets and filtering in JS.<br>
+    3. <strong>Add caching:</strong> Redis cache with 5-minute TTL for the schedule view. Invalidated on new vaccination records.<br>
+    <br>
+    Want me to do all three, or start with just the N+1 fix to see if that's enough?
+  </div>
+  <div class="msg msg-user">
+    <div class="speaker speaker-user">User</div>
+    Let's do all three. The N+1 fix alone won't be enough for the big clinics.
+  </div>
+  <div class="msg msg-system">
+    Picard calls create_mission tool: { repo: "FurEverCare", description: "Performance optimization for vaccination scheduler (src/services/vaccination-scheduler.ts). Three changes: (1) Fix N+1 query - single SQL with JOIN for pets + vaccination history. (2) Database-side filtering with WHERE on due_date instead of in-memory filter. (3) Redis cache with 5-minute TTL for schedule view, invalidated on new vaccination records. Target: handle 1000+ pets per clinic without noticeable latency." }
+  </div>
+  <div class="msg msg-picard">
+    <div class="speaker speaker-picard">Picard</div>
+    Mission launched. I've broken it into 2 objectives:
+    <br><br>
+    1. obj-001: SQL optimization &mdash; fix N+1, add database-side filtering (Borg) &mdash; Phase 1<br>
+    2. obj-002: Redis caching layer with invalidation (Borg) &mdash; Phase 2 (depends on obj-001)<br>
+    <br>
+    React with a checkmark to approve.
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- FOOTER                                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<hr style="margin-top: 3rem; border: none; border-top: 2px solid var(--ink);">
+
+<p style="text-align: center; color: var(--muted); margin-top: 1.5rem; font-size: 0.85rem;">
+  <strong>CommandDeck v2 — Proposed System Architecture</strong><br>
+  Draft v1.0 — March 17, 2026<br>
+  Generated with Claude Code
+</p>
+
+</body>
+</html>

@@ -1,0 +1,2496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommandDeck on NanoClaw — System Architecture</title>
+<style>
+  /* ─── Base ─── */
+  :root {
+    --ink: #1a1a2e;
+    --muted: #555;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --border: #d1d5db;
+    --bg-code: #f3f4f6;
+    --bg-diagram: #f8fafc;
+    --bg-callout: #fffbeb;
+    --callout-border: #f59e0b;
+    --nanoclaw: #059669;
+    --commanddeck: #7c3aed;
+    --new-code: #dc2626;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: var(--ink);
+    line-height: 1.7;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.75in;
+    background: #fff;
+  }
+
+  /* ─── Typography ─── */
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0 0 0.3rem 0;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 2.5rem 0 1rem 0;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--ink);
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 1.8rem 0 0.6rem 0;
+    page-break-after: avoid;
+  }
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 1.2rem 0 0.4rem 0;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+  }
+
+  p { margin: 0 0 0.8rem 0; }
+
+  strong { font-weight: 700; }
+
+  a { color: var(--accent); text-decoration: none; }
+
+  ul, ol { margin: 0 0 0.8rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+
+  /* ─── Subtitle / Meta ─── */
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 0.2rem;
+  }
+
+  .meta {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .version-tag {
+    display: inline-block;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* ─── Table of Contents ─── */
+  .toc {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0 2rem 0;
+    page-break-inside: avoid;
+  }
+
+  .toc h3 {
+    margin: 0 0 0.6rem 0;
+    font-size: 1rem;
+  }
+
+  .toc ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    columns: 2;
+    column-gap: 2rem;
+  }
+
+  .toc li {
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+    break-inside: avoid;
+  }
+
+  .toc a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--border);
+  }
+
+  /* ─── Diagrams ─── */
+  .diagram {
+    background: var(--bg-diagram);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0 1.5rem 0;
+    overflow-x: auto;
+    page-break-inside: avoid;
+  }
+
+  .diagram pre {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    white-space: pre;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .diagram-caption {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 0.4rem;
+    font-style: italic;
+  }
+
+  /* ─── Code ─── */
+  code {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.85em;
+    background: var(--bg-code);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+  }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 0.5rem 0 1rem 0;
+    overflow-x: auto;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    page-break-inside: avoid;
+  }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8rem 0 1.2rem 0;
+    font-size: 0.85rem;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--bg-code);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  tr:nth-child(even) { background: #fafafa; }
+
+  /* ─── Callouts ─── */
+  .callout {
+    background: var(--bg-callout);
+    border-left: 4px solid var(--callout-border);
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    page-break-inside: avoid;
+  }
+
+  .callout strong { color: var(--callout-border); }
+
+  .callout-blue {
+    background: #eff6ff;
+    border-left-color: var(--accent);
+  }
+
+  .callout-blue strong { color: var(--accent); }
+
+  .callout-green {
+    background: #ecfdf5;
+    border-left-color: var(--nanoclaw);
+  }
+
+  .callout-green strong { color: var(--nanoclaw); }
+
+  .callout-purple {
+    background: #f5f3ff;
+    border-left-color: var(--commanddeck);
+  }
+
+  .callout-purple strong { color: var(--commanddeck); }
+
+  /* ─── Legend ─── */
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    margin: 0.5rem 0 1rem 0;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .swatch-nanoclaw { background: var(--nanoclaw); }
+  .swatch-commanddeck { background: var(--commanddeck); }
+  .swatch-new { background: var(--new-code); }
+  .swatch-shared { background: var(--accent); }
+
+  /* ─── Section numbering ─── */
+  .section-num {
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 0.3rem;
+  }
+
+  /* ─── Page breaks ─── */
+  .page-break { page-break-before: always; }
+
+  /* ─── Print ─── */
+  @media print {
+    body {
+      padding: 0;
+      font-size: 10pt;
+      max-width: none;
+    }
+
+    h2 { font-size: 14pt; }
+    h3 { font-size: 12pt; }
+
+    .diagram pre { font-size: 7pt; }
+    pre { font-size: 7.5pt; }
+    table { font-size: 8pt; }
+
+    .no-print { display: none; }
+
+    a { color: var(--ink); }
+
+    .toc { background: #f5f5f5; }
+  }
+
+  /* ─── Two-col layout for compact sections ─── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .two-col > * { min-width: 0; }
+
+  @media (max-width: 600px) {
+    .two-col { grid-template-columns: 1fr; }
+    .toc ol { columns: 1; }
+  }
+
+  /* ─── Comparison blocks ─── */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 1rem 0;
+  }
+
+  .compare-side {
+    padding: 0.8rem 1rem;
+  }
+
+  .compare-side:first-child {
+    border-right: 1px solid var(--border);
+    background: #f5f3ff;
+  }
+
+  .compare-side:last-child {
+    background: #ecfdf5;
+  }
+
+  .compare-label {
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+  }
+
+  /* ─── Highlight spans ─── */
+  .hl-nc { color: var(--nanoclaw); font-weight: 700; }
+  .hl-cd { color: var(--commanddeck); font-weight: 700; }
+  .hl-new { color: var(--new-code); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TITLE PAGE                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h1>CommandDeck on NanoClaw</h1>
+<p class="subtitle">System Architecture for a Self-Hosted Agentic Software Development Platform</p>
+<p class="meta">
+  <span class="version-tag">DRAFT v1.0</span> &nbsp;
+  March 17, 2026 &nbsp;|&nbsp; Amit Gulati &nbsp;|&nbsp; Architecture Document
+</p>
+
+<div class="callout callout-blue">
+  <strong>Purpose:</strong> This document describes the target-state architecture for CommandDeck rebuilt on top of the NanoClaw agent framework. It covers every layer — from container isolation to Slack approval flows — and maps each CommandDeck capability to its NanoClaw equivalent or new integration code. Intended as a standalone offline reference for planning and implementation.
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-swatch swatch-nanoclaw"></span> NanoClaw (inherited as-is)</div>
+  <div class="legend-item"><span class="legend-swatch swatch-commanddeck"></span> CommandDeck (ported content)</div>
+  <div class="legend-item"><span class="legend-swatch swatch-new"></span> New integration code</div>
+  <div class="legend-item"><span class="legend-swatch swatch-shared"></span> Shared / merged</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#s1">Executive Summary</a></li>
+    <li><a href="#s2">System Overview</a></li>
+    <li><a href="#s3">Component Mapping: CommandDeck → NanoClaw</a></li>
+    <li><a href="#s4">Container & Isolation Architecture</a></li>
+    <li><a href="#s5">Agent Crew System</a></li>
+    <li><a href="#s6">Mission Lifecycle</a></li>
+    <li><a href="#s7">Git Workflow & Branch Strategy</a></li>
+    <li><a href="#s8">Inter-Agent Communication</a></li>
+    <li><a href="#s9">Risk Detection & Mandatory Reviews</a></li>
+    <li><a href="#s10">MCP Tools: The Development Workflow API</a></li>
+    <li><a href="#s11">Channel Architecture</a></li>
+    <li><a href="#s12">Security Model</a></li>
+    <li><a href="#s13">Data Architecture</a></li>
+    <li><a href="#s14">Observability & Dashboard</a></li>
+    <li><a href="#s15">Configuration & Layered Context</a></li>
+    <li><a href="#s16">Directory Structure</a></li>
+    <li><a href="#s17">Migration Strategy</a></li>
+    <li><a href="#s18">Appendix: Agent Identity Cards</a></li>
+  </ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 1. EXECUTIVE SUMMARY                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s1"><span class="section-num">1.</span> Executive Summary</h2>
+
+<p>CommandDeck is a self-hosted agentic software development platform: a user sends a Slack message, and a crew of specialized AI agents decomposes the task, implements it in parallel branches, runs tests, reviews for security and quality, creates a PR with structured evidence, deploys a preview environment, and waits for human approval to merge.</p>
+
+<p><strong>NanoClaw</strong> is an open-source agent orchestration framework (23.5k GitHub stars, Docker partnership, MIT license) that provides container-isolated agent execution, a credential proxy, filesystem-based IPC, multi-channel messaging (Slack, WhatsApp, Telegram, Discord, Gmail), and scheduled task execution.</p>
+
+<p><strong>The strategy:</strong> Fork NanoClaw and rebuild CommandDeck's development workflow on top of it. This gives us a better substrate (Agent SDK instead of raw <code>claude -p</code>, OS containers instead of worktrees-only, credential proxy, multi-channel support) while preserving CommandDeck's unique value: the mission lifecycle, agent crew, enterprise standards, risk-based mandatory reviews, evidence bundles, and the Slack approval flow.</p>
+
+<h3>What We Gain</h3>
+<ul>
+  <li><strong>Container isolation</strong> — Each agent runs in a Docker container with restricted filesystem mounts, replacing process-level worktree isolation</li>
+  <li><strong>Credential proxy</strong> — Agents never see real API keys or tokens; a host-side HTTP proxy injects credentials transparently</li>
+  <li><strong>Claude Agent SDK</strong> — Native <code>query()</code> with session resume, streaming, and agent teams, replacing raw subprocess management</li>
+  <li><strong>Multi-channel</strong> — Slack, WhatsApp, Telegram, Discord, Gmail as first-class channels (Slack remains primary for approval flows)</li>
+  <li><strong>Scheduled tasks</strong> — Built-in cron/interval/one-shot scheduling for health patrols, recurring reports, deployment checks</li>
+  <li><strong>Active community</strong> — Upstream improvements (new container backends, security patches, channel integrations) can be cherry-picked</li>
+</ul>
+
+<h3>What We Preserve</h3>
+<ul>
+  <li>The full mission lifecycle: decompose → parallel execute → merge → review → PR → deploy → approve</li>
+  <li>11 specialized agent identities with enterprise standards and crew preferences</li>
+  <li>Evidence-based risk detection with mandatory specialist reviews</li>
+  <li>Git workflow: integration branches, parallel worktrees, O'Brien conflict resolution</li>
+  <li>The dashboard with traces, live logs, and metrics</li>
+  <li>Slack reaction-based approval flow for plan approval and PR merge/close</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 2. SYSTEM OVERVIEW                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s2" class="page-break"><span class="section-num">2.</span> System Overview</h2>
+
+<div class="diagram">
+<pre>
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              COMMANDDECK ON NANOCLAW                                    │
+│                                                                                         │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│  │    Slack     │  │  WhatsApp   │  │  Telegram    │  │   Discord   │  │    Gmail     │  │
+│  │  (primary)   │  │ (secondary) │  │ (secondary) │  │ (secondary) │  │ (secondary) │  │
+│  └──────┬───────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  │
+│         │                 │                 │                 │                │         │
+│         └────────────┬────┴─────────────────┴────────────────┴────────────────┘         │
+│                      ▼                                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                        NANOCLAW ORCHESTRATOR (HOST)                               │   │
+│  │                                                                                   │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌───────────────────────┐ │   │
+│  │  │ Message Loop  │  │  Group Queue  │  │  Scheduler   │  │   Credential Proxy    │ │   │
+│  │  │  (2s poll)    │  │ (concurrency) │  │  (60s poll)  │  │   (port 3001)         │ │   │
+│  │  └──────┬────────┘  └──────┬────────┘  └──────┬───────┘  └───────────────────────┘ │   │
+│  │         │                  │                   │                                    │   │
+│  │  ┌──────┴──────────────────┴───────────────────┴────────────────────┐               │   │
+│  │  │                      IPC WATCHER (1s poll)                       │               │   │
+│  │  │           Filesystem-based inter-agent communication             │               │   │
+│  │  └──────────────────────────────────────────────────────────────────┘               │   │
+│  └───────────────────────────────────────────────────────────────────────────────────┘   │
+│                      │                                                                  │
+│                      ▼                                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                     COMMANDDECK MISSION LAYER (NEW)                               │   │
+│  │                                                                                   │   │
+│  │  ┌───────────┐  ┌───────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────────┐  │   │
+│  │  │  Mission   │  │   Risk    │  │ Evidence │  │    PR    │  │    Dashboard    │  │   │
+│  │  │ Lifecycle  │  │ Detection │  │  Bundle  │  │  System  │  │   + Telemetry   │  │   │
+│  │  └─────┬──────┘  └──────────┘  └──────────┘  └──────────┘  └─────────────────┘  │   │
+│  │        │                                                                          │   │
+│  │  ┌─────┴──────────────────────────────────────────────────────────────────────┐   │   │
+│  │  │                     MCP TOOLS (Dev Workflow API)                            │   │   │
+│  │  │  create_worktree │ detect_risks │ create_pr │ merge_branch │ submit_evidence│   │   │
+│  │  └────────────────────────────────────────────────────────────────────────────┘   │   │
+│  └───────────────────────────────────────────────────────────────────────────────────┘   │
+│                      │                                                                  │
+│                      ▼                                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                      DOCKER CONTAINER FLEET                                       │   │
+│  │                                                                                   │   │
+│  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐          │   │
+│  │  │  Picard   │ │   Borg    │ │ Redshirts │ │   Troi    │ │  Scotty   │   ...    │   │
+│  │  │ (planning)│ │ (backend) │ │ (frontend)│ │  (design) │ │  (arch)   │          │   │
+│  │  │           │ │           │ │           │ │           │ │           │          │   │
+│  │  │ CLAUDE.md │ │ CLAUDE.md │ │ CLAUDE.md │ │ CLAUDE.md │ │ CLAUDE.md │          │   │
+│  │  │ Agent SDK │ │ Agent SDK │ │ Agent SDK │ │ Agent SDK │ │ Agent SDK │          │   │
+│  │  │ MCP Tools │ │ MCP Tools │ │ MCP Tools │ │ MCP Tools │ │ MCP Tools │          │   │
+│  │  └───────────┘ └───────────┘ └───────────┘ └───────────┘ └───────────┘          │   │
+│  └───────────────────────────────────────────────────────────────────────────────────┘   │
+│                      │                                                                  │
+│                      ▼                                                                  │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         PERSISTENCE LAYER                                         │   │
+│  │                                                                                   │   │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │   │
+│  │  │  messages.db  │  │    app.db    │  │ telemetry.db │  │  Filesystem State    │  │   │
+│  │  │  (NanoClaw)   │  │ (CommandDeck)│  │ (CommandDeck)│  │  (missions, evidence)│  │   │
+│  │  │              │  │              │  │              │  │                      │  │   │
+│  │  │  chats       │  │  missions    │  │  traces      │  │  ~/.commanddeck/     │  │   │
+│  │  │  messages    │  │  objectives  │  │  events      │  │    projects/         │  │   │
+│  │  │  groups      │  │  threads     │  │  logs        │  │    standards/        │  │   │
+│  │  │  sessions    │  │  approvals   │  │              │  │    crew/             │  │   │
+│  │  │  tasks       │  │  channel_map │  │              │  │    playbooks/        │  │   │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────────────┘  │   │
+│  └───────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                         │
+│  ┌───────────────────────────────────────────────────────────────────────────────────┐   │
+│  │                         EXTERNAL SERVICES                                         │   │
+│  │                                                                                   │   │
+│  │  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐    │   │
+│  │  │ GitHub  │  │  Caddy   │  │  Docker   │  │ Anthropic│  │  GitHub Actions  │    │   │
+│  │  │  API    │  │ (proxy)  │  │ Registry │  │   API    │  │     (CI/CD)      │    │   │
+│  │  └─────────┘  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘    │   │
+│  └───────────────────────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 1: Full system architecture — NanoClaw substrate with CommandDeck mission layer</p>
+</div>
+
+<h3>Architectural Principles</h3>
+
+<ol>
+  <li><strong>NanoClaw is the substrate, CommandDeck is the product.</strong> NanoClaw handles container management, channel routing, scheduling, IPC, and credential management. CommandDeck adds the development-specific mission lifecycle, risk detection, evidence bundles, PR creation, and approval flows.</li>
+  <li><strong>MCP tools are the integration boundary.</strong> The mission lifecycle logic lives in the host orchestrator. Agents interact with it through custom MCP tools (create_worktree, detect_risks, submit_evidence, etc.) exposed via NanoClaw's IPC mechanism.</li>
+  <li><strong>Content is portable.</strong> Agent identities, standards, crew preferences, and playbooks are markdown files loaded via CLAUDE.md per NanoClaw group. They can be updated independently of code.</li>
+  <li><strong>Three databases, three concerns.</strong> NanoClaw's <code>messages.db</code> handles channel messages and scheduling. CommandDeck's <code>app.db</code> handles mission state. CommandDeck's <code>telemetry.db</code> handles observability. Separate failure domains.</li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 3. COMPONENT MAPPING                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s3" class="page-break"><span class="section-num">3.</span> Component Mapping: CommandDeck → NanoClaw</h2>
+
+<p>Every CommandDeck module maps to a NanoClaw equivalent, new integration code, or portable content. This table is the Rosetta Stone for the migration.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:22%">CommandDeck Module</th>
+      <th style="width:28%">Current Implementation</th>
+      <th style="width:28%">NanoClaw Target</th>
+      <th style="width:22%">Migration Type</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>server.js</code><br>Entry point</td>
+      <td>Slack Bolt + Express HTTP server (dashboard + API + health)</td>
+      <td>NanoClaw <code>src/index.ts</code> orchestrator + new <code>src/dashboard.ts</code> HTTP server</td>
+      <td><span class="hl-new">New code</span> — Dashboard/API as NanoClaw extension</td>
+    </tr>
+    <tr>
+      <td><code>lib/worker.js</code><br>Agent spawning</td>
+      <td>Raw <code>claude -p</code> subprocess with <code>--allowedTools</code> and <code>--model</code></td>
+      <td>NanoClaw <code>container-runner.ts</code> with Agent SDK <code>query()</code> inside Docker containers</td>
+      <td><span class="hl-nc">Inherited</span> — NanoClaw provides this</td>
+    </tr>
+    <tr>
+      <td><code>lib/mission.js</code><br>Mission lifecycle</td>
+      <td>Custom work loop: evaluate → execute → merge → review</td>
+      <td>New <code>src/mission.ts</code> on host + MCP tools for agent interaction</td>
+      <td><span class="hl-new">New code</span> — Core orchestration, ported logic</td>
+    </tr>
+    <tr>
+      <td><code>lib/worktree.js</code><br>Git isolation</td>
+      <td>Git worktrees per worker, SSH remote conversion</td>
+      <td>MCP tool <code>create_worktree</code> executed by host, worktree path mounted into container</td>
+      <td><span class="hl-new">New code</span> — MCP tool wrapping existing logic</td>
+    </tr>
+    <tr>
+      <td><code>lib/risk.js</code><br>Risk detection</td>
+      <td>Glob patterns on changed files → risk flags → reviewer mapping</td>
+      <td>Host-side module, invoked after evidence submission; results pushed via IPC</td>
+      <td><span class="hl-cd">Ported</span> — Logic preserved, execution context changes</td>
+    </tr>
+    <tr>
+      <td><code>lib/evidence.js</code><br>Evidence bundles</td>
+      <td>JSON bundles with validation + PR body generation</td>
+      <td>MCP tool <code>submit_evidence</code> validates and stores; PR body builder on host</td>
+      <td><span class="hl-cd">Ported</span> — Schema unchanged</td>
+    </tr>
+    <tr>
+      <td><code>lib/pr.js</code><br>PR management</td>
+      <td>gh CLI: create, update, merge, close, branch cleanup</td>
+      <td>Host-side module invoked by mission lifecycle (not by agents)</td>
+      <td><span class="hl-cd">Ported</span> — Runs on host, not in container</td>
+    </tr>
+    <tr>
+      <td><code>lib/slack.js</code><br>Slack integration</td>
+      <td>Bolt app with reaction-based approval tracking</td>
+      <td>NanoClaw Slack channel + custom approval handler on host</td>
+      <td><span class="hl-new">New code</span> — Approval flow hooks into NanoClaw channel</td>
+    </tr>
+    <tr>
+      <td><code>lib/health.js</code><br>Health patrol</td>
+      <td>Periodic check for stuck workers, test loops, thrashing</td>
+      <td>NanoClaw scheduled task (cron every 2 min) running health checks via MCP tools</td>
+      <td><span class="hl-new">New code</span> — Uses NanoClaw scheduler</td>
+    </tr>
+    <tr>
+      <td><code>lib/db.js</code><br>Application state</td>
+      <td>SQLite <code>app.db</code> with missions, objectives, threads, approvals</td>
+      <td>Same schema, accessed by host-side code (not agents)</td>
+      <td><span class="hl-cd">Ported</span> — Schema preserved</td>
+    </tr>
+    <tr>
+      <td><code>lib/telemetry.js</code><br>OTel + SSE</td>
+      <td>OTel SDK, span tree export, SSE broadcast</td>
+      <td>Host-side module, same architecture; agents emit via IPC instead of Unix socket</td>
+      <td><span class="hl-cd">Ported</span> — Emission pathway changes</td>
+    </tr>
+    <tr>
+      <td><code>agents/*.md</code><br>Agent identities</td>
+      <td>Markdown with YAML frontmatter (tools, model, identity text)</td>
+      <td>NanoClaw <code>groups/{agent}/CLAUDE.md</code> — identity text in markdown, tools via settings</td>
+      <td><span class="hl-cd">Ported</span> — Content migration, format adaptation</td>
+    </tr>
+    <tr>
+      <td><code>defaults/</code><br>Standards, prefs, playbooks</td>
+      <td>Seeded markdown files for quality, security, testing, etc.</td>
+      <td>Loaded into group CLAUDE.md or mounted as read-only shared content</td>
+      <td><span class="hl-cd">Ported</span> — Pure content</td>
+    </tr>
+    <tr>
+      <td><code>dashboard/</code><br>Web UI</td>
+      <td>Single-page HTML/CSS/JS with Chart.js</td>
+      <td>Served by new <code>src/dashboard.ts</code> HTTP server alongside NanoClaw</td>
+      <td><span class="hl-cd">Ported</span> — Frontend unchanged, API adapter needed</td>
+    </tr>
+    <tr>
+      <td>Hooks system<br>(5 hooks)</td>
+      <td>Shell scripts in <code>.claude/hooks/</code></td>
+      <td>Container-level hooks via NanoClaw's per-group <code>.claude/</code> sessions</td>
+      <td><span class="hl-cd">Ported</span> — Same hook files, different mount path</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-green">
+  <strong>Key insight:</strong> The heaviest lift is <code>mission.js</code> — the work loop, batch execution, merge logic, and review dispatch. Everything else is either inherited from NanoClaw, ported content, or straightforward integration code.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 4. CONTAINER & ISOLATION ARCHITECTURE                              -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s4" class="page-break"><span class="section-num">4.</span> Container & Isolation Architecture</h2>
+
+<p>The most significant upgrade over current CommandDeck: agents run in Docker containers with OS-level isolation, restricted filesystem mounts, and a credential proxy. No agent ever sees real API keys.</p>
+
+<div class="diagram">
+<pre>
+┌─────────────────────────── HOST PROCESS (NanoClaw Orchestrator) ────────────────────────┐
+│                                                                                         │
+│  ┌─────────────────────┐     ┌───────────────────────────────┐                          │
+│  │   Credential Proxy  │     │      Mission Lifecycle        │                          │
+│  │   (HTTP :3001)      │     │                               │                          │
+│  │                     │     │  decompose() → workLoop()     │                          │
+│  │  Real API keys live │     │  executeBatch() → merge()     │                          │
+│  │  here ONLY          │     │  review() → createPR()        │                          │
+│  └─────────┬───────────┘     └──────────────┬────────────────┘                          │
+│            │                                │                                           │
+│            │  Injects credentials           │  Spawns containers                        │
+│            │  on API calls                  │  via Docker API                            │
+│            ▼                                ▼                                            │
+│  ┌──────────────────────────────────────────────────────────────────────────────────┐    │
+│  │                           DOCKER RUNTIME                                        │    │
+│  │                                                                                  │    │
+│  │  ┌────────────────── Container: nanoclaw-picard ──────────────────┐              │    │
+│  │  │                                                                │              │    │
+│  │  │  ENV:                                                          │              │    │
+│  │  │    ANTHROPIC_BASE_URL = http://host.docker.internal:3001       │              │    │
+│  │  │    ANTHROPIC_API_KEY  = placeholder  (NOT real key)            │              │    │
+│  │  │                                                                │              │    │
+│  │  │  MOUNTS:                                                       │              │    │
+│  │  │    /workspace/group/     → groups/captain-picard/   (rw)       │              │    │
+│  │  │    /workspace/global/    → groups/global/           (ro)       │              │    │
+│  │  │    /workspace/project/   → ~/projects/{repo}        (ro)       │              │    │
+│  │  │    /workspace/worktree/  → {repo}-wt-{n}            (rw)  ◄── NEW           │    │
+│  │  │    /workspace/ipc/       → data/ipc/captain-picard/ (rw)       │              │    │
+│  │  │    /workspace/mission/   → missions/{id}/           (ro)  ◄── NEW           │    │
+│  │  │                                                                │              │    │
+│  │  │  PROCESS:                                                      │              │    │
+│  │  │    agent-runner → Claude Agent SDK query()                     │              │    │
+│  │  │    → reads CLAUDE.md (identity + standards + playbook)         │              │    │
+│  │  │    → has MCP tools: create_worktree, submit_evidence, ...      │              │    │
+│  │  │    → session resume via .claude/ mount                         │              │    │
+│  │  │                                                                │              │    │
+│  │  └────────────────────────────────────────────────────────────────┘              │    │
+│  │                                                                                  │    │
+│  │  ┌─── Container: nanoclaw-borg ──┐  ┌─── Container: nanoclaw-redshirts ──┐      │    │
+│  │  │  /workspace/group/ → borg/    │  │  /workspace/group/ → redshirts/    │      │    │
+│  │  │  /workspace/worktree/ → wt-0  │  │  /workspace/worktree/ → wt-1      │      │    │
+│  │  │  /workspace/mission/ → (ro)   │  │  /workspace/mission/ → (ro)       │      │    │
+│  │  │  Agent SDK + MCP tools        │  │  Agent SDK + MCP tools            │      │    │
+│  │  └───────────────────────────────┘  └────────────────────────────────────┘      │    │
+│  │                                                                                  │    │
+│  └──────────────────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 2: Container isolation model — each agent gets its own Docker container with restricted mounts</p>
+</div>
+
+<h3>Current vs. Target Isolation</h3>
+
+<div class="compare">
+  <div class="compare-side">
+    <p class="compare-label" style="color: var(--commanddeck);">Current CommandDeck</p>
+    <ul>
+      <li>Git worktrees for file isolation</li>
+      <li>Same OS process namespace</li>
+      <li>Env vars for API keys</li>
+      <li><code>claude -p</code> subprocess</li>
+      <li>Shared host filesystem</li>
+      <li><code>--allowedTools</code> flag for tool restriction</li>
+    </ul>
+  </div>
+  <div class="compare-side">
+    <p class="compare-label" style="color: var(--nanoclaw);">Target (NanoClaw)</p>
+    <ul>
+      <li>Docker containers for OS isolation</li>
+      <li>Separate PID/network/mount namespaces</li>
+      <li>Credential proxy (agents see placeholder keys)</li>
+      <li>Agent SDK <code>query()</code> with session resume</li>
+      <li>Explicit mount allowlist per agent</li>
+      <li>Per-group <code>settings.json</code> for tool config</li>
+    </ul>
+  </div>
+</div>
+
+<h3>New Mount: Worktree</h3>
+
+<p>The key extension to NanoClaw's mount system is the <strong>worktree mount</strong>. When a mission assigns an objective to an agent, the host:</p>
+
+<ol>
+  <li>Creates a git worktree on the host: <code>git worktree add {path} -b commanddeck/{mission}/{obj}</code></li>
+  <li>Mounts the worktree read-write into the container at <code>/workspace/worktree/</code></li>
+  <li>The agent works in <code>/workspace/worktree/</code> (not <code>/workspace/group/</code>)</li>
+  <li>On completion, the host unmounts and manages the worktree (merge, cleanup)</li>
+</ol>
+
+<p>This preserves CommandDeck's parallel-branch strategy while adding container isolation on top.</p>
+
+<h3>Container Image</h3>
+
+<p>NanoClaw's base image (<code>node:22-slim</code> + Chromium + Claude Code SDK) is extended with:</p>
+
+<ul>
+  <li><code>git</code> and <code>gh</code> CLI (for agents that interact with git within their worktree)</li>
+  <li>Language runtimes as needed per project (configurable per group)</li>
+  <li>CommandDeck MCP tools pre-installed in the agent-runner</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 5. AGENT CREW SYSTEM                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s5" class="page-break"><span class="section-num">5.</span> Agent Crew System</h2>
+
+<p>CommandDeck's Star Trek crew maps directly to NanoClaw's <strong>groups</strong> system. Each agent becomes a group with its own <code>CLAUDE.md</code>, session storage, and container configuration.</p>
+
+<div class="diagram">
+<pre>
+groups/
+├── main/                          ◄── Picard (orchestrator / main group)
+│   └── CLAUDE.md                      Identity + playbook + crew roster
+│
+├── global/                        ◄── Shared memory (read by all agents)
+│   └── CLAUDE.md                      Enterprise standards + cross-project rules
+│
+├── captain-picard/                ◄── Planning agent (also registers as main)
+│   └── CLAUDE.md                      Decomposition, phase planning, risk detection
+│
+├── scotty/                        ◄── Architecture
+│   └── CLAUDE.md                      ADRs, API contracts, tech stack decisions
+│
+├── troi/                          ◄── UX/Design
+│   └── CLAUDE.md                      Component inventory, design tokens, user flows
+│
+├── borg/                          ◄── Backend implementation
+│   └── CLAUDE.md                      APIs, business logic, data access, migrations
+│
+├── redshirts/                     ◄── Frontend implementation
+│   └── CLAUDE.md                      UI components, accessibility, responsive design
+│
+├── mr-data/                       ◄── Data specialist
+│   └── CLAUDE.md                      Schema, migrations, query optimization
+│
+├── worf/                          ◄── Security reviewer
+│   └── CLAUDE.md                      OWASP, secrets, vulnerabilities (read-only tools)
+│
+├── spock/                         ◄── QA specialist
+│   └── CLAUDE.md                      Tests, edge cases, dependency audit, accessibility
+│
+├── geordi/                        ◄── DevOps/Infrastructure
+│   └── CLAUDE.md                      Dockerfiles, CI/CD, deployment, monitoring
+│
+├── guinan/                        ◄── Documentation
+│   └── CLAUDE.md                      API docs, runbooks, architecture docs
+│
+└── obrien/                        ◄── Merge conflict resolution
+    └── CLAUDE.md                      Stateless — reads both sides' briefings
+</pre>
+<p class="diagram-caption">Figure 3: NanoClaw groups directory — each CommandDeck agent becomes a group</p>
+</div>
+
+<h3>Group CLAUDE.md Structure</h3>
+
+<p>Each agent's <code>CLAUDE.md</code> combines NanoClaw group conventions with CommandDeck agent identity:</p>
+
+<pre>
+# Agent: Borg — Backend Engineer
+
+## Identity
+You are Borg, CommandDeck's backend implementation specialist.
+You write clean, testable server-side code. You never leave a task
+without an evidence bundle and passing tests.
+
+## Standards
+[Loaded from ~/.commanddeck/standards/backend.md]
+[Loaded from ~/.commanddeck/standards/code-quality.md]
+[Loaded from ~/.commanddeck/standards/testing.md]
+[Loaded from ~/.commanddeck/standards/security.md]
+
+## Crew Preferences
+[Loaded from ~/.commanddeck/crew/borg-preferences.md]
+
+## Project Directives
+[Loaded from ~/.commanddeck/projects/{repo}/directives/*.md]
+
+## MCP Tools Available
+- create_worktree: Request a git worktree for your objective
+- submit_evidence: Submit your evidence bundle when done
+- send_briefing: Share findings with downstream agents
+- read_briefing: Read upstream agent output
+- report_status: Update your objective status
+
+## Working Directory
+Your code workspace is /workspace/worktree/ (a git branch).
+Commit your work there. Do NOT modify /workspace/group/ for code.
+
+## Evidence Bundle Contract
+When you complete your objective, you MUST call submit_evidence with:
+- objective_id, agent, summary
+- files_changed: {created, modified, deleted}
+- commands_run (what you executed)
+- tests: {added, result, coverage}
+</pre>
+
+<h3>Agent Capabilities Matrix</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Agent</th>
+      <th>Role</th>
+      <th>Container Mounts</th>
+      <th>Tool Profile</th>
+      <th>Model</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Picard</strong></td>
+      <td>Mission commander</td>
+      <td>project (ro), mission (rw), global (ro)</td>
+      <td>Read, Write, Glob, Grep + mission MCP tools</td>
+      <td>opus</td>
+    </tr>
+    <tr>
+      <td><strong>Scotty</strong></td>
+      <td>Architecture</td>
+      <td>project (ro), worktree (rw), mission (ro)</td>
+      <td>Read, Grep, Glob, Write + briefing tools</td>
+      <td>opus</td>
+    </tr>
+    <tr>
+      <td><strong>Troi</strong></td>
+      <td>UX/Design</td>
+      <td>worktree (rw), mission (ro), browser</td>
+      <td>Full + browser automation</td>
+      <td>opus</td>
+    </tr>
+    <tr>
+      <td><strong>Borg</strong></td>
+      <td>Backend</td>
+      <td>worktree (rw), mission (ro)</td>
+      <td>Full (Read, Write, Edit, Bash, Glob, Grep)</td>
+      <td>sonnet</td>
+    </tr>
+    <tr>
+      <td><strong>Redshirts</strong></td>
+      <td>Frontend</td>
+      <td>worktree (rw), mission (ro), browser</td>
+      <td>Full + browser automation</td>
+      <td>opus</td>
+    </tr>
+    <tr>
+      <td><strong>Mr. Data</strong></td>
+      <td>Data</td>
+      <td>worktree (rw), mission (ro)</td>
+      <td>Full</td>
+      <td>sonnet</td>
+    </tr>
+    <tr>
+      <td><strong>Worf</strong></td>
+      <td>Security review</td>
+      <td>worktree (ro), mission (ro)</td>
+      <td>Read, Grep, Glob (no Write, Bash read-only)</td>
+      <td>sonnet</td>
+    </tr>
+    <tr>
+      <td><strong>Spock</strong></td>
+      <td>QA</td>
+      <td>worktree (rw), mission (ro)</td>
+      <td>Full</td>
+      <td>sonnet</td>
+    </tr>
+    <tr>
+      <td><strong>Geordi</strong></td>
+      <td>DevOps</td>
+      <td>worktree (rw), mission (ro)</td>
+      <td>Full</td>
+      <td>sonnet</td>
+    </tr>
+    <tr>
+      <td><strong>Guinan</strong></td>
+      <td>Documentation</td>
+      <td>worktree (rw), mission (ro)</td>
+      <td>Full</td>
+      <td>opus</td>
+    </tr>
+    <tr>
+      <td><strong>O'Brien</strong></td>
+      <td>Merge resolution</td>
+      <td>project (rw), mission (ro)</td>
+      <td>Full (operates on main repo, not worktree)</td>
+      <td>sonnet</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 6. MISSION LIFECYCLE                                               -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s6" class="page-break"><span class="section-num">6.</span> Mission Lifecycle</h2>
+
+<p>The mission lifecycle is CommandDeck's core value — the full journey from a user's message to a deployed, approved PR. On NanoClaw, the lifecycle runs on the host (not inside a container) and coordinates containerized agents through IPC and MCP tools.</p>
+
+<div class="diagram">
+<pre>
+                    ┌──────────────────────────────────────────┐
+                    │            USER MESSAGE                  │
+                    │  "Add user authentication with OAuth"    │
+                    └─────────────────┬────────────────────────┘
+                                      │
+                                      ▼
+                    ┌──────────────────────────────────────────┐
+                    │         1. CLASSIFY MESSAGE               │
+                    │                                          │
+                    │  NanoClaw routes to main group (Picard)  │
+                    │  Picard classifies: mission / question / │
+                    │  follow-up / project-create / onboard    │
+                    └─────────────────┬────────────────────────┘
+                                      │ mission
+                                      ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        2. DECOMPOSE (Planning Phase)                     │
+│                                                                          │
+│  ┌──────────────────┐    Picard container spawned with:                  │
+│  │  Captain Picard   │    - Project source (read-only)                   │
+│  │  (main group)     │    - ADRs, standards, playbook                    │
+│  │                   │    - Git history context                          │
+│  │  Outputs:         │                                                   │
+│  │  • mission.json   │◄── Phased work_items with dependencies,           │
+│  │  • captains-log   │    assignments, parallel_groups, risk_flags       │
+│  └──────────────────┘                                                    │
+│                                                                          │
+│  Guard: max 10 objectives per mission                                    │
+└─────────────────────────────────┬────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    3. PLAN APPROVAL (Slack Reaction)                      │
+│                                                                          │
+│  Mission plan posted to Slack thread with:                               │
+│  • Phase breakdown                                                       │
+│  • Objective list with risk flags                                        │
+│  • Agent assignments                                                     │
+│                                                                          │
+│  User reacts: ✅ approve │ ❌ reject │ ✏️ revise                         │
+│  Tracked in approvals table (message_ts → mission_id)                    │
+└─────────────────────────────────┬────────────────────────────────────────┘
+                                  │ ✅ approved
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       4. WORK LOOP (Execution Phase)                     │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────┐         │
+│  │                    evaluateReadiness()                       │         │
+│  │  For each pending objective:                                 │         │
+│  │    - All depends_on done? → status: queued                  │         │
+│  │    - Any depends_on failed? → status: upstream_failed       │         │
+│  │    - Dependencies still pending? → wait                     │         │
+│  └─────────────────────────┬───────────────────────────────────┘         │
+│                            │                                             │
+│                            ▼                                             │
+│  ┌─────────────────────────────────────────────────────────────┐         │
+│  │                    executeBatch()                            │         │
+│  │                                                              │         │
+│  │  Up to max_workers (default 3) queued objectives:           │         │
+│  │                                                              │         │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐                     │         │
+│  │  │ Worker 0│  │ Worker 1│  │ Worker 2│  ← Parallel          │         │
+│  │  │  Borg   │  │Redshirts│  │ Scotty  │    containers        │         │
+│  │  │  wt-0   │  │  wt-1   │  │  wt-2   │    with worktrees    │         │
+│  │  └────┬────┘  └────┬────┘  └────┬────┘                     │         │
+│  │       │            │            │                            │         │
+│  │       ▼            ▼            ▼                            │         │
+│  │  evidence-001 evidence-002 evidence-003                     │         │
+│  │  + risk detect + risk detect + risk detect                  │         │
+│  └─────────────────────────┬───────────────────────────────────┘         │
+│                            │                                             │
+│                            ▼                                             │
+│  ┌─────────────────────────────────────────────────────────────┐         │
+│  │                    mergeCompleted()                          │         │
+│  │                                                              │         │
+│  │  For each done objective with unmerged branch:              │         │
+│  │    git merge commanddeck/{mission}/{obj} --no-edit          │         │
+│  │                                                              │         │
+│  │  Conflict? → Invoke O'Brien container for resolution        │         │
+│  │  O'Brien reads both sides' briefings, resolves, commits     │         │
+│  └─────────────────────────┬───────────────────────────────────┘         │
+│                            │                                             │
+│                            ▼                                             │
+│  ┌─────────────────────────────────────────────────────────────┐         │
+│  │                  runMandatoryReviews()                       │         │
+│  │                                                              │         │
+│  │  For each done objective with risk_flags:                   │         │
+│  │    auth/security → Worf container (security review)         │         │
+│  │    ci/infra/deploy → Geordi container (infra review)        │         │
+│  │    dependency/a11y → Spock container (QA review)            │         │
+│  │    migration → human (blocks until Slack approval)          │         │
+│  └─────────────────────────┬───────────────────────────────────┘         │
+│                            │                                             │
+│                            ▼                                             │
+│                  Loop until all objectives done                          │
+└─────────────────────────────────┬────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       5. PR CREATION                                     │
+│                                                                          │
+│  • Push integration branch to origin                                     │
+│  • gh pr create with evidence body (Slack metadata in HTML comments)     │
+│  • Post PR URL to Slack thread                                           │
+│  • Track in approvals table (message_ts → pr_number)                     │
+└─────────────────────────────────┬────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    6. DEPLOY PREVIEW (GitHub Actions)                     │
+│                                                                          │
+│  GH Actions workflow:                                                    │
+│  • Build container image from PR branch                                  │
+│  • Push to GHCR (ghcr.io/{org}/{repo}:pr-{number})                      │
+│  • Deploy preview at {repo}-pr-{number}.{domain}                         │
+│  • Add Caddy reverse proxy entry                                         │
+│  • Post UAT URL to Slack thread (reads metadata from PR body)            │
+└─────────────────────────────────┬────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                    7. APPROVAL (Slack Reaction)                           │
+│                                                                          │
+│  User reviews preview, reacts in Slack:                                  │
+│    ✅ → Merge PR, cleanup branches, destroy preview env                  │
+│    ❌ → Close PR, cleanup branches, destroy preview env                  │
+│    💬 → Follow-up mission (iterate on open PR)                           │
+│                                                                          │
+│  Tracked by approvals table: message_ts → action                         │
+└──────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 4: Complete mission lifecycle — from user message to production deployment</p>
+</div>
+
+<h3>State Machine</h3>
+
+<div class="diagram">
+<pre>
+  ┌──────────┐    decompose()    ┌───────────────────┐
+  │ planning │ ─────────────────►│ pending_approval   │
+  └──────────┘                   └────────┬──────────┘
+                                          │ ✅ reaction
+                                          ▼
+                                 ┌────────────────────┐ ◄─── workLoop()
+                                 │   in_progress      │      iterates
+                                 └────────┬───────────┘
+                                          │
+                              ┌───────────┼───────────┐
+                              │           │           │
+                              ▼           ▼           ▼
+                         ┌─────────┐ ┌─────────┐ ┌─────────┐
+                         │ merging │ │  failed  │ │ paused  │
+                         └────┬────┘ └─────────┘ └─────────┘
+                              │
+                              ▼
+                         ┌─────────┐    ✅ merge     ┌───────────┐
+                         │  review │ ───────────────►│ completed │
+                         └────┬────┘                 └───────────┘
+                              │
+                              │ ❌ close
+                              ▼
+                         ┌─────────┐
+                         │ aborted │
+                         └─────────┘
+</pre>
+<p class="diagram-caption">Figure 5: Mission state machine</p>
+</div>
+
+<h3>Safety Guards</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Guard</th>
+      <th>Limit</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Max objectives</td><td>10 per mission</td><td>Reject over-decomposition</td></tr>
+    <tr><td>Max workers</td><td>3 parallel (configurable)</td><td>Queue excess</td></tr>
+    <tr><td>Max sessions</td><td>50 per mission</td><td>Abort mission</td></tr>
+    <tr><td>Max elapsed time</td><td>6 hours (configurable)</td><td>Abort mission</td></tr>
+    <tr><td>Worker timeout</td><td>45 minutes per objective</td><td>Kill worker</td></tr>
+    <tr><td>Container concurrency</td><td>5 total (NanoClaw)</td><td>Queue in GroupQueue</td></tr>
+    <tr><td>Health patrol</td><td>Every 2 minutes</td><td>Alert/restart stuck workers</td></tr>
+  </tbody>
+</table>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 7. GIT WORKFLOW & BRANCH STRATEGY                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s7" class="page-break"><span class="section-num">7.</span> Git Workflow & Branch Strategy</h2>
+
+<div class="diagram">
+<pre>
+main ─────────────────────────────────────────────────────────────────────────►
+  │
+  │  Mission M-001 created
+  │
+  ├──── commanddeck/M-001/integration ─────────────────────────────────────►
+  │         │                                        ▲  ▲  ▲
+  │         │                                        │  │  │
+  │         ├──── commanddeck/M-001/obj-001 ─────────┘  │  │  (Borg: backend)
+  │         │     [worktree wt-0]                        │  │
+  │         │                                            │  │
+  │         ├──── commanddeck/M-001/obj-002 ─────────────┘  │  (Redshirts: frontend)
+  │         │     [worktree wt-1]                            │
+  │         │                                                │
+  │         └──── commanddeck/M-001/obj-003 ─────────────────┘  (Geordi: infra)
+  │               [worktree wt-2]
+  │
+  │  After all merged into integration:
+  │
+  │  gh pr create (integration → main)
+  │
+  │  ✅ Slack approval → merge → cleanup all branches
+  │
+  ├──── (integration merged) ─────────────────────────────────────────────────►
+</pre>
+<p class="diagram-caption">Figure 6: Branch strategy — parallel objective branches merge into integration, then PR to main</p>
+</div>
+
+<h3>Worktree Lifecycle in NanoClaw Containers</h3>
+
+<div class="diagram">
+<pre>
+HOST                                          CONTAINER
+────                                          ─────────
+
+1. Mission assigns obj-001 to Borg
+   │
+   ▼
+2. Host creates worktree:
+   git worktree add ~/projects/myapp-wt-0
+     -b commanddeck/M-001/obj-001
+   │
+   ▼
+3. Host spawns container with mount:
+   docker run ...
+     -v ~/projects/myapp-wt-0:/workspace/worktree:rw
+   │                                          ┌─────────────────────────────┐
+   │                                          │  Agent works in             │
+   │                                          │  /workspace/worktree/       │
+   │                                          │                             │
+   │                                          │  git add, git commit        │
+   │                                          │  npm test, npm run lint     │
+   │                                          │  → submit_evidence()        │
+   │                                          └──────────────┬──────────────┘
+   │                                                         │
+   ▼                                                         ▼
+4. Container exits, evidence submitted via IPC
+   │
+   ▼
+5. Host detects risk flags from changed files:
+   detectRiskFlags(evidence.files_changed)
+   │
+   ▼
+6. Host merges branch into integration:
+   git checkout commanddeck/M-001/integration
+   git merge commanddeck/M-001/obj-001 --no-edit
+   │
+   ▼
+7. Host removes worktree:
+   git worktree remove ~/projects/myapp-wt-0
+</pre>
+<p class="diagram-caption">Figure 7: Worktree lifecycle — host manages git, container works in mounted worktree</p>
+</div>
+
+<h3>Follow-Up Missions</h3>
+
+<p>When a user requests changes to an open PR (via Slack thread), a follow-up mission branches from the <strong>integration branch</strong> (not main). This allows iterative improvement without creating a new PR:</p>
+
+<pre>
+integration ──────────────────────────────────────────────────────►
+  │                              ▲  ▲
+  │  Follow-up M-002             │  │
+  │                              │  │
+  ├── commanddeck/M-002/obj-010 ─┘  │  (new objective)
+  │                                  │
+  └── commanddeck/M-002/obj-011 ────┘  (new objective)
+
+  → PR body updated with new evidence
+  → Same PR, same preview URL, same approval flow
+</pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 8. INTER-AGENT COMMUNICATION                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s8" class="page-break"><span class="section-num">8.</span> Inter-Agent Communication</h2>
+
+<p>NanoClaw provides filesystem-based IPC. CommandDeck extends this with <strong>briefing files</strong> — structured JSON that downstream agents read from upstream agents — and <strong>mission state</strong> — a shared read-only view of the mission's current state.</p>
+
+<div class="diagram">
+<pre>
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    INTER-AGENT COMMUNICATION CHANNELS                   │
+│                                                                         │
+│  ┌─────────── NanoClaw IPC (filesystem) ───────────┐                   │
+│  │                                                   │                   │
+│  │  data/ipc/{group}/                                │                   │
+│  │    messages/   → Send messages to channels        │                   │
+│  │    tasks/      → Schedule recurring tasks         │                   │
+│  │    input/      → Receive follow-up prompts        │                   │
+│  │                                                   │                   │
+│  └───────────────────────────────────────────────────┘                   │
+│                                                                         │
+│  ┌─────── CommandDeck Briefings (filesystem, NEW) ──┐                   │
+│  │                                                   │                   │
+│  │  missions/{id}/briefings/                         │                   │
+│  │    scotty-output.json    → Architecture decisions │                   │
+│  │    troi-design-spec.json → Design specifications  │                   │
+│  │    worf-review.json      → Security findings      │                   │
+│  │    spock-report.json     → QA report              │                   │
+│  │    geordi-output.json    → Infra decisions        │                   │
+│  │    guinan-docs.json      → Documentation plan     │                   │
+│  │                                                   │                   │
+│  │  Mounted read-only at /workspace/mission/briefings│                   │
+│  │  Agents read upstream briefings via MCP tool      │                   │
+│  └───────────────────────────────────────────────────┘                   │
+│                                                                         │
+│  ┌─────── CommandDeck Mission State (read-only) ────┐                   │
+│  │                                                   │                   │
+│  │  missions/{id}/                                   │                   │
+│  │    mission.json         → Objectives, phases      │                   │
+│  │    captains-log.md      → Commander's log         │                   │
+│  │    artifacts/           → Evidence bundles         │                   │
+│  │                                                   │                   │
+│  │  Mounted read-only at /workspace/mission/         │                   │
+│  │  Agents see full mission context                  │                   │
+│  └───────────────────────────────────────────────────┘                   │
+│                                                                         │
+│  ┌─────── MCP Tools (request-response, NEW) ────────┐                   │
+│  │                                                   │                   │
+│  │  submit_evidence  → Agent → Host (validates)      │                   │
+│  │  send_briefing    → Agent → Host (stores)         │                   │
+│  │  read_briefing    → Agent ← Host (reads)          │                   │
+│  │  report_status    → Agent → Host (updates state)  │                   │
+│  │  create_worktree  → Agent → Host (manages git)    │                   │
+│  │                                                   │                   │
+│  │  Implemented via IPC JSON files processed by host │                   │
+│  └───────────────────────────────────────────────────┘                   │
+└─────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 8: Three communication channels — NanoClaw IPC, CommandDeck briefings, and MCP tools</p>
+</div>
+
+<h3>Communication Flow Example</h3>
+
+<p>Scotty (architecture) completes first, Borg and Redshirts read his briefing:</p>
+
+<div class="diagram">
+<pre>
+  Phase 1                          Phase 2
+  ───────                          ───────
+  ┌─────────┐                      ┌─────────┐
+  │ Scotty  │──writes──►           │  Borg   │──reads──► scotty-output.json
+  │  (arch) │          │           │(backend)│
+  └─────────┘          │           └─────────┘
+                       │
+        scotty-output.json         ┌──────────┐
+        {                          │Redshirts │──reads──► scotty-output.json
+          "api_contracts": [...],  │(frontend)│           troi-design-spec.json
+          "data_models": [...],    └──────────┘
+          "tech_stack": {...}
+        }                          ┌─────────┐
+                                   │  Troi   │──writes──► troi-design-spec.json
+  ┌─────────┐                      │ (design)│
+  │  Troi   │──writes──►           └─────────┘
+  │ (design)│          │
+  └─────────┘          │
+                       │
+        troi-design-spec.json
+        {
+          "components": [...],
+          "design_tokens": {...},
+          "user_flows": [...]
+        }
+</pre>
+<p class="diagram-caption">Figure 9: Briefing flow — Phase 1 agents write, Phase 2 agents read</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 9. RISK DETECTION & MANDATORY REVIEWS                              -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s9" class="page-break"><span class="section-num">9.</span> Risk Detection & Mandatory Reviews</h2>
+
+<p>Risk detection is <strong>evidence-based</strong>: it runs on actual files changed (from the evidence bundle), not on keywords in the task description. This prevents false positives that plagued early versions.</p>
+
+<h3>Risk Detection Pipeline</h3>
+
+<div class="diagram">
+<pre>
+  Agent completes objective
+         │
+         ▼
+  ┌──────────────────────────┐
+  │  submit_evidence()       │  Agent submits evidence bundle
+  │  {                       │  via MCP tool → IPC → host
+  │    files_changed: {      │
+  │      created: [          │
+  │        "src/auth/jwt.ts",│
+  │        "src/auth/oauth.ts│
+  │      ],                  │
+  │      modified: [         │
+  │        "src/middleware.ts"│
+  │      ]                   │
+  │    }                     │
+  │  }                       │
+  └────────────┬─────────────┘
+               │
+               ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  detectRiskFlags(evidence.files_changed)     (HOST-SIDE)        │
+  │                                                                  │
+  │  Pattern matching:                                               │
+  │    "src/auth/jwt.ts"    matches  **/auth/**   → flag: auth      │
+  │    "src/auth/oauth.ts"  matches  **/auth/**   → flag: auth      │
+  │    "src/middleware.ts"  matches  **/middleware/auth* → flag: auth│
+  │                                                                  │
+  │  Result: risk_flags = ['auth']                                   │
+  └────────────┬─────────────────────────────────────────────────────┘
+               │
+               ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  Merge with Picard's initial flags (union, dedup)               │
+  │                                                                  │
+  │  Picard flagged: ['auth', 'security']                           │
+  │  Evidence detected: ['auth']                                     │
+  │  Final: ['auth', 'security']                                     │
+  └────────────┬─────────────────────────────────────────────────────┘
+               │
+               ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  getMandatoryReviewers(['auth', 'security'])                     │
+  │                                                                  │
+  │  auth     → worf                                                 │
+  │  security → worf                                                 │
+  │                                                                  │
+  │  Unique reviewers: [worf]                                        │
+  └────────────┬─────────────────────────────────────────────────────┘
+               │
+               ▼
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  Spawn Worf container (security review)                          │
+  │                                                                  │
+  │  Worf reads:                                                     │
+  │    - Changed files (worktree mounted read-only)                  │
+  │    - Evidence bundle                                             │
+  │    - Agent briefing                                              │
+  │                                                                  │
+  │  Worf writes: worf-review.json                                   │
+  │    { "findings": [...], "severity": "medium", "approved": true } │
+  └──────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 10: Risk detection pipeline — evidence-based, not speculative</p>
+</div>
+
+<h3>Risk Flag → Reviewer Mapping</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Risk Flag</th>
+      <th>File Patterns</th>
+      <th>Mandatory Reviewer</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>auth</td><td><code>**/auth/**</code>, <code>**/security/**</code>, <code>**/middleware/auth*</code></td><td>Worf (security)</td></tr>
+    <tr><td>security</td><td>(same as auth)</td><td>Worf (security)</td></tr>
+    <tr><td>ci-workflow</td><td><code>.github/workflows/**</code></td><td>Geordi (infra)</td></tr>
+    <tr><td>infra</td><td><code>infra/**</code>, <code>terraform/**</code>, <code>Dockerfile</code>, <code>docker-compose*.yml</code></td><td>Geordi (infra)</td></tr>
+    <tr><td>deploy</td><td><code>deploy/**</code></td><td>Geordi (infra)</td></tr>
+    <tr><td>migration</td><td><code>db/migrate/**</code>, <code>prisma/migrations/**</code>, <code>migrations/**</code></td><td>Human (blocks)</td></tr>
+    <tr><td>dependency</td><td><code>package.json</code>, <code>*-lock.*</code>, <code>Gemfile</code>, <code>requirements.txt</code>, <code>go.mod</code></td><td>Spock (QA)</td></tr>
+    <tr><td>accessibility</td><td><code>**/a11y/**</code>, <code>**/accessibility/**</code></td><td>Spock (QA)</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>Design decision:</strong> Risk patterns are configurable per-project via <code>config.json:high_risk_patterns</code>. Projects with HIPAA compliance can add <code>"phi": ["**/patient/**", "**/medical/**"]</code> and map it to a compliance reviewer.
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 10. MCP TOOLS                                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s10" class="page-break"><span class="section-num">10.</span> MCP Tools: The Development Workflow API</h2>
+
+<p>MCP (Model Context Protocol) tools are the bridge between containerized agents and CommandDeck's host-side orchestration. They're implemented as IPC JSON files processed by the host — agents call them like any other tool, but execution happens outside the container.</p>
+
+<h3>Tool Inventory</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:24%">Tool</th>
+      <th style="width:40%">Description</th>
+      <th style="width:18%">Called By</th>
+      <th style="width:18%">Host Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>create_worktree</code></td>
+      <td>Request a git worktree for an objective. Returns mount path.</td>
+      <td>Mission lifecycle (host-initiated)</td>
+      <td><code>git worktree add</code>, mount into container</td>
+    </tr>
+    <tr>
+      <td><code>submit_evidence</code></td>
+      <td>Submit evidence bundle (files_changed, tests, commands_run). Validates required fields.</td>
+      <td>All implementation agents</td>
+      <td>Validate schema, write to artifacts/, run risk detection</td>
+    </tr>
+    <tr>
+      <td><code>send_briefing</code></td>
+      <td>Write a briefing JSON for downstream agents to read.</td>
+      <td>Scotty, Troi, specialists</td>
+      <td>Write to missions/{id}/briefings/</td>
+    </tr>
+    <tr>
+      <td><code>read_briefing</code></td>
+      <td>Read an upstream agent's briefing output.</td>
+      <td>All agents</td>
+      <td>Read from mounted mission dir (or IPC response)</td>
+    </tr>
+    <tr>
+      <td><code>report_status</code></td>
+      <td>Update objective status (in_progress, done, failed) with optional message.</td>
+      <td>All agents</td>
+      <td>Update app.db objectives table, emit telemetry event</td>
+    </tr>
+    <tr>
+      <td><code>request_review</code></td>
+      <td>Request a specialist review of completed work.</td>
+      <td>Host (after risk detection)</td>
+      <td>Spawn reviewer container with read-only worktree</td>
+    </tr>
+    <tr>
+      <td><code>read_mission</code></td>
+      <td>Get current mission state: objectives, statuses, dependencies.</td>
+      <td>Picard, any agent</td>
+      <td>Query app.db, return JSON</td>
+    </tr>
+    <tr>
+      <td><code>emit_telemetry</code></td>
+      <td>Emit a telemetry event (span, metric, log) to the observability layer.</td>
+      <td>All agents</td>
+      <td>Write to telemetry.db</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>NanoClaw Built-in Tools (Also Available)</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Tool</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>send_message</code></td><td>Send a message to any channel (Slack, WhatsApp, etc.)</td></tr>
+    <tr><td><code>schedule_task</code></td><td>Schedule a cron/interval/one-shot task</td></tr>
+    <tr><td><code>pause_task</code></td><td>Pause an active scheduled task</td></tr>
+    <tr><td><code>resume_task</code></td><td>Resume a paused task</td></tr>
+    <tr><td><code>cancel_task</code></td><td>Cancel and delete a task</td></tr>
+    <tr><td><code>list_tasks</code></td><td>List all scheduled tasks</td></tr>
+    <tr><td><code>register_group</code></td><td>Register a new agent group (main only)</td></tr>
+    <tr><td><code>refresh_groups</code></td><td>Sync group metadata (main only)</td></tr>
+  </tbody>
+</table>
+
+<h3>IPC Implementation</h3>
+
+<div class="diagram">
+<pre>
+CONTAINER (Agent)                          HOST (NanoClaw + CommandDeck)
+─────────────────                          ────────────────────────────
+
+Agent calls submit_evidence()
+         │
+         ▼
+Writes JSON to /workspace/ipc/
+  {group}/tasks/submit-evidence-{uuid}.json
+  {                                        IPC Watcher (1s poll)
+    "type": "commanddeck_tool",                    │
+    "tool": "submit_evidence",                     │ Reads JSON file
+    "payload": {                                   │
+      "objective_id": "obj-001",           ────────┤
+      "agent": "borg",                            │
+      "summary": "...",                            ▼
+      "files_changed": {...},              processCommandDeckTool()
+      "tests": {...}                               │
+    }                                              ▼
+  }                                        evidence.validate(payload)
+                                                   │
+                                           Write artifacts/evidence-obj-001.json
+                                                   │
+                                           detectRiskFlags(files_changed)
+                                                   │
+                                           Update objectives table
+                                                   │
+                                           Delete IPC file (or → errors/)
+</pre>
+<p class="diagram-caption">Figure 11: MCP tool execution flow via filesystem IPC</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 11. CHANNEL ARCHITECTURE                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s11" class="page-break"><span class="section-num">11.</span> Channel Architecture</h2>
+
+<p>NanoClaw's multi-channel system gives CommandDeck access to Slack (primary), WhatsApp, Telegram, Discord, and Gmail — all through a unified interface. Slack remains the primary channel for mission control and approval flows.</p>
+
+<div class="diagram">
+<pre>
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       CHANNEL LAYER                                      │
+│                                                                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐ │
+│  │    Slack      │  │  WhatsApp    │  │  Telegram    │  │  Discord    │ │
+│  │  (primary)    │  │              │  │              │  │             │ │
+│  │              │  │              │  │              │  │             │ │
+│  │  Mission      │  │  Notifications│ │  Notifications│ │  Notifications│
+│  │  control,     │  │  & status    │  │  & status    │  │  & status   │ │
+│  │  approvals,   │  │  updates     │  │  updates     │  │  updates    │ │
+│  │  threads,     │  │              │  │              │  │             │ │
+│  │  reactions     │  │  Future:     │  │  Future:     │  │  Future:    │ │
+│  │              │  │  mission      │  │  mission     │  │  mission    │ │
+│  │  JID format: │  │  triggers    │  │  triggers    │  │  triggers   │ │
+│  │  slack:{id}   │  │              │  │              │  │             │ │
+│  │              │  │  JID format: │  │  JID format: │  │  JID format:│ │
+│  │              │  │  {phone}@    │  │  tg:{chatId} │  │  dc:{s}:{c} │ │
+│  │              │  │  g.us        │  │              │  │             │ │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬──────┘ │
+│         │                 │                 │                 │         │
+│         └────────┬────────┴────────┬────────┴────────┬────────┘         │
+│                  │                 │                 │                   │
+│                  ▼                 ▼                 ▼                   │
+│         ┌───────────────────────────────────────────────────────┐       │
+│         │              Channel Registry                         │       │
+│         │                                                       │       │
+│         │  registerChannel(name, factory)                        │       │
+│         │  ─ factory returns null if credentials missing         │       │
+│         │  ─ Channel interface: connect, sendMessage, ownsJid   │       │
+│         └───────────────────────┬───────────────────────────────┘       │
+│                                 │                                       │
+│                                 ▼                                       │
+│         ┌───────────────────────────────────────────────────────┐       │
+│         │              Message Router                            │       │
+│         │                                                       │       │
+│         │  formatMessages() → XML prompt                        │       │
+│         │  findChannel(jid) → correct channel                   │       │
+│         │  formatOutbound() → channel-specific format            │       │
+│         └───────────────────────────────────────────────────────┘       │
+└──────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 12: Multi-channel architecture — unified interface, channel-specific behavior</p>
+</div>
+
+<h3>Slack as Primary Channel</h3>
+
+<p>While NanoClaw treats all channels equally, CommandDeck extends Slack with approval flows:</p>
+
+<ul>
+  <li><strong>Mission trigger:</strong> Messages in per-project channels (e.g., <code>#weather-aggregator</code>) trigger missions</li>
+  <li><strong>Plan approval:</strong> Picard posts plan to Slack thread; user reacts with emoji to approve/reject</li>
+  <li><strong>Status updates:</strong> Objective progress posted to thread as agents complete work</li>
+  <li><strong>PR approval:</strong> PR URL posted to thread; reaction-based merge/close/iterate</li>
+  <li><strong>UAT link:</strong> GH Actions deploys preview and posts URL back to Slack thread (reads metadata from PR body)</li>
+  <li><strong>Meta-channel:</strong> <code>#command-deck</code> for project creation, onboarding, global commands</li>
+</ul>
+
+<h3>Secondary Channels</h3>
+
+<p>Non-Slack channels get notification-level access:</p>
+<ul>
+  <li>Mission started/completed/failed notifications</li>
+  <li>PR created/merged/closed notifications</li>
+  <li>Status queries ("what's the status of mission M-001?")</li>
+  <li>Future: full mission trigger and approval flows on any channel</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 12. SECURITY MODEL                                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s12" class="page-break"><span class="section-num">12.</span> Security Model</h2>
+
+<h3>Trust Boundaries</h3>
+
+<div class="diagram">
+<pre>
+┌────────────────────────────────────────────────────────────────────┐
+│                    TRUST BOUNDARY: HOST                            │
+│                                                                    │
+│  ┌────────────────────┐  ┌────────────────────────────────────┐   │
+│  │  TRUSTED           │  │  TRUSTED                           │   │
+│  │                    │  │                                    │   │
+│  │  Credential Proxy  │  │  Mission Lifecycle                 │   │
+│  │  (real API keys)   │  │  (git ops, PR creation,            │   │
+│  │                    │  │   risk detection, approvals)       │   │
+│  │  .env file         │  │                                    │   │
+│  │  GH_TOKEN          │  │  app.db, telemetry.db              │   │
+│  │  SLACK_*_TOKEN     │  │  (full read/write access)          │   │
+│  └────────────────────┘  └────────────────────────────────────┘   │
+│                                                                    │
+│  ═══════════════════ CONTAINER BOUNDARY ════════════════════════   │
+│                                                                    │
+│  ┌────────────────────────────────────────────────────────────┐   │
+│  │  SANDBOXED (per container)                                 │   │
+│  │                                                            │   │
+│  │  • Placeholder API key (ANTHROPIC_API_KEY=placeholder)     │   │
+│  │  • No access to .env, SSH keys, credentials                │   │
+│  │  • Read-only project source (except worktree)              │   │
+│  │  • Isolated filesystem (only explicit mounts)              │   │
+│  │  • Non-root user (uid 1000)                                │   │
+│  │  • Ephemeral container (--rm on exit)                      │   │
+│  │  • IPC scoped to own group directory                       │   │
+│  └────────────────────────────────────────────────────────────┘   │
+│                                                                    │
+│  ═══════════════════ NETWORK BOUNDARY ══════════════════════════   │
+│                                                                    │
+│  ┌────────────────────────────────────────────────────────────┐   │
+│  │  UNTRUSTED                                                 │   │
+│  │                                                            │   │
+│  │  • User messages from Slack/WhatsApp/Telegram              │   │
+│  │  • Prompt injection attempts in messages                   │   │
+│  │  • External API responses                                  │   │
+│  └────────────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 13: Three-layer trust model — host, container, network</p>
+</div>
+
+<h3>Security Controls</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:25%">Control</th>
+      <th style="width:35%">Implementation</th>
+      <th style="width:40%">What It Prevents</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Credential proxy</td>
+      <td>HTTP proxy on :3001 injects real keys; containers see placeholders</td>
+      <td>API key theft via container escape, log exfiltration, env inspection</td>
+    </tr>
+    <tr>
+      <td>Mount allowlist</td>
+      <td><code>~/.config/nanoclaw/mount-allowlist.json</code> (never mounted into containers)</td>
+      <td>Filesystem traversal, reading host secrets, modifying host config</td>
+    </tr>
+    <tr>
+      <td>Blocked patterns</td>
+      <td><code>.ssh</code>, <code>.gnupg</code>, <code>.aws</code>, <code>.env</code>, <code>credentials</code>, etc.</td>
+      <td>Accidental secret mount</td>
+    </tr>
+    <tr>
+      <td>.env shadow</td>
+      <td>Project root's <code>.env</code> shadowed with <code>/dev/null</code> in mount</td>
+      <td>Agent reading project secrets</td>
+    </tr>
+    <tr>
+      <td>Pre-write guard</td>
+      <td>Hook blocks writes to <code>.env</code>, <code>.pem</code>, <code>.key</code>, credential files</td>
+      <td>Agent overwriting secrets</td>
+    </tr>
+    <tr>
+      <td>Pre-bash guard</td>
+      <td>Hook blocks <code>rm -rf /</code>, <code>dd</code>, <code>mkfs</code>, fork bombs, <code>reboot</code></td>
+      <td>Destructive commands</td>
+    </tr>
+    <tr>
+      <td>IPC authorization</td>
+      <td>Non-main groups can only message own JID, schedule own tasks</td>
+      <td>Privilege escalation via IPC</td>
+    </tr>
+    <tr>
+      <td>Sender allowlist</td>
+      <td><code>~/.config/nanoclaw/sender-allowlist.json</code></td>
+      <td>Unauthorized users triggering missions</td>
+    </tr>
+    <tr>
+      <td>Non-root execution</td>
+      <td>Container user uid 1000 (node user)</td>
+      <td>Container escape via root privileges</td>
+    </tr>
+    <tr>
+      <td>Worf reviews</td>
+      <td>Mandatory security review for auth/security risk-flagged changes</td>
+      <td>Security vulnerabilities in agent-generated code</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 13. DATA ARCHITECTURE                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s13" class="page-break"><span class="section-num">13.</span> Data Architecture</h2>
+
+<p>Three SQLite databases, each with a separate failure domain. NanoClaw's <code>messages.db</code> handles channel messaging. CommandDeck's <code>app.db</code> and <code>telemetry.db</code> handle mission state and observability respectively.</p>
+
+<div class="diagram">
+<pre>
+┌──────────────── messages.db (NanoClaw) ─────────────────────────────────┐
+│                                                                          │
+│  ┌───────────────┐  ┌───────────────────┐  ┌─────────────────────────┐  │
+│  │    chats       │  │    messages        │  │  registered_groups      │  │
+│  │               │  │                   │  │                         │  │
+│  │  jid (PK)     │  │  id (PK)          │  │  jid (PK)              │  │
+│  │  name         │  │  chat_jid (FK)    │  │  name                  │  │
+│  │  last_msg_time│  │  sender           │  │  folder (unique)       │  │
+│  │  channel      │  │  content          │  │  trigger_pattern       │  │
+│  │  is_group     │  │  timestamp        │  │  requires_trigger      │  │
+│  └───────────────┘  │  is_from_me       │  │  is_main               │  │
+│                     │  is_bot_message   │  │  container_config      │  │
+│                     └───────────────────┘  └─────────────────────────┘  │
+│                                                                          │
+│  ┌───────────────────┐  ┌───────────────────┐  ┌─────────────────────┐  │
+│  │ scheduled_tasks    │  │  task_run_logs     │  │    sessions         │  │
+│  │                   │  │                   │  │                     │  │
+│  │  id (PK)          │  │  id (auto)        │  │  group_folder (PK)  │  │
+│  │  group_folder     │  │  task_id (FK)     │  │  session_id         │  │
+│  │  chat_jid         │  │  run_at           │  └─────────────────────┘  │
+│  │  prompt           │  │  duration_ms      │                           │
+│  │  schedule_type    │  │  status           │  ┌─────────────────────┐  │
+│  │  schedule_value   │  │  result           │  │   router_state      │  │
+│  │  context_mode     │  │  error            │  │                     │  │
+│  │  next_run         │  └───────────────────┘  │  key (PK)           │  │
+│  │  status           │                          │  value              │  │
+│  └───────────────────┘                          └─────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────── app.db (CommandDeck) ───────────────────────────────────┐
+│                                                                          │
+│  ┌─────────────────────┐  ┌─────────────────────┐                       │
+│  │     missions         │  │    objectives        │                       │
+│  │                     │  │                     │                       │
+│  │  id (PK)            │  │  mission_id (FK)    │  ◄─ Composite PK:     │
+│  │  repo               │  │  id                 │     (mission_id, id)  │
+│  │  description        │  │  title              │                       │
+│  │  status             │  │  description        │                       │
+│  │  default_branch     │  │  status             │                       │
+│  │  integration_branch │  │  phase              │                       │
+│  │  slack_channel      │  │  parallel_group     │                       │
+│  │  slack_thread_ts    │  │  assigned_to        │                       │
+│  │  pr_number          │  │  git_branch         │                       │
+│  │  pr_url             │  │  worker_index       │                       │
+│  │  pr_status          │  │  risk_flags (JSON)  │                       │
+│  │  plan_message_ts    │  │  depends_on (JSON)  │                       │
+│  │  is_follow_up       │  │  context_sources    │                       │
+│  │  parent_mission_id  │  │  evidence_path      │                       │
+│  │  config (JSON)      │  │  reviewed_by (JSON) │                       │
+│  │  safety (JSON)      │  │  merged             │                       │
+│  │  created_at         │  │  started_at         │                       │
+│  │  updated_at         │  │  completed_at       │                       │
+│  └─────────────────────┘  │  error              │                       │
+│                           └─────────────────────┘                       │
+│                                                                          │
+│  ┌─────────────────────┐  ┌──────────────────┐  ┌────────────────────┐  │
+│  │     threads          │  │   approvals       │  │   channel_map      │  │
+│  │                     │  │                  │  │                    │  │
+│  │  channel            │  │  message_ts (PK) │  │  channel_id (PK)  │  │
+│  │  thread_ts (PK)     │  │  type            │  │  repo             │  │
+│  │  repo               │  │  repo            │  └────────────────────┘  │
+│  │  mission_id         │  │  mission_id      │                          │
+│  │  integration_branch │  │  pr_number       │  ┌────────────────────┐  │
+│  │  pr_number          │  │  pr_url          │  │   session_log      │  │
+│  │  pr_url             │  │  channel         │  │                    │  │
+│  │  original_description│ │  thread_ts       │  │  id (auto)        │  │
+│  │  status             │  │  tracked_at      │  │  mission_id       │  │
+│  │  follow_up_count    │  └──────────────────┘  │  session_id       │  │
+│  │  tracked_at         │                         │  agent            │  │
+│  │  updated_at         │                         │  objective        │  │
+│  └─────────────────────┘                         │  exit_code        │  │
+│                                                   │  started_at      │  │
+│                                                   │  ended_at        │  │
+│                                                   └────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────── telemetry.db (CommandDeck) ─────────────────────────────┐
+│                                                                          │
+│  ┌──────────────────────┐  ┌────────────────────┐  ┌──────────────────┐ │
+│  │      traces           │  │      events         │  │      logs        │ │
+│  │                      │  │                    │  │                  │ │
+│  │  trace_id (PK)       │  │  id (auto)         │  │  id (auto)      │ │
+│  │  mission_id          │  │  ts                │  │  ts             │ │
+│  │  repo                │  │  event             │  │  trace_id       │ │
+│  │  status              │  │  mission_id        │  │  span_id        │ │
+│  │  started_at          │  │  repo              │  │  mission_id     │ │
+│  │  ended_at            │  │  actor             │  │  repo           │ │
+│  │  duration_ms         │  │  payload (JSON)    │  │  source         │ │
+│  │  span_count          │  └────────────────────┘  │  agent          │ │
+│  │  spans (JSON tree)   │                          │  objective_id   │ │
+│  └──────────────────────┘                          │  level          │ │
+│                                                     │  message        │ │
+│                                                     │  data (JSON)   │ │
+│                                                     └──────────────────┘ │
+└──────────────────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 14: Three-database architecture — separate failure domains for messaging, state, and observability</p>
+</div>
+
+<h3>Filesystem State</h3>
+
+<pre>
+~/.commanddeck/
+├── app.db                              # Application state
+├── telemetry.db                        # Observability data
+├── config.json                         # Global config
+├── standards/                          # Enterprise standards (7 files)
+│   ├── code-quality.md
+│   ├── testing.md
+│   ├── security.md
+│   ├── backend.md
+│   ├── frontend.md
+│   ├── documentation.md
+│   └── cloud-deployment.md
+├── crew/                               # Agent preferences (11 files)
+│   ├── captain-picard-preferences.md
+│   ├── borg-preferences.md
+│   └── ...
+├── playbooks/                          # Mission templates
+│   └── web-app.md
+└── projects/
+    └── {repo}/
+        ├── config.json                 # Per-project config
+        ├── directives/                 # Project-specific rules
+        │   └── *.md
+        └── missions/
+            └── {id}/
+                ├── mission.json        # Work items, phases
+                ├── captains-log.md     # Commander's log
+                ├── briefings/          # Inter-agent comms
+                │   ├── scotty-output.json
+                │   ├── troi-design-spec.json
+                │   └── ...
+                └── artifacts/          # Evidence bundles
+                    ├── evidence-obj-001.json
+                    └── evidence-obj-002.json
+</pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 14. OBSERVABILITY & DASHBOARD                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s14" class="page-break"><span class="section-num">14.</span> Observability & Dashboard</h2>
+
+<h3>Telemetry Pipeline</h3>
+
+<div class="diagram">
+<pre>
+CONTAINERS                        HOST                          DASHBOARD
+──────────                        ────                          ─────────
+
+┌───────────────┐                                               ┌──────────────┐
+│ Agent: Borg   │                                               │  Browser     │
+│               │                                               │              │
+│ emit_telemetry├──► IPC ──►┌─────────────────────┐             │  ┌────────┐  │
+│ (MCP tool)    │           │  IPC Watcher         │             │  │Traces  │  │
+└───────────────┘           │  processCommandDeck  │             │  │View    │  │
+                            │  Tool()              │             │  │(water- │  │
+┌───────────────┐           │                      │             │  │ fall)  │  │
+│ Agent:        │           │  Writes to:          │  ┌──────┐  │  └────────┘  │
+│ Redshirts     │           │  - telemetry.db      ├──►SSE   ├──►  ┌────────┐  │
+│               │           │    (traces, events,  │  │stream│  │  │Live    │  │
+│ emit_telemetry├──► IPC ──►│     logs)            │  └──────┘  │  │Logs    │  │
+│ (MCP tool)    │           │                      │             │  └────────┘  │
+└───────────────┘           │  Broadcasts:         │             │              │
+                            │  - SSE to dashboard  │  ┌──────┐  │  ┌────────┐  │
+┌───────────────┐           │                      ├──►REST  ├──►  │Metrics │  │
+│ Health Patrol │           │  OTel SDK:           │  │API   │  │  │(Chart  │  │
+│ (scheduled    │           │  - TracerProvider    │  └──────┘  │  │.js)    │  │
+│  task, 2min)  │           │  - SQLiteExporter    │             │  └────────┘  │
+│               ├──► IPC ──►│  - Span trees        │             │              │
+└───────────────┘           └─────────────────────┘             └──────────────┘
+</pre>
+<p class="diagram-caption">Figure 15: Telemetry pipeline — agents emit via IPC, host stores and broadcasts</p>
+</div>
+
+<h3>Dashboard Views</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>View</th>
+      <th>Data Source</th>
+      <th>What It Shows</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Mission List</strong></td>
+      <td><code>GET /api/missions</code></td>
+      <td>All missions with status, progress bars, PR links</td>
+    </tr>
+    <tr>
+      <td><strong>Mission Detail</strong></td>
+      <td><code>GET /api/missions/{repo}/{id}</code></td>
+      <td>Objectives table, status icons, agent assignments, risk flags, session log</td>
+    </tr>
+    <tr>
+      <td><strong>Traces</strong></td>
+      <td><code>GET /api/traces/{mission_id}</code></td>
+      <td>Waterfall view of agent work — span trees with timing, status, nesting</td>
+    </tr>
+    <tr>
+      <td><strong>Live Logs</strong></td>
+      <td><code>GET /api/telemetry/stream</code> (SSE)</td>
+      <td>Real-time log entries: agent name, level, message, filterable by mission</td>
+    </tr>
+    <tr>
+      <td><strong>Metrics</strong></td>
+      <td><code>GET /api/metrics</code></td>
+      <td>Chart.js graphs: sessions over time, active workers, mission durations</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>API Endpoints</h3>
+
+<pre>
+GET    /api/missions                    List all missions
+GET    /api/missions/{repo}/{id}        Get single mission with objectives
+POST   /api/missions/{repo}             Create new mission
+POST   /api/missions/{repo}/{id}/resume Resume stuck mission
+GET    /api/traces                      List all traces
+GET    /api/traces/{id}                 Get trace with span tree
+GET    /api/logs?mission_id={id}        Get logs for mission
+GET    /api/metrics                     Aggregate metrics
+GET    /api/telemetry/stream            SSE event stream
+POST   /api/approve/{repo}/{id}         Approve mission plan
+POST   /api/reject/{repo}/{id}          Reject mission plan
+</pre>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 15. CONFIGURATION & LAYERED CONTEXT                                -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s15" class="page-break"><span class="section-num">15.</span> Configuration & Layered Context</h2>
+
+<h3>Configuration Precedence</h3>
+
+<div class="diagram">
+<pre>
+  HIGHEST PRIORITY
+  ┌─────────────────────────────────────────────────────────────┐
+  │  Per-Project Config                                         │
+  │  ~/.commanddeck/projects/{repo}/config.json                 │
+  │  (max_workers, model_overrides, test_command, risk patterns)│
+  └─────────────────────────┬───────────────────────────────────┘
+                            │ overrides
+  ┌─────────────────────────▼───────────────────────────────────┐
+  │  Global Config                                               │
+  │  ~/.commanddeck/config.json                                  │
+  │  (github_org, domain, registry, caddyfile_path)             │
+  └─────────────────────────┬───────────────────────────────────┘
+                            │ overrides
+  ┌─────────────────────────▼───────────────────────────────────┐
+  │  Environment Variables                                       │
+  │  COMMANDDECK_MAX_WORKERS, COMMANDDECK_MAX_SESSIONS, etc.    │
+  └─────────────────────────┬───────────────────────────────────┘
+                            │ overrides
+  ┌─────────────────────────▼───────────────────────────────────┐
+  │  NanoClaw Environment Variables                              │
+  │  MAX_CONCURRENT_CONTAINERS, CONTAINER_TIMEOUT, etc.         │
+  └─────────────────────────┬───────────────────────────────────┘
+                            │ overrides
+  ┌─────────────────────────▼───────────────────────────────────┐
+  │  Hardcoded Defaults                                          │
+  │  (3 workers, 50 sessions, 6 hours, opus model)              │
+  └─────────────────────────────────────────────────────────────┘
+  LOWEST PRIORITY
+</pre>
+<p class="diagram-caption">Figure 16: Configuration precedence — project-specific overrides win</p>
+</div>
+
+<h3>Layered Context System</h3>
+
+<p>When a container spawns, its CLAUDE.md is assembled from multiple layers. This is the heart of CommandDeck's customization model.</p>
+
+<div class="diagram">
+<pre>
+  Layer 1: Global Standards           ~/.commanddeck/standards/*.md
+  ─────────────────────               code-quality, testing, security, backend,
+                                      frontend, documentation, cloud-deployment
+
+  Layer 2: Crew Preferences           ~/.commanddeck/crew/{agent}-preferences.md
+  ─────────────────────               Per-agent learned behavior ("always use bun",
+                                      "check HIPAA compliance", "prefer PostgreSQL")
+
+  Layer 3: Project Directives         ~/.commanddeck/projects/{repo}/directives/*.md
+  ─────────────────────               Project-specific rules ("use TypeScript strict",
+                                      "no CSS frameworks", "API prefix /api/v2")
+
+  Layer 4: Repo ADRs                  {repo}/docs/adr/*.md
+  ─────────────────────               Architecture Decision Records from the repo
+
+  Layer 5: Active Mission             ~/.commanddeck/projects/{repo}/missions/{id}/
+  ─────────────────────               mission.json, captains-log.md, briefings/
+
+  Layer 6: Git History                git log --oneline -15
+  ─────────────────────               Recent changes for context
+
+
+  Assembly into CLAUDE.md:
+  ┌─────────────────────────────────────────────────────────────┐
+  │  # Agent: {name}                                            │
+  │                                                             │
+  │  ## Identity                                                │
+  │  [Agent identity from agents/{name}.md]                     │
+  │                                                             │
+  │  ## Standards                                               │
+  │  [Global standards relevant to this agent's role]           │
+  │                                                             │
+  │  ## Crew Preferences                                        │
+  │  [Agent-specific preferences]                               │
+  │                                                             │
+  │  ## Project Directives                                      │
+  │  [Project-specific rules]                                   │
+  │                                                             │
+  │  ## Architecture Decisions                                  │
+  │  [Relevant ADRs]                                            │
+  │                                                             │
+  │  ## Current Mission                                         │
+  │  [Mission state, upstream briefings]                        │
+  │                                                             │
+  │  ## MCP Tools                                               │
+  │  [Available CommandDeck + NanoClaw tools]                   │
+  └─────────────────────────────────────────────────────────────┘
+</pre>
+<p class="diagram-caption">Figure 17: Layered context assembly — six layers merged into CLAUDE.md per container</p>
+</div>
+
+<h3>Customization Priority</h3>
+
+<ol>
+  <li><strong>Tune existing crew</strong> — Modify crew preference files (e.g., <code>borg-preferences.md</code>: "always use Drizzle ORM")</li>
+  <li><strong>New agent roles</strong> — Add new groups (e.g., <code>groups/designer/CLAUDE.md</code> for a visual design specialist)</li>
+  <li><strong>Workflow templates</strong> — New playbooks (e.g., <code>playbooks/mobile-app.md</code> for React Native projects)</li>
+  <li><strong>Risk patterns</strong> — Per-project <code>config.json:high_risk_patterns</code> for domain-specific compliance</li>
+</ol>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 16. DIRECTORY STRUCTURE                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s16" class="page-break"><span class="section-num">16.</span> Directory Structure</h2>
+
+<p>The fork combines NanoClaw's structure with CommandDeck's mission layer and content.</p>
+
+<pre>
+commanddeck/                                      # Forked from NanoClaw
+│
+├── src/                                          # ── HOST ORCHESTRATOR ──
+│   ├── index.ts                                  # NanoClaw main loop (inherited)
+│   ├── db.ts                                     # NanoClaw SQLite: messages, groups, tasks
+│   ├── config.ts                                 # NanoClaw config (inherited)
+│   ├── types.ts                                  # NanoClaw types (extended)
+│   │
+│   ├── channels/                                 # NanoClaw channel system (inherited)
+│   │   ├── index.ts                              #   Barrel import
+│   │   ├── registry.ts                           #   Channel factory registry
+│   │   └── (slack.ts, whatsapp.ts, ...)          #   Per-channel implementations
+│   │
+│   ├── container-runner.ts                        # NanoClaw container spawning (extended)
+│   ├── container-runtime.ts                       # NanoClaw Docker abstraction (inherited)
+│   ├── credential-proxy.ts                        # NanoClaw credential proxy (inherited)
+│   ├── group-queue.ts                             # NanoClaw concurrency queue (inherited)
+│   ├── group-folder.ts                            # NanoClaw folder validation (inherited)
+│   ├── ipc.ts                                     # NanoClaw IPC watcher (extended for CD tools)
+│   ├── task-scheduler.ts                          # NanoClaw scheduler (inherited)
+│   ├── router.ts                                  # NanoClaw message routing (inherited)
+│   ├── mount-security.ts                          # NanoClaw mount validation (inherited)
+│   │
+│   ├── commanddeck/                               # ── NEW: COMMANDDECK LAYER ──
+│   │   ├── mission.ts                             #   Mission lifecycle: decompose → PR
+│   │   ├── mission-db.ts                          #   app.db: missions, objectives, threads
+│   │   ├── risk.ts                                #   Risk detection from file patterns
+│   │   ├── evidence.ts                            #   Evidence bundle validation + PR body
+│   │   ├── pr.ts                                  #   PR creation, merge, close, cleanup
+│   │   ├── worktree.ts                            #   Git worktree management
+│   │   ├── health.ts                              #   Health patrol: stuck/thrashing detection
+│   │   ├── approval.ts                            #   Slack reaction-based approval flows
+│   │   ├── telemetry.ts                           #   OTel SDK + telemetry.db + SSE
+│   │   ├── telemetry-db.ts                        #   telemetry.db: traces, events, logs
+│   │   ├── dashboard.ts                           #   HTTP server: dashboard + REST API
+│   │   ├── ipc-tools.ts                           #   IPC handler for CommandDeck MCP tools
+│   │   └── validate.ts                            #   Git ref / repo name validation
+│   │
+│   └── ...
+│
+├── container/                                     # ── AGENT CONTAINER ──
+│   ├── Dockerfile                                 # NanoClaw base + git/gh CLI (extended)
+│   ├── agent-runner/
+│   │   └── src/index.ts                           # Agent SDK query loop (inherited)
+│   ├── skills/
+│   │   └── agent-browser/                         # Browser automation (inherited)
+│   └── build.sh
+│
+├── groups/                                        # ── AGENT IDENTITIES ──
+│   ├── main/
+│   │   └── CLAUDE.md                              # Picard: orchestrator identity + playbook
+│   ├── global/
+│   │   └── CLAUDE.md                              # Shared: enterprise standards
+│   ├── captain-picard/
+│   │   └── CLAUDE.md                              # Planning: decomposition, risk, phases
+│   ├── scotty/
+│   │   └── CLAUDE.md                              # Architecture: ADRs, contracts, tech stack
+│   ├── troi/
+│   │   └── CLAUDE.md                              # UX/Design: components, tokens, flows
+│   ├── borg/
+│   │   └── CLAUDE.md                              # Backend: APIs, business logic, tests
+│   ├── redshirts/
+│   │   └── CLAUDE.md                              # Frontend: UI, accessibility, responsive
+│   ├── mr-data/
+│   │   └── CLAUDE.md                              # Data: schema, migrations, queries
+│   ├── worf/
+│   │   └── CLAUDE.md                              # Security: OWASP, secrets, vulnerabilities
+│   ├── spock/
+│   │   └── CLAUDE.md                              # QA: tests, edge cases, accessibility
+│   ├── geordi/
+│   │   └── CLAUDE.md                              # DevOps: Docker, CI/CD, monitoring
+│   ├── guinan/
+│   │   └── CLAUDE.md                              # Documentation: API docs, runbooks
+│   └── obrien/
+│       └── CLAUDE.md                              # Merge: conflict resolution (stateless)
+│
+├── defaults/                                      # ── SEEDED CONTENT ──
+│   ├── standards/                                 # 7 enterprise standards
+│   │   ├── code-quality.md
+│   │   ├── testing.md
+│   │   ├── security.md
+│   │   ├── backend.md
+│   │   ├── frontend.md
+│   │   ├── documentation.md
+│   │   └── cloud-deployment.md
+│   ├── crew/                                      # 11 crew preference files
+│   │   └── {agent}-preferences.md
+│   └── playbooks/                                 # Mission templates
+│       └── web-app.md
+│
+├── dashboard/                                     # ── WEB DASHBOARD ──
+│   └── public/
+│       ├── index.html                             # Single-page app
+│       ├── styles.css                             # Dark theme
+│       └── app.js                                 # Auto-refresh, Chart.js, action modals
+│
+├── hooks/                                         # ── SAFETY HOOKS ──
+│   ├── session-start.sh                           # Layered context loading
+│   ├── pre-write-guard.sh                         # Block writes to secrets
+│   ├── pre-bash-guard.sh                          # Block destructive commands
+│   ├── pre-compact.sh                             # Auto-commit before compaction
+│   ├── post-edit.sh                               # Auto-format code
+│   └── telemetry-emit.sh                          # Emit tool usage to telemetry
+│
+├── setup/                                         # NanoClaw setup CLI (extended)
+│   ├── index.ts
+│   └── ...
+│
+├── store/                                         # NanoClaw data directory
+│   └── messages.db
+│
+├── data/                                          # NanoClaw runtime data
+│   ├── ipc/                                       # Per-group IPC directories
+│   └── sessions/                                  # Per-group Claude sessions
+│
+├── .env                                           # Secrets (never mounted)
+├── package.json
+├── tsconfig.json
+└── docker-compose.yml                             # Production deployment
+</pre>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 17. MIGRATION STRATEGY                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s17" class="page-break"><span class="section-num">17.</span> Migration Strategy</h2>
+
+<p>The migration is incremental. Each phase produces a working system. Don't abandon the deployed CommandDeck until the new system is battle-tested.</p>
+
+<h3>Phase Overview</h3>
+
+<div class="diagram">
+<pre>
+Phase 1                Phase 2                Phase 3                Phase 4
+────────               ────────               ────────               ────────
+Fork +                 Mission                Full                   Cutover
+Content Port           Lifecycle              Integration            + Deploy
+
+┌───────────┐          ┌───────────┐          ┌───────────┐          ┌───────────┐
+│ NanoClaw  │          │ Missions  │          │ Dashboard │          │ Production│
+│ fork with │────────► │ working   │────────► │ Telemetry │────────► │ deployment│
+│ agent     │          │ locally   │          │ Approval  │          │ migration │
+│ groups    │          │ via CLI   │          │ flows     │          │ complete  │
+└───────────┘          └───────────┘          └───────────┘          └───────────┘
+
+Duration:              Duration:              Duration:              Duration:
+Days                   Weeks                  Weeks                  Days
+</pre>
+<p class="diagram-caption">Figure 18: Four-phase migration — each phase is independently usable</p>
+</div>
+
+<h3>Phase 1: Fork + Content Port</h3>
+
+<p><strong>Goal:</strong> NanoClaw fork running locally with all 11 CommandDeck agents as groups.</p>
+
+<ul>
+  <li>Fork NanoClaw repository</li>
+  <li>Create <code>groups/{agent}/CLAUDE.md</code> for all 11 agents from current <code>agents/*.md</code></li>
+  <li>Set up <code>groups/global/CLAUDE.md</code> with enterprise standards</li>
+  <li>Copy defaults/ (standards, crew preferences, playbooks)</li>
+  <li>Configure Slack channel via <code>/add-slack</code> skill</li>
+  <li>Test: send message, get routed to Picard, get decomposition</li>
+</ul>
+
+<h3>Phase 2: Mission Lifecycle</h3>
+
+<p><strong>Goal:</strong> Full decompose → execute → merge → review → PR working locally.</p>
+
+<ul>
+  <li>Build <code>src/commanddeck/mission.ts</code> — port work loop from current <code>lib/mission.js</code></li>
+  <li>Build <code>src/commanddeck/ipc-tools.ts</code> — handle CommandDeck MCP tools via IPC</li>
+  <li>Build <code>src/commanddeck/worktree.ts</code> — git worktree management, mount into containers</li>
+  <li>Build <code>src/commanddeck/evidence.ts</code> — evidence validation + PR body generation</li>
+  <li>Build <code>src/commanddeck/risk.ts</code> — risk detection from file patterns</li>
+  <li>Build <code>src/commanddeck/pr.ts</code> — PR creation via gh CLI on host</li>
+  <li>Build <code>src/commanddeck/mission-db.ts</code> — app.db schema and queries</li>
+  <li>Extend <code>container-runner.ts</code> for worktree mount support</li>
+  <li>Extend <code>ipc.ts</code> to route <code>commanddeck_tool</code> types to ipc-tools.ts</li>
+  <li>Test: full mission from Slack message to merged PR</li>
+</ul>
+
+<h3>Phase 3: Full Integration</h3>
+
+<p><strong>Goal:</strong> Dashboard, telemetry, approval flows, health patrol all working.</p>
+
+<ul>
+  <li>Build <code>src/commanddeck/dashboard.ts</code> — HTTP server for dashboard + REST API</li>
+  <li>Build <code>src/commanddeck/telemetry.ts</code> — OTel SDK, telemetry.db, SSE</li>
+  <li>Build <code>src/commanddeck/approval.ts</code> — Slack reaction-based plan/PR approval</li>
+  <li>Port <code>src/commanddeck/health.ts</code> — register as NanoClaw scheduled task (2-min cron)</li>
+  <li>Port dashboard frontend (HTML/CSS/JS)</li>
+  <li>Wire up multi-channel notifications (WhatsApp, Telegram for status updates)</li>
+  <li>Test: full e2e with dashboard, traces, live logs, approval flow</li>
+</ul>
+
+<h3>Phase 4: Production Cutover</h3>
+
+<p><strong>Goal:</strong> Replace deployed CommandDeck with new NanoClaw-based system.</p>
+
+<ul>
+  <li>Build production <code>docker-compose.yml</code></li>
+  <li>Migrate existing <code>app.db</code> data (missions, objectives, threads)</li>
+  <li>Set up GH Actions CI/CD for fork (test → build → deploy)</li>
+  <li>Deploy to EC2 alongside existing CommandDeck</li>
+  <li>Cut over Slack to new instance</li>
+  <li>Verify all onboarded projects work (WeatherAggregator, FurEverCare, etc.)</li>
+  <li>Decommission old CommandDeck deployment</li>
+</ul>
+
+<div class="callout">
+  <strong>Risk mitigation:</strong> Keep the old CommandDeck running on EC2 throughout migration. The new system uses different database files and container names — they can coexist. Only cut over Slack routing once the new system passes e2e validation with a test project.
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- 18. APPENDIX: AGENT IDENTITY CARDS                                 -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+
+<h2 id="s18" class="page-break"><span class="section-num">18.</span> Appendix: Agent Identity Cards</h2>
+
+<div class="two-col">
+  <div>
+    <h4>Captain Picard — Mission Commander</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>Decomposes tasks into phased objectives with dependencies, risk flags, and agent assignments</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-opus-4-6</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>mission.json, captains-log.md</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Read, Write, Edit, Glob, Grep, mission MCP tools</td></tr>
+      <tr><td><strong>Special</strong></td><td>Main group — elevated IPC permissions, project read access</td></tr>
+    </table>
+  </div>
+  <div>
+    <h4>Scotty — Chief Engineer</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>System architecture, ADRs, API contracts, data models, tech stack decisions</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-opus-4-6</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>docs/adr/*.md, briefings/scotty-output.json</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Read, Grep, Glob, Write</td></tr>
+      <tr><td><strong>Phase</strong></td><td>Early — downstream agents read his output</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <h4>Troi — UX Researcher & Designer</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>Component inventory, design tokens, user flows, accessibility requirements</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-opus-4-6</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>briefings/troi-design-spec.json</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Full + browser automation</td></tr>
+      <tr><td><strong>Phase</strong></td><td>Early — Redshirts reads her spec</td></tr>
+    </table>
+  </div>
+  <div>
+    <h4>Borg — Backend Engineer</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>API implementation, business logic, data access, tests, migrations</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-sonnet-4-5</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>Code, tests, evidence bundle, briefing</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Full (Read, Write, Edit, Bash, Glob, Grep)</td></tr>
+      <tr><td><strong>Phase</strong></td><td>Implementation — reads Scotty's architecture</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <h4>Redshirts — Frontend Engineer</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>UI components from Troi's design spec, accessibility, responsive layout</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-opus-4-6</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>Frontend code, tests, evidence bundle</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Full + browser automation</td></tr>
+      <tr><td><strong>Phase</strong></td><td>Implementation — reads Troi's design spec</td></tr>
+    </table>
+  </div>
+  <div>
+    <h4>Mr. Data — Data Specialist</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>Schema design, migrations, query optimization, data pipelines</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-sonnet-4-5</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>Schema files, migrations, briefing</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Full</td></tr>
+      <tr><td><strong>Phase</strong></td><td>Early or implementation (depends on task)</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <h4>Worf — Security Officer</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>Mandatory reviewer for auth/security risk flags. OWASP, secrets, dependency vulnerabilities</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-sonnet-4-5</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>briefings/worf-review.json</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Read, Grep, Glob (read-only — cannot modify code)</td></tr>
+      <tr><td><strong>Trigger</strong></td><td>Post-execution, when auth/security risk flags detected</td></tr>
+    </table>
+  </div>
+  <div>
+    <h4>Spock — QA Specialist</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>Test coverage, edge cases, dependency safety audit, accessibility compliance</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-sonnet-4-5</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>briefings/spock-report.json</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Full</td></tr>
+      <tr><td><strong>Trigger</strong></td><td>Post-execution, when dependency/accessibility risk flags detected</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <h4>Geordi — DevOps Engineer</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>Dockerfiles, CI/CD workflows, deployment config, monitoring setup</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-sonnet-4-5</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>Infra files, briefings/geordi-output.json</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Full</td></tr>
+      <tr><td><strong>Trigger</strong></td><td>Post-execution reviewer for ci/infra/deploy risk flags</td></tr>
+    </table>
+  </div>
+  <div>
+    <h4>Guinan — Technical Writer</h4>
+    <table>
+      <tr><td><strong>Role</strong></td><td>API documentation, architecture docs, user guides, operational runbooks</td></tr>
+      <tr><td><strong>Model</strong></td><td>claude-opus-4-6</td></tr>
+      <tr><td><strong>Outputs</strong></td><td>docs/, briefings/guinan-docs.json</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Full</td></tr>
+      <tr><td><strong>Phase</strong></td><td>Late — after implementation, documents what was built</td></tr>
+    </table>
+  </div>
+</div>
+
+<div style="max-width: 50%;">
+  <h4>O'Brien — Merge Specialist</h4>
+  <table>
+    <tr><td><strong>Role</strong></td><td>Resolves merge conflicts on integration branch. Stateless — reads both sides' briefings to understand intent.</td></tr>
+    <tr><td><strong>Model</strong></td><td>claude-sonnet-4-5</td></tr>
+    <tr><td><strong>Outputs</strong></td><td>Resolved merge commits</td></tr>
+    <tr><td><strong>Tools</strong></td><td>Full (operates on main repo, not a worktree)</td></tr>
+    <tr><td><strong>Trigger</strong></td><td>On demand, when git merge produces conflicts</td></tr>
+  </table>
+</div>
+
+<hr style="margin-top: 3rem; border: none; border-top: 2px solid var(--ink);">
+
+<p style="text-align: center; color: var(--muted); margin-top: 1.5rem; font-size: 0.85rem;">
+  <strong>CommandDeck on NanoClaw — System Architecture Document</strong><br>
+  Draft v1.0 — March 17, 2026<br>
+  Generated with Claude Code
+</p>
+
+</body>
+</html>

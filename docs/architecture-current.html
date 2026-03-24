@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CommandDeck — Current System Architecture</title>
+<style>
+  /* --- Base --- */
+  :root {
+    --ink: #1a1a2e;
+    --muted: #555;
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --border: #d1d5db;
+    --bg-code: #f3f4f6;
+    --bg-diagram: #f8fafc;
+    --bg-callout: #fffbeb;
+    --callout-border: #f59e0b;
+    --core: #7c3aed;
+    --agent: #059669;
+    --git-pr: #dc2626;
+    --observability: #0891b2;
+    --slack-int: #e11d48;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: var(--ink);
+    line-height: 1.7;
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.75in;
+    background: #fff;
+  }
+
+  /* --- Typography --- */
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0 0 0.3rem 0;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 2.5rem 0 1rem 0;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--ink);
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 1.8rem 0 0.6rem 0;
+    page-break-after: avoid;
+  }
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 1.2rem 0 0.4rem 0;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+  }
+
+  p { margin: 0 0 0.8rem 0; }
+
+  strong { font-weight: 700; }
+
+  a { color: var(--accent); text-decoration: none; }
+
+  ul, ol { margin: 0 0 0.8rem 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+
+  /* --- Subtitle / Meta --- */
+  .subtitle {
+    font-size: 1.1rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 0.2rem;
+  }
+
+  .meta {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .version-tag {
+    display: inline-block;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* --- Table of Contents --- */
+  .toc {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0 2rem 0;
+    page-break-inside: avoid;
+  }
+
+  .toc h3 {
+    margin: 0 0 0.6rem 0;
+    font-size: 1rem;
+  }
+
+  .toc ol {
+    margin: 0;
+    padding-left: 1.2rem;
+    columns: 2;
+    column-gap: 2rem;
+  }
+
+  .toc li {
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+    break-inside: avoid;
+  }
+
+  .toc a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--border);
+  }
+
+  /* --- Diagrams --- */
+  .diagram {
+    background: var(--bg-diagram);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0 1.5rem 0;
+    overflow-x: auto;
+    page-break-inside: avoid;
+  }
+
+  .diagram pre {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    white-space: pre;
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .diagram-caption {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 0.4rem;
+    font-style: italic;
+  }
+
+  /* --- Code --- */
+  code {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.85em;
+    background: var(--bg-code);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+  }
+
+  pre {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin: 0.5rem 0 1rem 0;
+    overflow-x: auto;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    page-break-inside: avoid;
+  }
+
+  /* --- Tables --- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8rem 0 1.2rem 0;
+    font-size: 0.85rem;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  th {
+    background: var(--bg-code);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  tr:nth-child(even) { background: #fafafa; }
+
+  /* --- Callouts --- */
+  .callout {
+    background: var(--bg-callout);
+    border-left: 4px solid var(--callout-border);
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.9rem;
+    page-break-inside: avoid;
+  }
+
+  .callout strong { color: var(--callout-border); }
+
+  .callout-blue {
+    background: #eff6ff;
+    border-left-color: var(--accent);
+  }
+
+  .callout-blue strong { color: var(--accent); }
+
+  .callout-green {
+    background: #ecfdf5;
+    border-left-color: var(--agent);
+  }
+
+  .callout-green strong { color: var(--agent); }
+
+  .callout-purple {
+    background: #f5f3ff;
+    border-left-color: var(--core);
+  }
+
+  .callout-purple strong { color: var(--core); }
+
+  .callout-red {
+    background: #fef2f2;
+    border-left-color: var(--git-pr);
+  }
+
+  .callout-red strong { color: var(--git-pr); }
+
+  .callout-cyan {
+    background: #ecfeff;
+    border-left-color: var(--observability);
+  }
+
+  .callout-cyan strong { color: var(--observability); }
+
+  /* --- Legend --- */
+  .legend {
+    display: flex;
+    gap: 1.5rem;
+    margin: 0.5rem 0 1rem 0;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .swatch-core { background: var(--core); }
+  .swatch-agent { background: var(--agent); }
+  .swatch-git { background: var(--git-pr); }
+  .swatch-obs { background: var(--observability); }
+  .swatch-slack { background: var(--slack-int); }
+
+  /* --- Section numbering --- */
+  .section-num {
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 0.3rem;
+  }
+
+  /* --- Page breaks --- */
+  .page-break { page-break-before: always; }
+
+  /* --- Print --- */
+  @media print {
+    body {
+      padding: 0;
+      font-size: 10pt;
+      max-width: none;
+    }
+
+    h2 { font-size: 14pt; }
+    h3 { font-size: 12pt; }
+
+    .diagram pre { font-size: 7pt; }
+    pre { font-size: 7.5pt; }
+    table { font-size: 8pt; }
+
+    .no-print { display: none; }
+
+    a { color: var(--ink); }
+
+    .toc { background: #f5f5f5; }
+  }
+
+  /* --- Two-col layout for compact sections --- */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .two-col > * { min-width: 0; }
+
+  @media (max-width: 600px) {
+    .two-col { grid-template-columns: 1fr; }
+    .toc ol { columns: 1; }
+  }
+
+  /* --- Highlight spans --- */
+  .hl-core { color: var(--core); font-weight: 700; }
+  .hl-agent { color: var(--agent); font-weight: 700; }
+  .hl-git { color: var(--git-pr); font-weight: 700; }
+  .hl-obs { color: var(--observability); font-weight: 700; }
+  .hl-slack { color: var(--slack-int); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================= -->
+<!-- TITLE PAGE                                                         -->
+<!-- ================================================================= -->
+
+<h1>CommandDeck</h1>
+<p class="subtitle">Current System Architecture &mdash; Self-Hosted Agentic Software Development Platform</p>
+<p class="meta">
+  <span class="version-tag">DRAFT v1.0</span> &nbsp;
+  March 17, 2026 &nbsp;|&nbsp; Amit Gulati &nbsp;|&nbsp; Architecture Document
+</p>
+
+<div class="callout callout-blue">
+  <strong>Purpose:</strong> This document describes the current production architecture of CommandDeck as deployed on EC2. It covers every layer &mdash; from Slack message ingestion to agent execution, git branching, PR creation, deployment, and observability. Intended as a standalone offline reference for understanding the system as it exists today.
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-swatch swatch-core"></span> Core Orchestration</div>
+  <div class="legend-item"><span class="legend-swatch swatch-agent"></span> Agent System</div>
+  <div class="legend-item"><span class="legend-swatch swatch-git"></span> Git / PR Pipeline</div>
+  <div class="legend-item"><span class="legend-swatch swatch-obs"></span> Observability</div>
+  <div class="legend-item"><span class="legend-swatch swatch-slack"></span> Slack Integration</div>
+</div>
+
+<!-- ================================================================= -->
+<!-- TABLE OF CONTENTS                                                  -->
+<!-- ================================================================= -->
+
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#s1">Executive Summary</a></li>
+    <li><a href="#s2">System Overview</a></li>
+    <li><a href="#s3">Entry Points &amp; Message Flow</a></li>
+    <li><a href="#s4">Mission Lifecycle</a></li>
+    <li><a href="#s5">Worker System</a></li>
+    <li><a href="#s6">Git Workflow</a></li>
+    <li><a href="#s7">Agent Crew</a></li>
+    <li><a href="#s8">Risk Detection &amp; Mandatory Reviews</a></li>
+    <li><a href="#s9">Evidence System</a></li>
+    <li><a href="#s10">PR &amp; Deployment Pipeline</a></li>
+    <li><a href="#s11">Slack Integration</a></li>
+    <li><a href="#s12">Health Patrol</a></li>
+    <li><a href="#s13">Observability &amp; Dashboard</a></li>
+    <li><a href="#s14">Data Architecture</a></li>
+    <li><a href="#s15">Configuration &amp; Layered Context</a></li>
+    <li><a href="#s16">Security &amp; Safety</a></li>
+    <li><a href="#s17">Hooks System</a></li>
+    <li><a href="#s18">Learning &amp; Governance</a></li>
+    <li><a href="#s19">Known Limitations</a></li>
+    <li><a href="#s20">Appendix: Module Reference</a></li>
+  </ol>
+</div>
+
+<!-- ================================================================= -->
+<!-- 1. EXECUTIVE SUMMARY                                               -->
+<!-- ================================================================= -->
+
+<h2 id="s1"><span class="section-num">1.</span> Executive Summary</h2>
+
+<p>CommandDeck is a self-hosted agentic software development platform. A user sends a Slack message describing a task, and a crew of 11 specialized AI agents decomposes the task into phased objectives, implements them in parallel git worktree branches, runs tests, reviews for security and quality via mandatory specialist reviews, creates a PR with structured evidence bundles, deploys a preview environment via GitHub Actions, and waits for human approval to merge.</p>
+
+<p>The system runs as a single Docker container on an EC2 instance at <code>100.29.233.41</code>. It combines a Slack bot (via Bolt Socket Mode), an HTTP dashboard with JSON API, and the mission orchestration engine into one Node.js process (<code>server.js</code>, 1463 lines). State is split across two SQLite databases (<code>app.db</code> for application state, <code>telemetry.db</code> for observability) plus filesystem artifacts for evidence bundles, briefings, and captain's logs.</p>
+
+<p>Agents are spawned as <code>claude -p</code> subprocesses, each running in an isolated git worktree. The system currently manages 5 onboarded projects (WeatherAggregator, FurEverCare, eve, SharkShark, Skip Gastown) with the full lifecycle operational end-to-end.</p>
+
+<div class="callout callout-purple">
+  <strong>Key numbers:</strong> 7,528 lines of JavaScript across 18 modules. 11 agent identity files. 2 hook scripts. 7 default standards, 10 crew preference files, 1 playbook. 218 passing tests. Two SQLite databases. One Docker container. Zero external dependencies beyond Claude Code CLI and GitHub CLI.
+</div>
+
+<!-- ================================================================= -->
+<!-- 2. SYSTEM OVERVIEW                                                 -->
+<!-- ================================================================= -->
+
+<h2 id="s2" class="page-break"><span class="section-num">2.</span> System Overview</h2>
+
+<div class="diagram">
+<pre>
+ SLACK (Socket Mode)          DASHBOARD (port 3000)         GITHUB ACTIONS
+ ==================           ====================          ==============
+  @CommandDeck msg               Browser / curl               PR webhook
+        |                             |                          |
+        v                             v                          v
+ +---------------------------------------------------------------------------+
+ |                          server.js (SINGLE PROCESS)                       |
+ |                                                                           |
+ |  +------------------+   +------------------+   +---------------------+   |
+ |  | Slack Bolt App   |   | HTTP Server      |   | Health Patrol       |   |
+ |  | - app_mention    |   | - GET /api/*     |   | - 2-min interval    |   |
+ |  | - reaction_added |   | - POST /api/*    |   | - stuck detection   |   |
+ |  | - message (thrd) |   | - SSE /stream    |   | - test failure loop |   |
+ |  +--------+---------+   | - Static files   |   | - edit thrashing    |   |
+ |           |              +--------+---------+   +----------+----------+   |
+ |           v                       v                        v              |
+ |  +--------------------------------------------------------------+        |
+ |  |              THREAD CLASSIFICATION (thread.js)                |        |
+ |  |   Picard triage -> work | converse | inquiry | onboard | create       |
+ |  +-------------------------------+----------------------------------+     |
+ |                                  |                                        |
+ |           +----------------------+------------------------+               |
+ |           v                      v                        v               |
+ |  +----------------+   +------------------+   +-------------------+        |
+ |  | Mission Engine |   | Scaffold System  |   | Learn/Governance  |        |
+ |  | (mission.js)   |   | (scaffold.js)    |   | (learn.js)        |        |
+ |  +-------+--------+   +------------------+   +-------------------+        |
+ |          |                                                                |
+ |  +-------v-------------------------------------------------------+       |
+ |  |                    MISSION LIFECYCLE                           |       |
+ |  |  decompose -> approval -> workLoop -> executeBatch             |       |
+ |  |  -> mergeCompleted -> runMandatoryReviews -> PR                |       |
+ |  +-------+-------------------------------------------------------+       |
+ |          |                                                                |
+ |  +-------v-------------------------------------------------------+       |
+ |  |                    WORKER SYSTEM (worker.js)                   |       |
+ |  |  claude -p subprocess per objective in isolated worktree       |       |
+ |  |  +----------+  +----------+  +----------+  +----------+       |       |
+ |  |  | Picard   |  | Borg-0   |  | Borg-1   |  | Worf     |       |       |
+ |  |  | planning |  | backend  |  | backend  |  | security |       |       |
+ |  |  +----------+  +----------+  +----------+  +----------+       |       |
+ |  +----------------------------------------------------------------+       |
+ |          |                                                                |
+ |  +-------v-------------------------------------------------------+       |
+ |  |                    GIT / PR PIPELINE                           |       |
+ |  |  worktree.js: create/remove worktrees                          |       |
+ |  |  mission.js:  merge to integration branch (O'Brien conflicts)  |       |
+ |  |  pr.js:       push + gh pr create (temp file body)             |       |
+ |  +----------------------------------------------------------------+       |
+ |                                                                           |
+ |  +----------------------------+  +----------------------------+           |
+ |  | app.db (SQLite)            |  | telemetry.db (SQLite)      |           |
+ |  | missions, objectives,      |  | traces, events, logs       |           |
+ |  | threads, approvals,        |  | OTel spans, metrics        |           |
+ |  | channel_map, session_log   |  |                            |           |
+ |  +----------------------------+  +----------------------------+           |
+ +---------------------------------------------------------------------------+
+        |              |               |                |
+        v              v               v                v
+   ~/projects/    ~/.commanddeck/   Caddy proxy     GitHub
+   (git clones)   (state + config)  (reverse proxy)  (repos + Actions)
+</pre>
+<p class="diagram-caption">Figure 1 &mdash; Full system architecture showing all components in a single process</p>
+</div>
+
+<div class="callout">
+  <strong>Single-process design:</strong> Everything runs in one Node.js process. The Slack bot uses Socket Mode (outbound WebSocket, no inbound ports required). The HTTP server on port 3000 serves the dashboard, JSON API, and SSE telemetry stream. The health patrol runs on a <code>setInterval</code>. This simplifies deployment but means a crash takes down all capabilities simultaneously.
+</div>
+
+<!-- ================================================================= -->
+<!-- 3. ENTRY POINTS & MESSAGE FLOW                                     -->
+<!-- ================================================================= -->
+
+<h2 id="s3" class="page-break"><span class="section-num">3.</span> Entry Points &amp; Message Flow</h2>
+
+<p>Messages enter CommandDeck through three channels: Slack mentions, Slack thread replies, and the HTTP API. All paths converge on the same mission engine.</p>
+
+<h3>Slack Message Classification Pipeline</h3>
+
+<div class="diagram">
+<pre>
+  User @mentions CommandDeck          User replies in thread
+         |                                    |
+         v                                    v
+  app.event('app_mention')          app.event('message')
+         |                                    |
+         +-----> Is it a command? -----+      +---> Thread exists in DB?
+         |       learn/status/resume   |      |     Yes: debounce 4s
+         |       create/onboard        |      |     No: ignore
+         v                            v      v
+  +-----------------------------------------+
+  |        thread.classifyMessage()         |
+  |  Picard triage via worker.executeTriage |
+  +-----------------------------------------+
+         |
+         v
+  +---------------------------------------------+
+  | Classification result (JSON):               |
+  |   action: work | converse | inquiry          |
+  |          | onboard | create                  |
+  |   message: conversational response           |
+  |   task_description: actionable task          |
+  |   project_name: for onboard/create           |
+  +---------------------------------------------+
+         |
+         v
+  thread.handleClassification()
+         |
+    +----+------+-------+--------+--------+
+    v    v      v       v        v        v
+  work  converse  inquiry  onboard  create
+    |      |        |        |        |
+    |      |        |        |        +-> scaffold.createProject()
+    |      |        |        +---------> scaffold.onboardProject()
+    |      |        +-> reply, stay idle
+    |      +-> reply, stay in converse state
+    |
+    +-> Has mission? ----+
+    |   No: runMission()  |
+    |   Yes: followUp()   |
+    +----+----------------+
+</pre>
+<p class="diagram-caption">Figure 2 &mdash; Unified message classification pipeline</p>
+</div>
+
+<h3>Thread State Machine</h3>
+
+<p>Every Slack thread tracked by CommandDeck has a status in the <code>threads</code> table that governs how subsequent messages are handled.</p>
+
+<div class="diagram">
+<pre>
+                         +---> conversing <---+
+                         |         |          |
+                         |         v          |
+  (new mention) ---> assessing ---+--> idle   |
+                         |         |          |
+                         |         v          |
+                         +---> launching -----+---> working -----+
+                         |                                       |
+                         +---> onboarding ----> conversing       |
+                         |                                       |
+                         +---> creating ------> conversing       |
+                         |                                       |
+                         +---> pending_plan_approval             |
+                                   |                             |
+                                   v (approve)                   |
+                              working ---> idle <----------------+
+                                   |         ^
+                                   v         |
+                              (PR created)   |
+                              idle ----------+
+</pre>
+<p class="diagram-caption">Figure 3 &mdash; Thread status state machine</p>
+</div>
+
+<h3>Explicit Commands</h3>
+
+<table>
+  <tr><th>Pattern</th><th>Scope</th><th>Action</th></tr>
+  <tr><td><code>@CD status [mission-id]</code></td><td>Any channel</td><td>Show mission status with objective breakdown</td></tr>
+  <tr><td><code>@CD resume &lt;mission-id&gt;</code></td><td>Any channel</td><td>Resume a pending_approval mission</td></tr>
+  <tr><td><code>@CD learn: &lt;text&gt;</code></td><td>Any channel</td><td>Propose a learning (governance)</td></tr>
+  <tr><td><code>@CD create &lt;name&gt;</code></td><td>Meta-channel only</td><td>Create new GitHub repo + scaffold + Slack channel</td></tr>
+  <tr><td><code>@CD onboard &lt;name&gt;</code></td><td>Meta-channel only</td><td>Onboard existing repo (clone + config + channel)</td></tr>
+  <tr><td><code>@CD in &lt;project&gt; &lt;task&gt;</code></td><td>Any channel</td><td>Run a mission in a specific project</td></tr>
+</table>
+
+<h3>Meta-Channel Resolution</h3>
+
+<p>The meta-channel (where project creation/onboarding is allowed) is auto-detected at startup from the bot's username. <code>resolveMetaChannel()</code> calls <code>auth.test()</code> to get the bot name, replaces underscores with hyphens, and searches Slack channels for a match. For bot username <code>command_deck</code>, it finds <code>#command-deck</code>.</p>
+
+<!-- ================================================================= -->
+<!-- 4. MISSION LIFECYCLE                                               -->
+<!-- ================================================================= -->
+
+<h2 id="s4" class="page-break"><span class="section-num">4.</span> Mission Lifecycle</h2>
+
+<p>The <code>Mission</code> class in <code>lib/mission.js</code> (907 lines) orchestrates the full lifecycle from Slack message to merged PR.</p>
+
+<h3>State Machine</h3>
+
+<div class="diagram">
+<pre>
+  +-----------+     +-----------+     +-------------------+     +-------------+
+  | planning  | --> |pending_   | --> |   in_progress     | --> |  merging    |
+  |           |     | approval  |     |                   |     |             |
+  +-----------+     +-----+-----+     +--------+----------+     +------+------+
+       |                  |                    |                        |
+       |             (reject)             (safety limit)          (PR created)
+       |                  |                    |                        |
+       v                  v                    v                        v
+  +-----------+     +-----------+     +-------------------+     +-------------+
+  |  failed   |     |  aborted  |     |     paused        |     |   review    |
+  +-----------+     +-----------+     +-------------------+     +------+------+
+                                                                       |
+                                                               (merge or close)
+                                                                       |
+                                                                       v
+                                                                +-------------+
+                                                                | completed   |
+                                                                +-------------+
+</pre>
+<p class="diagram-caption">Figure 4 &mdash; Mission status state machine</p>
+</div>
+
+<h3>Lifecycle Methods</h3>
+
+<div class="diagram">
+<pre>
+  mission.start()
+    |
+    +---> createMission()            # Write to app.db, create dirs on disk
+    |       mission_id = "mission-YYYYMMDD-NNN"
+    |       integration_branch = "commanddeck/{mission_id}/integration"
+    |
+    +---> decompose()                # Spawn Picard via executeSpecialist()
+    |       Picard writes mission.json with work_items array
+    |       syncMissionFile() reads JSON back into SQLite
+    |
+    +---> Guard: max_objectives check (default 10)
+    |
+    +---> reportPlanForApproval()    # Post plan to Slack thread
+    |       Return plan_message_ts for reaction tracking
+    |
+    +---> (Slack mode) setStatus('pending_approval'), return
+    |     (CLI mode)   auto-approve, continue to approvePlan()
+    |
+    v
+  mission.approvePlan()
+    |
+    +---> setStatus('in_progress')
+    +---> ensureIntegrationBranch()  # git branch if not exists
+    |
+    +---> workLoop()                 # THE MAIN LOOP
+    |       |
+    |       +---> evaluateReadiness()    # pending -> queued | upstream_failed
+    |       |       Check depends_on for each pending objective
+    |       |       All deps done? -> queued. Any dep failed? -> upstream_failed
+    |       |
+    |       +---> Safety limit check     # max_sessions (default 50)
+    |       |
+    |       +---> executeBatch(queued.slice(0, maxWorkers))
+    |       |       For each objective:
+    |       |         1. Create worktree on branch commanddeck/{mission}/{obj.id}
+    |       |         2. Spawn claude -p worker with agent identity + prompt
+    |       |         3. Wait for all workers (Promise.all)
+    |       |         4. Read evidence bundles, detect risk flags from files
+    |       |         5. Merge Picard flags + detected flags (deduplicated)
+    |       |         6. Update objective status: done | failed
+    |       |         7. Clean up worktrees
+    |       |
+    |       +---> mergeCompleted()       # Merge done branches to integration
+    |       |       git merge {branch} --no-edit
+    |       |       On conflict: invokeOBrien() to resolve
+    |       |
+    |       +---> runMandatoryReviews()  # Risk-flagged objectives
+    |       |       For each done objective with risk_flags:
+    |       |         Get mandatory reviewers from risk.js
+    |       |         Spawn specialist (worf/geordi/spock) via executeSpecialist()
+    |       |         Record reviewed_by on objective
+    |       |
+    |       +---> Loop again until all objectives resolved
+    |
+    +---> pr.create()                # Push integration branch, gh pr create
+    +---> setStatus('review')
+</pre>
+<p class="diagram-caption">Figure 5 &mdash; Complete mission lifecycle method flow</p>
+</div>
+
+<h3>Follow-Up Missions</h3>
+
+<p><code>Mission.followUp()</code> creates a new mission that reuses the parent's integration branch and PR. Workers branch from the integration branch (not main), so they see all previous work. After completion, the existing PR body is updated rather than creating a new PR.</p>
+
+<h3>Plan Revision</h3>
+
+<p>While a mission is <code>pending_approval</code>, thread replies trigger <code>mission.revisePlan(feedback)</code>. This re-invokes Picard with the previous plan and user feedback, replaces work_items, and re-posts the plan for approval.</p>
+
+<!-- ================================================================= -->
+<!-- 5. WORKER SYSTEM                                                   -->
+<!-- ================================================================= -->
+
+<h2 id="s5" class="page-break"><span class="section-num">5.</span> Worker System</h2>
+
+<p><code>lib/worker.js</code> (410 lines) is the bridge between the orchestrator and the Claude Code CLI. Every agent runs as a <code>claude -p</code> subprocess.</p>
+
+<h3>Worker Execution Model</h3>
+
+<div class="diagram">
+<pre>
+  worker.execute(worktreePath, objective, mission, { model })
+    |
+    +---> loadAgentIdentity(objective.assigned_to)
+    |       Read agents/{name}.md
+    |       parseFrontmatter() -> { identity, tools, model }
+    |
+    +---> Build prompt:
+    |       [agent identity markdown]
+    |       Executing objective {id}: {title}
+    |       Description: {description}
+    |       Mission state directory: {stateDir}
+    |       When done: commit, write evidence, write briefing
+    |
+    +---> Determine model (precedence):
+    |       1. project config.json model_overrides.{agent}
+    |       2. agents/{name}.md frontmatter model
+    |       3. COMMANDDECK_MODEL env var
+    |       4. "claude-opus-4-6" (hardcoded default)
+    |
+    +---> spawn('claude', [
+    |       '-p', prompt,
+    |       '--allowedTools', agent.tools.join(','),
+    |       '--dangerously-skip-permissions',
+    |       '--model', agentModel
+    |     ], { cwd: worktreePath, timeout: 45min })
+    |
+    +---> Stream stdout/stderr to:
+    |       - console (prefixed [agent/objective])
+    |       - telemetry.db via tdb.writeLog()
+    |
+    +---> On close:
+    |       - Persist stderr to artifacts/worker-stderr-{id}.log
+    |       - Check auth.isAuthFailure(stderr)
+    |       - Return { code, stdout, stderr, success, authFailure }
+    |
+    +---> Track in execute._activeWorkers Map (for kill capability)
+</pre>
+<p class="diagram-caption">Figure 6 &mdash; Worker execution flow for objective workers</p>
+</div>
+
+<h3>Specialist vs. Objective Workers</h3>
+
+<table>
+  <tr><th>Aspect</th><th><code>execute()</code> &mdash; Objective Worker</th><th><code>executeSpecialist()</code> &mdash; Specialist</th></tr>
+  <tr><td>Used for</td><td>Implementation objectives (borg, redshirts, mr-data)</td><td>Planning (picard), reviews (worf, geordi, spock), conflicts (obrien)</td></tr>
+  <tr><td>CWD</td><td>Worktree path</td><td>Project main directory</td></tr>
+  <tr><td>Tool restrictions</td><td>Per agent frontmatter</td><td>None (full access)</td></tr>
+  <tr><td>Active tracking</td><td>Yes (can be killed)</td><td>No</td></tr>
+  <tr><td>Timeout</td><td>45 minutes (WORKER_TIMEOUT)</td><td>45 minutes</td></tr>
+</table>
+
+<h3>Triage Worker</h3>
+
+<p><code>executeTriage()</code> is a lightweight Picard call for message classification. No mission context, 2-minute timeout, no tool restrictions. Used by <code>thread.classifyMessage()</code> for intent detection.</p>
+
+<h3>Agent Identity Loading</h3>
+
+<div class="diagram">
+<pre>
+  agents/borg.md                        loadAgentIdentity("borg")
+  +-----------------------+             +---------------------------+
+  | ---                   |   parse     | { identity: "# Borg...", |
+  | name: borg            | ---------> |   tools: ["Read","Write", |
+  | tools:                |             |     "Edit","Bash","Glob", |
+  |   - Read              |             |     "Grep"],             |
+  |   - Write             |             |   model: "claude-sonnet- |
+  |   - Edit              |             |     4-5-20250929"        |
+  |   - Bash              |             | }                        |
+  |   - Glob              |             +---------------------------+
+  |   - Grep              |
+  | model: claude-sonnet- |    The identity (markdown body) is
+  |   4-5-20250929        |    prepended to every worker prompt.
+  | ---                   |
+  | # Borg -- Backend...  |
+  +-----------------------+
+</pre>
+<p class="diagram-caption">Figure 7 &mdash; Agent identity loading from frontmatter</p>
+</div>
+
+<!-- ================================================================= -->
+<!-- 6. GIT WORKFLOW                                                     -->
+<!-- ================================================================= -->
+
+<h2 id="s6" class="page-break"><span class="section-num">6.</span> Git Workflow</h2>
+
+<h3>Branch Naming Convention</h3>
+
+<div class="diagram">
+<pre>
+  main (or master)                       # Default branch
+    |
+    +--- commanddeck/{mission-id}/integration   # Integration branch per mission
+    |       |
+    |       +--- commanddeck/{mission-id}/obj-001    # Worker branch per objective
+    |       |
+    |       +--- commanddeck/{mission-id}/obj-002    # Parallel worker branch
+    |       |
+    |       +--- commanddeck/{mission-id}/obj-003    # Sequential phase 2 branch
+    |
+    |   (follow-up missions branch from integration, not main)
+    |       +--- commanddeck/{follow-up-id}/obj-001
+    |
+
+  Worktree paths:
+    ~/projects/{repo}                    # Main clone
+    ~/projects/{repo}-wt-0               # Worker 0 worktree
+    ~/projects/{repo}-wt-1               # Worker 1 worktree
+    ~/projects/{repo}-wt-2               # Worker 2 worktree
+</pre>
+<p class="diagram-caption">Figure 8 &mdash; Branch naming and worktree path convention</p>
+</div>
+
+<h3>Worktree Lifecycle</h3>
+
+<div class="diagram">
+<pre>
+  executeBatch()
+    |
+    FOR each objective in batch:
+    |
+    +---> worktree.create(repo, index, branch, baseBranch)
+    |       1. git worktree remove {path} --force (cleanup stale)
+    |       2. rm -rf {path} (cleanup lingering dirs)
+    |       3. ensureSshRemote() (HTTPS -> SSH conversion)
+    |       4. git fetch origin
+    |       5. git branch -D {branch} (delete stale local branch)
+    |       6. git worktree add {path} -b {branch} {startPoint}
+    |          startPoint = baseBranch || getDefaultBranch()
+    |
+    +---> worker.execute(wtPath, ...) [runs in worktree]
+    |
+    +---> worktree.remove(repo, index)
+            1. git worktree remove {path} --force
+            2. rm -rf {path}
+</pre>
+<p class="diagram-caption">Figure 9 &mdash; Worktree create/execute/remove cycle</p>
+</div>
+
+<h3>Merge Strategy</h3>
+
+<div class="diagram">
+<pre>
+  mergeCompleted()
+    |
+    +---> git checkout {integration_branch}
+    |
+    FOR each done objective with unmerged branch:
+    |
+    +---> git merge {obj.git_branch} --no-edit
+    |       |
+    |       +--- Success: obj.merged = true
+    |       |
+    |       +--- Conflict: invokeOBrien(branch)
+    |               O'Brien reads briefings for intent
+    |               Resolves conflicts, git add -A, git commit
+    |               Runs tests to verify
+    |               |
+    |               +--- Success: obj.merged = true
+    |               +--- Failure: git merge --abort, continue
+    |
+    +---> git checkout {default_branch}
+</pre>
+<p class="diagram-caption">Figure 10 &mdash; Integration branch merge with O'Brien conflict resolution</p>
+</div>
+
+<h3>SSH Remote Conversion</h3>
+
+<p><code>worktree.ensureSshRemote()</code> detects HTTPS origin URLs (<code>https://github.com/...</code>) and converts them to SSH (<code>git@github.com:...</code>). This is necessary because <code>gh repo clone</code> defaults to HTTPS, but the container authenticates via SSH keys.</p>
+
+<!-- ================================================================= -->
+<!-- 7. AGENT CREW                                                      -->
+<!-- ================================================================= -->
+
+<h2 id="s7" class="page-break"><span class="section-num">7.</span> Agent Crew</h2>
+
+<p>CommandDeck's crew of 11 specialized agents is modeled after Star Trek: The Next Generation. Each agent has an identity file in <code>agents/*.md</code> with YAML frontmatter defining tools and default model.</p>
+
+<h3>Agent Roster</h3>
+
+<table>
+  <tr><th>Agent</th><th>Role</th><th>Model</th><th>Tools</th><th>Phase</th></tr>
+  <tr><td><strong>Captain Picard</strong></td><td>Mission commander. Decomposes tasks, assigns specialists, tracks progress.</td><td>claude-opus-4-6</td><td>Read, Write, Edit, Glob, Grep, Task</td><td>Planning</td></tr>
+  <tr><td><strong>Scotty</strong></td><td>Chief engineer. Architecture, ADRs, API contracts, tech stack decisions.</td><td>claude-opus-4-6</td><td>Read, Grep, Glob, Write</td><td>Phase 1</td></tr>
+  <tr><td><strong>Troi</strong></td><td>UX researcher &amp; designer. Design specs, component inventory, accessibility.</td><td>claude-opus-4-6</td><td>Read, Write, Edit, Bash, Glob, Grep</td><td>Phase 1</td></tr>
+  <tr><td><strong>Borg</strong></td><td>Backend engineer. APIs, business logic, data access, auth, migrations.</td><td>claude-sonnet-4-5</td><td>Read, Write, Edit, Bash, Glob, Grep</td><td>Phase 2+</td></tr>
+  <tr><td><strong>Redshirts</strong></td><td>Frontend engineer. Accessible, responsive UIs from Troi's specs.</td><td>claude-opus-4-6</td><td>Read, Write, Edit, Bash, Glob, Grep</td><td>Phase 2+</td></tr>
+  <tr><td><strong>Mr. Data</strong></td><td>Data specialist. Schema design, migrations, query optimization.</td><td>claude-sonnet-4-5</td><td>Read, Write, Edit, Bash, Glob, Grep</td><td>Phase 1&ndash;2</td></tr>
+  <tr><td><strong>Spock</strong></td><td>QA / Science officer. Test strategy, coverage analysis, edge cases.</td><td>claude-sonnet-4-5</td><td>Read, Write, Edit, Bash, Glob, Grep</td><td>Review</td></tr>
+  <tr><td><strong>Worf</strong></td><td>Security officer. Vulnerability scanning, threat modeling, secrets audit.</td><td>claude-sonnet-4-5</td><td>Read, Write, Grep, Glob, Bash</td><td>Review</td></tr>
+  <tr><td><strong>Geordi</strong></td><td>Chief of operations. CI/CD, Docker, deployment, observability.</td><td>claude-sonnet-4-5</td><td>Read, Write, Edit, Bash, Glob, Grep</td><td>Review</td></tr>
+  <tr><td><strong>Guinan</strong></td><td>Technical writer. API docs, architecture docs, user guides, runbooks.</td><td>claude-opus-4-6</td><td>Read, Write, Edit, Bash, Glob, Grep</td><td>Phase 3</td></tr>
+  <tr><td><strong>O'Brien</strong></td><td>Transporter chief. Merge conflict resolution preserving both sides' intent.</td><td>claude-sonnet-4-5</td><td>Read, Write, Edit, Bash, Glob, Grep</td><td>Integration</td></tr>
+</table>
+
+<h3>Agent Dependency Flow</h3>
+
+<div class="diagram">
+<pre>
+                    PLANNING                    EXECUTION               INTEGRATION    REVIEW
+                    ========                    =========               ===========    ======
+
+              +---------------+
+              | Capt. Picard  |
+              | (decompose)   |
+              +-------+-------+
+                      |
+          +-----------+-----------+
+          v                       v
+  +---------------+       +---------------+
+  |    Scotty     |       |     Troi      |       Phase 1 (parallel)
+  |  (architect)  |       |   (design)    |
+  +-------+-------+       +-------+-------+
+          |                       |
+          +---> briefings ------->+
+          |                       |
+    +-----+-----+          +-----+-----+
+    v           v          v           v
++--------+ +--------+ +--------+ +--------+
+|  Borg  | |Mr. Data| |Redshrt | | Guinan |   Phase 2+ (parallel batches)
+|(backend)| | (data) | |(front) | | (docs) |
++----+---+ +----+---+ +----+---+ +----+---+
+     |          |          |          |
+     +----------+----------+----------+
+                |
+        +-------v--------+
+        |    O'Brien      |                     Integration
+        | (merge conflicts|
+        +-------+--------+
+                |
+     +----------+----------+
+     v          v          v
++--------+ +--------+ +--------+
+|  Worf  | | Spock  | | Geordi |               Mandatory Reviews
+|(security|(  QA   )| | (infra)|
++--------+ +--------+ +--------+
+</pre>
+<p class="diagram-caption">Figure 11 &mdash; Agent dependency flow across mission phases</p>
+</div>
+
+<div class="callout callout-green">
+  <strong>Inter-agent communication:</strong> Agents communicate via filesystem artifacts in the mission state directory. Upstream agents write briefings to <code>briefings/</code>; downstream agents read them via <code>context_sources</code> references in their objective definition. There is no runtime IPC between agents.
+</div>
+
+<!-- ================================================================= -->
+<!-- 8. RISK DETECTION & MANDATORY REVIEWS                              -->
+<!-- ================================================================= -->
+
+<h2 id="s8" class="page-break"><span class="section-num">8.</span> Risk Detection &amp; Mandatory Reviews</h2>
+
+<p><code>lib/risk.js</code> (133 lines) implements evidence-based risk detection. Risk flags trigger mandatory specialist reviews before a PR is created.</p>
+
+<h3>Detection Pipeline</h3>
+
+<div class="diagram">
+<pre>
+  objective completes (status: done)
+         |
+         v
+  readEvidence(repo, missionId, obj.id)
+         |
+         v
+  Extract actual file paths:
+    evidence.files_changed.created
+    evidence.files_changed.modified
+    evidence.files_changed.deleted
+         |
+         v
+  risk.detectRiskFlags(filePaths, repo)
+    |
+    +---> loadPatterns(repo)
+    |       Project config high_risk_patterns
+    |       OR DEFAULT_PATTERNS
+    |
+    +---> For each file, match against glob patterns:
+    |       globToRegex() converts "**/*.yml" to regex
+    |       matchesCategory() tests file against patterns
+    |
+    +---> Return detected flag categories
+         |
+         v
+  Merge with Picard's pre-assigned flags (deduplicated)
+    mergedFlags = [...new Set([...existingFlags, ...detectedFlags])]
+</pre>
+<p class="diagram-caption">Figure 12 &mdash; Evidence-based risk detection pipeline</p>
+</div>
+
+<h3>Default Risk Patterns</h3>
+
+<table>
+  <tr><th>Category</th><th>File Patterns</th><th>Mandatory Reviewer</th></tr>
+  <tr><td>ci-workflow</td><td><code>.github/workflows/**</code></td><td>Geordi</td></tr>
+  <tr><td>infra</td><td><code>infra/**</code>, <code>terraform/**</code>, <code>deploy/**</code>, <code>Dockerfile</code>, <code>docker-compose*.yml</code></td><td>Geordi</td></tr>
+  <tr><td>migration</td><td><code>db/migrate/**</code>, <code>prisma/migrations/**</code>, <code>migrations/**</code></td><td>Human</td></tr>
+  <tr><td>auth</td><td><code>**/auth/**</code>, <code>**/security/**</code>, <code>**/middleware/auth*</code></td><td>Worf</td></tr>
+  <tr><td>dependency</td><td><code>package.json</code>, <code>pnpm-lock.yaml</code>, <code>Gemfile</code>, <code>requirements.txt</code>, <code>go.mod</code></td><td>Spock</td></tr>
+  <tr><td>accessibility</td><td><code>**/a11y/**</code>, <code>**/accessibility/**</code></td><td>Spock</td></tr>
+  <tr><td>security</td><td>(keyword only)</td><td>Worf</td></tr>
+  <tr><td>deploy</td><td>(keyword only)</td><td>Geordi</td></tr>
+</table>
+
+<div class="callout">
+  <strong>Dual detection:</strong> Risk flags come from two sources: (1) Picard's upfront assignment based on objective description keywords, and (2) post-execution evidence-based file analysis on actual changes. The merge of both ensures high-risk work is never silently skipped for review.
+</div>
+
+<!-- ================================================================= -->
+<!-- 9. EVIDENCE SYSTEM                                                 -->
+<!-- ================================================================= -->
+
+<h2 id="s9"><span class="section-num">9.</span> Evidence System</h2>
+
+<p><code>lib/evidence.js</code> (168 lines) defines the evidence bundle contract between workers and the PR system.</p>
+
+<h3>Evidence Bundle Schema</h3>
+
+<div class="diagram">
+<pre>
+  {
+    "objective_id": "obj-001",              # Required
+    "agent": "borg",                        # Required
+    "summary": "What was built and why",    # Required
+    "files_changed": {                      # Required
+      "created": ["src/auth/login.js"],
+      "modified": ["src/routes/index.js"],
+      "deleted": []
+    },
+    "commands_run": ["npm test", "npm lint"],  # Required
+    "tests": {                                  # Required
+      "added": ["test/auth.test.js"],
+      "result": "pass | fail | skip | none",
+      "coverage": "87%"                         # Optional
+    },
+    "risk_flags": ["auth"],                 # Optional
+    "notes_for_reviewer": [                 # Optional
+      "Check the OAuth callback URL"
+    ]
+  }
+
+  Written to: ~/.commanddeck/projects/{repo}/missions/{id}/artifacts/evidence-{obj-id}.json
+</pre>
+<p class="diagram-caption">Figure 13 &mdash; Evidence bundle schema with all fields</p>
+</div>
+
+<h3>PR Body Generation</h3>
+
+<p><code>buildPRBody()</code> assembles all evidence bundles into a structured PR body with:</p>
+<ul>
+  <li>Mission summary header with total objectives, phases, sessions, and file counts</li>
+  <li>Per-objective sections with file counts, test results, risk flags, and reviewer notes</li>
+  <li>Collapsible full evidence JSON section</li>
+  <li>HTML comments for Slack metadata: <code>&lt;!-- commanddeck:slack_channel=CXXXX --&gt;</code> and <code>&lt;!-- commanddeck:slack_thread_ts=1234.5678 --&gt;</code></li>
+</ul>
+
+<p>The Slack metadata comments enable GitHub Actions to post the UAT URL back to the correct Slack thread after deploying a preview environment.</p>
+
+<!-- ================================================================= -->
+<!-- 10. PR & DEPLOYMENT PIPELINE                                       -->
+<!-- ================================================================= -->
+
+<h2 id="s10" class="page-break"><span class="section-num">10.</span> PR &amp; Deployment Pipeline</h2>
+
+<h3>PR Lifecycle</h3>
+
+<div class="diagram">
+<pre>
+  pr.create(mission)
+    |
+    +---> Verify remote "origin" exists
+    +---> worktree.ensureSshRemote()         # HTTPS -> SSH
+    +---> git push origin {integration_branch}
+    |
+    +---> Write PR body to temp file:
+    |       /tmp/commanddeck-pr-body-{timestamp}.md
+    |       (temp file pattern for container /dev/stdin compat)
+    |
+    +---> gh pr create --title "..." --body-file {temp} --base {default} --head {integration}
+    |
+    +---> Extract PR number from URL
+    +---> Update mission state: pr.number, pr.url, status='review'
+    +---> Post approval prompt to Slack
+    +---> Delete temp file
+    |
+    v
+  (User reacts in Slack)
+    |
+    +---> checkmark: handlePRMerge()
+    |       gh pr merge {number} --merge --delete-branch
+    |       pr.cleanup(): remove worktrees, delete objective branches,
+    |                      delete integration branch (local + remote)
+    |       setStatus('completed')
+    |
+    +---> X: handlePRClose()
+            gh pr close {number}
+            pr.cleanup()
+            setStatus('completed')
+</pre>
+<p class="diagram-caption">Figure 14 &mdash; PR creation through merge/close lifecycle</p>
+</div>
+
+<h3>Deployment Architecture</h3>
+
+<div class="diagram">
+<pre>
+  PR merged to main
+       |
+       v
+  GitHub Actions (.github/workflows/deploy.yml)
+    |
+    +---> Test job:  npm ci && npm test
+    |
+    +---> Build job: docker build -> ghcr.io/{org}/{app}:latest
+    |
+    +---> Deploy job: aws ssm send-command
+            |
+            v
+       EC2 Instance (100.29.233.41)
+         cd /srv/{app}
+         docker compose pull
+         docker compose up -d --remove-orphans
+            |
+            v
+       Caddy reverse proxy
+         {app}.gulatilabs.me -> {app}:{port}
+</pre>
+<p class="diagram-caption">Figure 15 &mdash; CI/CD deployment pipeline from PR merge to production</p>
+</div>
+
+<h3>Caddy Integration</h3>
+
+<p><code>lib/deploy.js</code> (259 lines) manages Caddy reverse proxy entries. <code>addCaddyEntry()</code> appends a server block to the Caddyfile and reloads Caddy via <code>docker exec</code>. <code>removeCaddyEntry()</code> removes the block via regex and reloads. <code>generatePrComposeContent()</code> creates isolated PR preview environments with their own postgres, redis, backend, and frontend containers on an internal network with the proxy network bridged.</p>
+
+<!-- ================================================================= -->
+<!-- 11. SLACK INTEGRATION                                              -->
+<!-- ================================================================= -->
+
+<h2 id="s11" class="page-break"><span class="section-num">11.</span> Slack Integration</h2>
+
+<h3>Channel Architecture</h3>
+
+<div class="diagram">
+<pre>
+  #command-deck (meta-channel)
+    |-- Project creation: "create myapp"
+    |-- Project onboarding: "onboard existing-repo"
+    |
+    v
+  #weather-aggregator (C0AF5R9T86N) --> WeatherAggregator repo
+  #furever-care      (C0AB1AHJML5) --> FurEverCare repo
+  #eve               (C0AGW43AXJ6) --> eve repo
+  #reef-rush         (C0AGU29CCH4) --> SharkShark repo
+
+  channel_map table (app.db):
+    +-------------+---------------------+
+    | channel_id  | repo                |
+    +-------------+---------------------+
+    | C0AF5R9T86N | WeatherAggregator   |
+    | C0AB1AHJML5 | FurEverCare         |
+    | C0AGW43AXJ6 | eve                 |
+    | C0AGU29CCH4 | SharkShark          |
+    +-------------+---------------------+
+</pre>
+<p class="diagram-caption">Figure 16 &mdash; Slack channel to repository mapping</p>
+</div>
+
+<h3>Approval Flow</h3>
+
+<div class="diagram">
+<pre>
+  THREE REACTION-BASED APPROVAL SYSTEMS:
+
+  1. PLAN APPROVAL (approvals table, type='plan')
+     Picard posts plan -> track plan_message_ts
+     checkmark -> handlePlanApprove() -> mission.approvePlan()
+     X         -> handlePlanReject()  -> mission.rejectPlan()
+     Reply     -> mission.revisePlan(feedback)
+
+  2. PR APPROVAL (approvals table, type='pr')
+     Mission posts PR prompt -> track message_ts
+     checkmark -> handlePRMerge() -> gh pr merge + cleanup
+     X         -> handlePRClose() -> gh pr close + cleanup
+
+  3. GOVERNANCE APPROVAL (proposals table)
+     learn.propose() -> track message_ts
+     checkmark -> learn.approve() -> move proposed/ -> active/
+     X         -> learn.reject()  -> delete proposed file
+</pre>
+<p class="diagram-caption">Figure 17 &mdash; Three parallel approval systems via Slack reactions</p>
+</div>
+
+<h3>Reporter Pattern</h3>
+
+<p><code>lib/slack.js</code> provides two reporter implementations. <code>slackReporter(app, channel, threadTs)</code> returns <code>{ post(text) }</code> that calls <code>chat.postMessage</code> in the thread. <code>consoleReporter()</code> returns the same interface but writes to stdout. All mission lifecycle methods accept a reporter, making them testable without Slack.</p>
+
+<!-- ================================================================= -->
+<!-- 12. HEALTH PATROL                                                  -->
+<!-- ================================================================= -->
+
+<h2 id="s12"><span class="section-num">12.</span> Health Patrol</h2>
+
+<p><code>lib/health.js</code> (249 lines) runs on a 2-minute interval, checking all in-progress workers for signs of trouble.</p>
+
+<h3>Detection Thresholds</h3>
+
+<table>
+  <tr><th>Check</th><th>Method</th><th>Warning</th><th>Red Alert</th></tr>
+  <tr><td>Stuck worker</td><td>Minutes since last commit (or worker start, whichever is later)</td><td>10 min</td><td>20 min</td></tr>
+  <tr><td>Test failure loop</td><td>Same test name fails 2+ times for same objective</td><td>&mdash;</td><td>2 failures</td></tr>
+  <tr><td>Edit thrashing</td><td>Any file edited >10 times in last 20 git commits</td><td>&mdash;</td><td>>10 edits</td></tr>
+</table>
+
+<div class="diagram">
+<pre>
+  health.startPatrol(getMissions, reporter)
+    |
+    Every 120 seconds:
+    |
+    FOR each active mission with status 'in_progress':
+    |
+    +---> FOR each objective with status 'in_progress':
+    |       |
+    |       +---> getMinutesSinceActivity(wtPath, started_at)
+    |       |       git log -1 --format=%ct
+    |       |       baseline = max(commitTime, workerStart)
+    |       |
+    |       +---> getTestFailureCount(objectiveId)
+    |       |       Check in-memory testFailureCounts Map
+    |       |
+    |       +---> detectThrashing(wtPath, objectiveId)
+    |               git log --name-only --format="" -20
+    |               Count file occurrences, flag >10
+    |
+    +---> Post alerts to Slack thread
+    +---> Persist alerts to telemetry.db as health.alert events
+</pre>
+<p class="diagram-caption">Figure 18 &mdash; Health patrol detection flow</p>
+</div>
+
+<!-- ================================================================= -->
+<!-- 13. OBSERVABILITY & DASHBOARD                                      -->
+<!-- ================================================================= -->
+
+<h2 id="s13" class="page-break"><span class="section-num">13.</span> Observability &amp; Dashboard</h2>
+
+<h3>Two-Database Architecture</h3>
+
+<div class="diagram">
+<pre>
+  +----------------------------+        +----------------------------+
+  |       app.db               |        |      telemetry.db          |
+  | (application state)        |        | (observability data)       |
+  |                            |        |                            |
+  | missions                   |        | traces                     |
+  | objectives                 |        |   trace_id, mission_id     |
+  | threads                    |        |   spans (JSON tree)        |
+  | approvals                  |        |   status, duration_ms      |
+  | channel_map                |        |                            |
+  | proposals                  |        | events                     |
+  | session_log                |        |   event, mission_id        |
+  | _migrations                |        |   actor, payload           |
+  |                            |        |                            |
+  | Managed by: lib/db.js      |        | logs                       |
+  | Accessed by: lib/state.js  |        |   source, agent, level     |
+  +----------------------------+        |   message, data            |
+                                        |                            |
+                                        | Managed by:                |
+                                        |   lib/telemetry-db.js      |
+                                        +----------------------------+
+</pre>
+<p class="diagram-caption">Figure 19 &mdash; Separate failure domains for app state and telemetry</p>
+</div>
+
+<h3>OTel Integration</h3>
+
+<p><code>lib/telemetry.js</code> (437 lines) initializes OpenTelemetry with a custom <code>SQLiteSpanExporter</code> that writes span trees to <code>telemetry.db</code>.</p>
+
+<div class="diagram">
+<pre>
+  server.js: telemetry.instrument(mission, methods, metadata)
+    |
+    +---> Returns ES Proxy wrapping Mission instance
+    |       Intercepts calls to: start, decompose, workLoop,
+    |       executeBatch, mergeCompleted, runMandatoryReviews, approvePlan
+    |
+    +---> On method call:
+    |       1. tracer.startActiveSpan(name)
+    |       2. Write to _traceBuffers Map
+    |       3. Log start to telemetry.db
+    |       4. broadcastSSE({ type: 'span_start', ... })
+    |       5. Execute original method
+    |       6. On resolve: span.end() -> SQLiteSpanExporter.export()
+    |          -> buildSpanTree() -> tdb.upsertTrace()
+    |       7. broadcastSSE({ type: 'trace_completed', ... })
+    |
+    +---> lifecycle EventEmitter: method:before, method:after, method:error
+</pre>
+<p class="diagram-caption">Figure 20 &mdash; Proxy-based mission instrumentation</p>
+</div>
+
+<h3>SSE Streaming</h3>
+
+<p>The <code>/api/telemetry/stream</code> endpoint returns Server-Sent Events. Dashboard clients connect and receive real-time updates for span starts, trace completions, and log entries. A 30-second heartbeat keeps the connection alive.</p>
+
+<h3>Unix Socket for Worker Visibility</h3>
+
+<p><code>telemetry.js</code> starts a Unix socket server at <code>/tmp/commanddeck-telemetry.sock</code>. The <code>telemetry-emit.sh</code> PostToolUse hook in worker sessions pipes tool call data to this socket via <code>nc -U</code>. This gives the dashboard real-time visibility into what tools each worker is calling.</p>
+
+<h3>API Endpoints</h3>
+
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td>GET</td><td><code>/api/health</code></td><td>Health check with uptime</td></tr>
+  <tr><td>GET</td><td><code>/api/overview</code></td><td>System overview: projects, active/total missions, workers</td></tr>
+  <tr><td>GET</td><td><code>/api/projects</code></td><td>All projects with config and mission counts</td></tr>
+  <tr><td>GET</td><td><code>/api/projects/:repo/missions</code></td><td>Missions for a project with objectives and progress</td></tr>
+  <tr><td>GET</td><td><code>/api/missions/:repo/:id</code></td><td>Full mission detail with evidence and health alerts</td></tr>
+  <tr><td>GET</td><td><code>/api/missions/:repo/:id/timeline</code></td><td>Event timeline for a mission</td></tr>
+  <tr><td>GET</td><td><code>/api/missions/:repo/:id/trace</code></td><td>OTel trace for a mission</td></tr>
+  <tr><td>GET</td><td><code>/api/traces</code></td><td>List traces (filterable by status, repo, mission_id)</td></tr>
+  <tr><td>GET</td><td><code>/api/traces/:traceId</code></td><td>Single trace with span tree</td></tr>
+  <tr><td>GET</td><td><code>/api/logs</code></td><td>Query logs (filterable by mission, trace, level, source)</td></tr>
+  <tr><td>GET</td><td><code>/api/metrics</code></td><td>Aggregate metrics: trace counts, duration trends, top agents</td></tr>
+  <tr><td>GET</td><td><code>/api/events/recent</code></td><td>Last 30 events</td></tr>
+  <tr><td>GET</td><td><code>/api/pending</code></td><td>Pending PR/plan approvals and active threads</td></tr>
+  <tr><td>GET</td><td><code>/api/orphaned</code></td><td>Missions without Slack thread tracking</td></tr>
+  <tr><td>GET</td><td><code>/api/containers</code></td><td>Docker container list via Docker socket</td></tr>
+  <tr><td>GET</td><td><code>/api/telemetry/stream</code></td><td>SSE stream for live dashboard updates</td></tr>
+  <tr><td>POST</td><td><code>/api/missions</code></td><td>Start new mission from dashboard</td></tr>
+  <tr><td>POST</td><td><code>/api/missions/:repo/:id/approve</code></td><td>Approve pending plan</td></tr>
+  <tr><td>POST</td><td><code>/api/missions/:repo/:id/reject</code></td><td>Reject pending plan</td></tr>
+  <tr><td>POST</td><td><code>/api/missions/:repo/:id/resume</code></td><td>Resume stuck/failed/paused mission</td></tr>
+  <tr><td>POST</td><td><code>/api/missions/:repo/:id/reconnect</code></td><td>Reconnect mission to Slack thread</td></tr>
+  <tr><td>POST</td><td><code>/api/missions/:repo/:id/pr/merge</code></td><td>Merge PR from dashboard</td></tr>
+  <tr><td>POST</td><td><code>/api/missions/:repo/:id/pr/close</code></td><td>Close PR from dashboard</td></tr>
+</table>
+
+<!-- ================================================================= -->
+<!-- 14. DATA ARCHITECTURE                                              -->
+<!-- ================================================================= -->
+
+<h2 id="s14" class="page-break"><span class="section-num">14.</span> Data Architecture</h2>
+
+<h3>app.db Schema</h3>
+
+<div class="diagram">
+<pre>
+  +-------------------+       +-------------------+       +-------------------+
+  | missions          |       | objectives        |       | session_log       |
+  |-------------------|       |-------------------|       |-------------------|
+  | id           PK   |&lt;------| mission_id   FK   |       | id           PK   |
+  | repo              |       | id           PK   |       | mission_id        |
+  | description       |       | title             |       | session_id        |
+  | status            |       | description       |       | agent             |
+  | default_branch    |       | status            |       | objective         |
+  | integration_branch|       | phase             |       | exit_code         |
+  | slack_channel     |       | parallel_group    |       | started_at        |
+  | slack_thread_ts   |       | assigned_to       |       | ended_at          |
+  | pr_number         |       | git_branch        |       +-------------------+
+  | pr_url            |       | worker_index      |
+  | pr_status         |       | risk_flags   JSON |       +-------------------+
+  | plan_message_ts   |       | depends_on   JSON |       | channel_map       |
+  | is_follow_up      |       | context_sources J |       |-------------------|
+  | parent_mission_id |       | evidence_path     |       | channel_id   PK   |
+  | config       JSON |       | reviewed_by  JSON |       | repo              |
+  | safety       JSON |       | merged            |       +-------------------+
+  | created_at        |       | started_at        |
+  | updated_at        |       | completed_at      |       +-------------------+
+  +-------------------+       | error             |       | proposals         |
+                              +-------------------+       |-------------------|
+  +-------------------+                                   | message_ts   PK   |
+  | threads           |       +-------------------+       | proposed_path     |
+  |-------------------|       | approvals         |       | target_dir        |
+  | channel      PK   |       |-------------------|       | file_name         |
+  | thread_ts    PK   |       | message_ts   PK   |       | proposed_at       |
+  | repo              |       | type  (pr|plan)   |       +-------------------+
+  | mission_id        |       | repo              |
+  | integration_branch|       | mission_id        |       +-------------------+
+  | pr_number         |       | pr_number         |       | _migrations       |
+  | pr_url            |       | pr_url            |       |-------------------|
+  | original_descript |       | channel           |       | name         PK   |
+  | status            |       | thread_ts         |       | applied_at        |
+  | follow_up_count   |       | tracked_at        |       +-------------------+
+  | tracked_at        |       +-------------------+
+  | updated_at        |
+  +-------------------+
+
+  Indexes: objectives(mission_id), objectives(status),
+           missions(status), missions(repo)
+</pre>
+<p class="diagram-caption">Figure 21 &mdash; Complete app.db schema with all tables and columns</p>
+</div>
+
+<h3>telemetry.db Schema</h3>
+
+<div class="diagram">
+<pre>
+  +-------------------+       +-------------------+       +-------------------+
+  | traces            |       | events            |       | logs              |
+  |-------------------|       |-------------------|       |-------------------|
+  | trace_id     PK   |       | id           PK   |       | id           PK   |
+  | mission_id        |       | ts                |       | ts                |
+  | repo              |       | event             |       | trace_id          |
+  | status            |       | mission_id        |       | span_id           |
+  | started_at        |       | repo              |       | mission_id        |
+  | ended_at          |       | actor             |       | repo              |
+  | duration_ms       |       | payload      JSON |       | source            |
+  | span_count        |       +-------------------+       | agent             |
+  | spans        JSON |                                   | objective_id      |
+  +-------------------+       Indexes:                    | level             |
+                              events(mission_id)          | message           |
+  Indexes:                    events(ts)                  | data         JSON |
+  traces(mission_id)                                      +-------------------+
+  traces(started_at)
+                              Indexes: logs(trace_id), logs(mission_id), logs(ts)
+</pre>
+<p class="diagram-caption">Figure 22 &mdash; Complete telemetry.db schema</p>
+</div>
+
+<h3>Filesystem State Directory</h3>
+
+<div class="diagram">
+<pre>
+  ~/.commanddeck/
+  +-- app.db                            # Application state (SQLite + WAL)
+  +-- telemetry.db                      # Observability data (SQLite + WAL)
+  +-- config.json                       # Global installation config
+  +-- standards/                        # Global standards (loaded by hooks)
+  |   +-- code-quality.md
+  |   +-- frontend.md
+  |   +-- backend.md
+  |   +-- testing.md
+  |   +-- security.md
+  |   +-- documentation.md
+  |   +-- cloud-deployment.md
+  +-- crew/                             # Per-agent preferences
+  |   +-- captain-picard-preferences.md
+  |   +-- borg-preferences.md
+  |   +-- scotty-preferences.md
+  |   +-- ... (10 total)
+  +-- playbooks/                        # Reusable mission templates
+  |   +-- web-app.md
+  +-- proposed/                         # Governance: pending approvals
+  |   +-- standards/
+  |   +-- crew/
+  |   +-- playbooks/
+  +-- projects/
+      +-- {repo}/
+          +-- config.json               # Per-project config
+          +-- directives/               # Project-specific directives
+          |   +-- *.md
+          +-- missions/
+              +-- {mission-id}/
+                  +-- mission.json      # Picard's decomposition output
+                  +-- captains-log.md   # Stardate-stamped log entries
+                  +-- briefings/        # Inter-agent communication
+                  |   +-- scotty-output.json
+                  |   +-- troi-design-spec.json
+                  |   +-- borg-output-obj-001.json
+                  |   +-- worf-review.json
+                  |   +-- spock-report.json
+                  +-- artifacts/        # Evidence + worker logs
+                  |   +-- evidence-obj-001.json
+                  |   +-- evidence-obj-002.json
+                  |   +-- worker-stderr-obj-001.log
+                  +-- backups/          # Pre-compaction checkpoints
+</pre>
+<p class="diagram-caption">Figure 23 &mdash; Filesystem state directory structure</p>
+</div>
+
+<!-- ================================================================= -->
+<!-- 15. CONFIGURATION & LAYERED CONTEXT                                -->
+<!-- ================================================================= -->
+
+<h2 id="s15" class="page-break"><span class="section-num">15.</span> Configuration &amp; Layered Context</h2>
+
+<h3>Configuration Precedence</h3>
+
+<div class="diagram">
+<pre>
+  Highest priority
+  ================
+  1. Per-project config   ~/.commanddeck/projects/{repo}/config.json
+  2. Global config        ~/.commanddeck/config.json
+  3. Environment vars     COMMANDDECK_MAX_WORKERS, COMMANDDECK_MODEL, etc.
+  4. Hardcoded defaults   In source code (lib/state.js, lib/worker.js)
+  ================
+  Lowest priority
+</pre>
+<p class="diagram-caption">Figure 24 &mdash; Configuration precedence (highest to lowest)</p>
+</div>
+
+<h3>Global Config Fields</h3>
+
+<table>
+  <tr><th>Field</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>github_org</code></td><td><code>gulati8</code></td><td>GitHub org/user for repo operations</td></tr>
+  <tr><td><code>domain</code></td><td><code>gulatilabs.me</code></td><td>Domain for Caddy reverse proxy entries</td></tr>
+  <tr><td><code>registry</code></td><td><code>ghcr.io/gulati8</code></td><td>Container registry prefix</td></tr>
+  <tr><td><code>caddyfile_path</code></td><td><code>/srv/proxy/Caddyfile</code></td><td>Path to Caddy configuration</td></tr>
+  <tr><td><code>caddy_container</code></td><td><code>proxy-caddy-1</code></td><td>Docker container name for Caddy</td></tr>
+  <tr><td><code>deploy_dir</code></td><td><code>/srv</code></td><td>Base directory for app deployments</td></tr>
+</table>
+
+<h3>Per-Project Config Fields</h3>
+
+<table>
+  <tr><th>Field</th><th>Default</th><th>Description</th></tr>
+  <tr><td><code>default_branch</code></td><td><code>main</code></td><td>Default git branch</td></tr>
+  <tr><td><code>max_workers</code></td><td>1 (env: <code>COMMANDDECK_MAX_WORKERS</code>)</td><td>Max parallel workers per batch</td></tr>
+  <tr><td><code>max_sessions</code></td><td>50 (env: <code>COMMANDDECK_MAX_SESSIONS</code>)</td><td>Max total sessions per mission</td></tr>
+  <tr><td><code>max_elapsed_hours</code></td><td>6 (env: <code>COMMANDDECK_MAX_HOURS</code>)</td><td>Max wall-clock hours</td></tr>
+  <tr><td><code>test_command</code></td><td><code>npm test</code></td><td>Project test command</td></tr>
+  <tr><td><code>lint_command</code></td><td><code>null</code></td><td>Project lint command</td></tr>
+  <tr><td><code>build_command</code></td><td><code>null</code></td><td>Project build command</td></tr>
+  <tr><td><code>model_overrides</code></td><td><code>{}</code></td><td>Per-agent model overrides</td></tr>
+  <tr><td><code>max_objectives</code></td><td>10</td><td>Max objectives Picard can create</td></tr>
+  <tr><td><code>high_risk_patterns</code></td><td>(DEFAULT_PATTERNS)</td><td>Custom risk detection patterns</td></tr>
+</table>
+
+<h3>Layered Context System</h3>
+
+<p>Worker prompts are enriched with context from multiple layers, loaded by <code>hooks/session-start.sh</code> in priority order:</p>
+
+<div class="diagram">
+<pre>
+  Layer 6 (highest): Active mission state
+    mission.json, captains-log.md, briefings/
+
+  Layer 5: Repo ADRs
+    docs/adr/*.md
+
+  Layer 4: Project directives
+    ~/.commanddeck/projects/{repo}/directives/*.md
+
+  Layer 3: Crew preferences
+    ~/.commanddeck/crew/{agent}-preferences.md
+
+  Layer 2: Global standards
+    ~/.commanddeck/standards/*.md
+
+  Layer 1 (lowest): Agent identity
+    agents/{agent}.md (always prepended to prompt)
+</pre>
+<p class="diagram-caption">Figure 25 &mdash; Six-layer context system loaded into worker prompts</p>
+</div>
+
+<!-- ================================================================= -->
+<!-- 16. SECURITY & SAFETY                                              -->
+<!-- ================================================================= -->
+
+<h2 id="s16" class="page-break"><span class="section-num">16.</span> Security &amp; Safety</h2>
+
+<h3>Input Validation</h3>
+
+<p><code>lib/validate.js</code> (21 lines) provides two guards:</p>
+<ul>
+  <li><code>assertSafeRef(value, fieldName)</code> &mdash; validates git refs match <code>/^[A-Za-z0-9._/-]+$/</code> to prevent shell injection via branch names</li>
+  <li><code>validateRepoName(repo)</code> &mdash; validates repo names match <code>/^[A-Za-z0-9._-]+$/</code></li>
+</ul>
+
+<h3>Safety Limits</h3>
+
+<table>
+  <tr><th>Limit</th><th>Default</th><th>Where Checked</th></tr>
+  <tr><td>Max sessions per mission</td><td>50</td><td><code>checkSafetyLimits()</code> in work loop</td></tr>
+  <tr><td>Max elapsed hours</td><td>6</td><td>In project config (not actively enforced in current code)</td></tr>
+  <tr><td>Max parallel workers</td><td>3</td><td><code>workLoop()</code> batch slicing</td></tr>
+  <tr><td>Max objectives</td><td>10</td><td><code>start()</code> guard after decompose</td></tr>
+  <tr><td>Worker timeout</td><td>45 minutes</td><td><code>spawn()</code> timeout option</td></tr>
+  <tr><td>Triage timeout</td><td>2 minutes</td><td><code>executeTriage()</code> timeout</td></tr>
+</table>
+
+<h3>Hook-Based Guards</h3>
+
+<div class="callout callout-red">
+  <strong>Important:</strong> The pre-write and pre-bash guard hooks referenced in CLAUDE.md are defined in the project's hook system but are not present as standalone files in <code>.claude/hooks/</code>. They may be loaded via the Claude Code settings or the session-start context system. Currently, only two hook scripts are deployed: <code>session-issues.sh</code> and <code>telemetry-emit.sh</code>.
+</div>
+
+<h3>Auth Failure Detection</h3>
+
+<p><code>lib/auth.js</code> (85 lines) handles Claude CLI authentication. <code>isAuthFailure(stderr)</code> checks worker stderr for patterns like "unauthorized", "authentication required", "invalid token". <code>detectAuthUrl(stderr)</code> extracts OAuth URLs for broker-assisted re-authentication. <code>startupCheck()</code> verifies the Claude CLI is reachable at boot.</p>
+
+<h3>Container Security</h3>
+
+<ul>
+  <li><code>entrypoint.sh</code> handles SSH known_hosts, <code>gh auth</code> from <code>GH_TOKEN</code> env var, git config</li>
+  <li>Host SSH keys mounted read-only at <code>/tmp/host-ssh-key:ro</code>, copied to writable location with 600 perms</li>
+  <li>Claude Code auth volume mounted read-write (<code>/home/ec2-user/.claude</code>)</li>
+  <li><code>--dangerously-skip-permissions</code> flag on all <code>claude -p</code> invocations</li>
+</ul>
+
+<!-- ================================================================= -->
+<!-- 17. HOOKS SYSTEM                                                   -->
+<!-- ================================================================= -->
+
+<h2 id="s17"><span class="section-num">17.</span> Hooks System</h2>
+
+<p>Hooks are defined in <code>.claude/settings.json</code> and as scripts in <code>.claude/hooks/</code>. Two hooks are currently deployed.</p>
+
+<h3>Hook Inventory</h3>
+
+<table>
+  <tr><th>Hook</th><th>Script</th><th>Event</th><th>Purpose</th></tr>
+  <tr>
+    <td><strong>Session Issues</strong></td>
+    <td><code>.claude/hooks/session-issues.sh</code></td>
+    <td>SessionStart</td>
+    <td>Fetches open GitHub issues via <code>gh issue list</code> and presents them at session start. Extracts repo from git remote URL. Outputs formatted issue list for developer context.</td>
+  </tr>
+  <tr>
+    <td><strong>Telemetry Emit</strong></td>
+    <td><code>.claude/hooks/telemetry-emit.sh</code></td>
+    <td>PostToolUse</td>
+    <td>Pipes tool call data (JSON from stdin) to the telemetry Unix socket via <code>nc -U</code>. Enriches with env vars: <code>COMMANDDECK_MISSION_ID</code>, <code>COMMANDDECK_AGENT</code>, <code>COMMANDDECK_OBJECTIVE_ID</code>, <code>COMMANDDECK_REPO</code>. Non-blocking (backgrounded).</td>
+  </tr>
+</table>
+
+<h3>Telemetry Hook Data Flow</h3>
+
+<div class="diagram">
+<pre>
+  claude -p worker subprocess
+    |
+    +---> PostToolUse event fires
+    |       JSON: { tool, input, output }
+    |
+    +---> .claude/hooks/telemetry-emit.sh
+    |       1. Check if /tmp/commanddeck-telemetry.sock exists
+    |       2. Read JSON from stdin
+    |       3. Enrich with env vars via python3:
+    |          mission_id, trace_id, span_id, agent, objective_id, repo
+    |       4. echo "$ENRICHED" | nc -U -w1 "$SOCKET" &
+    |
+    +---> telemetry.js: handleHookData(data)
+            1. Write to telemetry.db logs table
+            2. broadcastSSE({ type: 'log', ... })
+            3. lifecycle.emit('hook_data', data)
+</pre>
+<p class="diagram-caption">Figure 26 &mdash; PostToolUse hook to telemetry pipeline</p>
+</div>
+
+<!-- ================================================================= -->
+<!-- 18. LEARNING & GOVERNANCE                                          -->
+<!-- ================================================================= -->
+
+<h2 id="s18"><span class="section-num">18.</span> Learning &amp; Governance</h2>
+
+<p><code>lib/learn.js</code> (279 lines) implements a learning system where users can teach CommandDeck new standards, crew preferences, and playbooks.</p>
+
+<h3>Scope Detection</h3>
+
+<div class="diagram">
+<pre>
+  User: "@CD remember: Spock should always check for race conditions"
+    |
+    +---> learn.detectScope(text)
+    |       1. Check for agent names in text:
+    |          "spock" found -> scope: CREW, agent: "spock"
+    |       2. Check for "in this project" / "for this project":
+    |          -> scope: DIRECTIVE, repo: null (needs context)
+    |       3. Check for "in {repo}" prefix:
+    |          -> scope: DIRECTIVE, repo: extracted
+    |       4. Check for "playbook"/"template"/"standard approach":
+    |          -> scope: PLAYBOOK
+    |       5. Default: scope: STANDARD
+    |
+    +---> learn.propose(text, context)
+            |
+            +--- DIRECTIVE: Write directly (no governance)
+            |     -> ~/.commanddeck/projects/{repo}/directives/{slug}.md
+            |
+            +--- STANDARD/CREW/PLAYBOOK: Write to proposed/ (needs approval)
+                  -> ~/.commanddeck/proposed/{scope}/{slug}.md
+                  -> Track message_ts in proposals table
+                  -> React checkmark: approve() moves to active dir
+                  -> React X: reject() deletes proposed file
+</pre>
+<p class="diagram-caption">Figure 27 &mdash; Learning scope detection and governance flow</p>
+</div>
+
+<h3>Scope Types</h3>
+
+<table>
+  <tr><th>Scope</th><th>Target Directory</th><th>Governance</th><th>Impact</th></tr>
+  <tr><td>Standard</td><td><code>~/.commanddeck/standards/</code></td><td>Approval required</td><td>All agents, all projects</td></tr>
+  <tr><td>Crew</td><td><code>~/.commanddeck/crew/</code></td><td>Approval required</td><td>Specific agent, all projects</td></tr>
+  <tr><td>Playbook</td><td><code>~/.commanddeck/playbooks/</code></td><td>Approval required</td><td>Template for future missions</td></tr>
+  <tr><td>Directive</td><td><code>~/.commanddeck/projects/{repo}/directives/</code></td><td>Direct write</td><td>All agents, specific project</td></tr>
+</table>
+
+<!-- ================================================================= -->
+<!-- 19. KNOWN LIMITATIONS                                              -->
+<!-- ================================================================= -->
+
+<h2 id="s19" class="page-break"><span class="section-num">19.</span> Known Limitations</h2>
+
+<div class="callout callout-red">
+  <strong>Honest assessment:</strong> These are real architectural limitations in the current system, not aspirational improvements.
+</div>
+
+<h3>Isolation</h3>
+
+<table>
+  <tr><th>Limitation</th><th>Impact</th><th>Current Mitigation</th></tr>
+  <tr><td><strong>No container isolation for agents</strong></td><td>Workers run as subprocesses with full host access. A misbehaving agent can read/write any file, access env vars, or interfere with other workers.</td><td><code>--allowedTools</code> restricts tool usage per agent, but this is advisory (CLI-enforced, not sandboxed).</td></tr>
+  <tr><td><strong><code>--dangerously-skip-permissions</code></strong></td><td>All agents run without permission prompts. No human-in-the-loop for individual tool calls.</td><td>Pre-write and pre-bash guard hooks block known dangerous patterns.</td></tr>
+  <tr><td><strong>Shared filesystem</strong></td><td>All agents share the same <code>~/.commanddeck</code> directory and project clones. No namespace isolation.</td><td>Worktrees provide branch isolation, but agents can read any worktree.</td></tr>
+</table>
+
+<h3>Communication</h3>
+
+<table>
+  <tr><th>Limitation</th><th>Impact</th></tr>
+  <tr><td><strong>Slack-only channel support</strong></td><td>No WhatsApp, Telegram, Discord, or email integration. Slack is the sole interface.</td></tr>
+  <tr><td><strong>Transactional Slack conversations</strong></td><td>Each message is classified independently. No persistent conversation memory across sessions. Thread context is rebuilt by fetching history each time.</td></tr>
+  <tr><td><strong>No streaming responses</strong></td><td>Slack messages are posted as complete blocks. No partial/streaming updates to show agent progress in real-time.</td></tr>
+</table>
+
+<h3>Architecture</h3>
+
+<table>
+  <tr><th>Limitation</th><th>Impact</th></tr>
+  <tr><td><strong>Raw <code>claude -p</code> instead of Agent SDK</strong></td><td>No session resume, no native streaming, no agent teams. Each worker invocation is stateless. Context window is the entire prompt (no conversation history).</td></tr>
+  <tr><td><strong>Single-process architecture</strong></td><td>Crash in any component takes down the entire system. No graceful degradation.</td></tr>
+  <tr><td><strong>Env var secrets</strong></td><td><code>SLACK_BOT_TOKEN</code>, <code>SLACK_APP_TOKEN</code>, <code>GH_TOKEN</code> are visible in the process environment. Any agent subprocess can read them.</td></tr>
+  <tr><td><strong>No credential proxy</strong></td><td>Agents directly access GitHub via <code>gh</code> CLI with ambient credentials. No fine-grained token scoping per agent.</td></tr>
+  <tr><td><strong>SQLite concurrency</strong></td><td>WAL mode helps, but heavy parallel worker activity could cause lock contention. No connection pooling.</td></tr>
+  <tr><td><strong>No task queue</strong></td><td>Missions run inline in the event loop. Long-running missions block the process. No retry or dead-letter queue.</td></tr>
+</table>
+
+<h3>Operational</h3>
+
+<table>
+  <tr><th>Limitation</th><th>Impact</th></tr>
+  <tr><td><strong>No auto-recovery</strong></td><td>If the container crashes mid-mission, objectives may be left in <code>in_progress</code> state. Manual resume required via dashboard or API.</td></tr>
+  <tr><td><strong>No backup strategy</strong></td><td>SQLite databases and filesystem state have no automated backup. Loss of the EBS volume loses all state.</td></tr>
+  <tr><td><strong>Single-tenant only</strong></td><td>No user isolation, no multi-tenancy. One installation serves one team.</td></tr>
+</table>
+
+<!-- ================================================================= -->
+<!-- 20. APPENDIX: MODULE REFERENCE                                     -->
+<!-- ================================================================= -->
+
+<h2 id="s20" class="page-break"><span class="section-num">20.</span> Appendix: Module Reference</h2>
+
+<table>
+  <tr><th>File</th><th>Lines</th><th>Responsibility</th><th>Key Exports</th></tr>
+  <tr><td><code>server.js</code></td><td>1463</td><td>Single entry point: Slack bot (Bolt) + HTTP server (dashboard + JSON API + action endpoints + health + SSE). Thread classification routing, approval handlers.</td><td><code>runMission</code>, <code>runResume</code>, <code>runLearn</code>, <code>runStatus</code>, <code>createHTTPServer</code></td></tr>
+  <tr><td><code>lib/mission.js</code></td><td>907</td><td>Full mission lifecycle: decompose, workLoop, executeBatch, mergeCompleted, runMandatoryReviews, follow-up missions, plan revision.</td><td><code>Mission</code> class, <code>checkSafetyLimits</code>, <code>shouldOpenPR</code>, <code>listAvailableProjects</code></td></tr>
+  <tr><td><code>lib/db.js</code></td><td>837</td><td>App SQLite layer: schema, migrations, typed query functions for all 7 tables. JSON-to-SQLite migration from legacy state.</td><td><code>getDb</code>, <code>createMission</code>, <code>getMission</code>, <code>setObjectives</code>, <code>trackThread</code>, <code>trackApproval</code>, <code>setChannelMapping</code>, <code>migrateFromJSON</code></td></tr>
+  <tr><td><code>lib/scaffold.js</code></td><td>582</td><td>Project scaffolding: GitHub repo creation, cloning, CLAUDE.md + CI/CD + Docker templates, project config, Slack channel creation.</td><td><code>createProject</code>, <code>onboardProject</code>, <code>initProjectStructure</code>, <code>addCICDWorkflow</code></td></tr>
+  <tr><td><code>lib/telemetry.js</code></td><td>437</td><td>OTel SDK init, Proxy-based <code>instrument()</code>, lifecycle event emitter, Unix socket listener, SSE broadcasting, custom SQLiteSpanExporter.</td><td><code>init</code>, <code>instrument</code>, <code>subscribe</code>, <code>addSSEClient</code>, <code>broadcastSSE</code></td></tr>
+  <tr><td><code>lib/telemetry-db.js</code></td><td>425</td><td>Telemetry SQLite layer: traces (JSON span trees), events (append-only audit trail), logs (tool calls, stdout, system). Metrics aggregation.</td><td><code>upsertTrace</code>, <code>logEvent</code>, <code>writeLog</code>, <code>queryLogs</code>, <code>getMetrics</code>, <code>listTraces</code></td></tr>
+  <tr><td><code>lib/worker.js</code></td><td>410</td><td>Spawns <code>claude -p</code> subprocesses per agent. <code>loadAgentIdentity()</code> reads frontmatter. Tool restrictions, model selection, auth failure detection.</td><td><code>execute</code>, <code>executeSpecialist</code>, <code>executeTriage</code>, <code>kill</code>, <code>activeCount</code>, <code>loadAgentIdentity</code></td></tr>
+  <tr><td><code>lib/thread.js</code></td><td>382</td><td>Slack thread-based conversational iteration. Unified message classification (Picard triage). Debounce (4s). Follow-up mission launching.</td><td><code>classifyMessage</code>, <code>handleClassification</code>, <code>debounce</code>, <code>trackThread</code>, <code>fetchThreadHistory</code></td></tr>
+  <tr><td><code>lib/state.js</code></td><td>323</td><td>Thin wrapper around db.js for mission CRUD. Assembles mission objects from normalized tables. Config loading, stardate formatting.</td><td><code>createMission</code>, <code>readMission</code>, <code>writeMission</code>, <code>withMissionLock</code>, <code>evaluateReadiness</code>, <code>loadProjectConfig</code>, <code>loadGlobalConfig</code></td></tr>
+  <tr><td><code>lib/learn.js</code></td><td>279</td><td>Learning/governance: propose, approve, reject. Scope detection (standard/crew/playbook/directive). Slug generation.</td><td><code>propose</code>, <code>approve</code>, <code>reject</code>, <code>detectScope</code>, <code>listPending</code></td></tr>
+  <tr><td><code>lib/deploy.js</code></td><td>259</td><td>Caddy reverse proxy integration. Add/remove entries, reload Caddy, prepare app directories, generate PR compose files.</td><td><code>addCaddyEntry</code>, <code>removeCaddyEntry</code>, <code>deployApp</code>, <code>removeApp</code>, <code>generatePrComposeContent</code></td></tr>
+  <tr><td><code>lib/health.js</code></td><td>249</td><td>Health patrol: stuck worker detection (10/20 min), test failure loops (2x), edit thrashing (>10 edits). 2-min interval.</td><td><code>patrol</code>, <code>startPatrol</code>, <code>recordTestFailure</code>, <code>resetTracking</code></td></tr>
+  <tr><td><code>lib/pr.js</code></td><td>193</td><td>PR creation (temp-file body for container compat), update body, check status, cleanup (branch deletion).</td><td><code>create</code>, <code>updateBody</code>, <code>checkStatus</code>, <code>cleanup</code></td></tr>
+  <tr><td><code>lib/worktree.js</code></td><td>185</td><td>Git worktree create/remove/list. SSH remote conversion. Default branch detection.</td><td><code>create</code>, <code>remove</code>, <code>list</code>, <code>removeAll</code>, <code>projectPath</code>, <code>ensureSshRemote</code></td></tr>
+  <tr><td><code>lib/evidence.js</code></td><td>168</td><td>Evidence bundle validation and PR body generation. Includes Slack metadata HTML comments for GH Actions.</td><td><code>validate</code>, <code>readEvidence</code>, <code>readAllEvidence</code>, <code>buildPRBody</code></td></tr>
+  <tr><td><code>lib/slack.js</code></td><td>164</td><td>Slack reporters (thread + console), channel mapping helpers, proposal/approval tracking wrappers, status formatting.</td><td><code>slackReporter</code>, <code>detectRepoFromChannel</code>, <code>trackPRApproval</code>, <code>trackPlanApproval</code>, <code>formatStatusMessage</code></td></tr>
+  <tr><td><code>lib/risk.js</code></td><td>133</td><td>Risk flag detection from file patterns. Glob-to-regex conversion. Mandatory reviewer mapping.</td><td><code>detectRiskFlags</code>, <code>getMandatoryReviewers</code>, <code>loadPatterns</code>, <code>DEFAULT_PATTERNS</code>, <code>MANDATORY_REVIEWS</code></td></tr>
+  <tr><td><code>lib/auth.js</code></td><td>85</td><td>Claude CLI auth verification. OAuth URL detection from stderr. Auth failure pattern matching.</td><td><code>checkAuth</code>, <code>isAuthFailure</code>, <code>detectAuthUrl</code>, <code>startupCheck</code></td></tr>
+  <tr><td><code>lib/observability.js</code></td><td>26</td><td>Structured event logging. Thin delegate to telemetry-db.</td><td><code>logEvent</code>, <code>persistHealthAlert</code></td></tr>
+  <tr><td><code>lib/validate.js</code></td><td>21</td><td>Git ref and repo name validation against shell injection.</td><td><code>assertSafeRef</code>, <code>validateRepoName</code></td></tr>
+</table>
+
+<div class="callout callout-blue">
+  <strong>Total codebase:</strong> 7,528 lines across 19 JavaScript files. 11 agent identity files (agents/*.md). 2 hook scripts. 7 default standards, 10 crew preferences, 1 playbook. The single-page dashboard frontend at <code>dashboard/public/index.html</code> provides the web UI.
+</div>
+
+<h3>Startup Sequence</h3>
+
+<div class="diagram">
+<pre>
+  main()
+    |
+    +---> db.getDb()                     # Init app.db, run schema + migrations
+    +---> telemetry.init()               # Init OTel, telemetry.db, Unix socket
+    +---> tdb.migrateEventsFromAppDb()   # Move events from app.db if needed
+    +---> db.migrateFromJSON()           # Migrate legacy JSON files (first run)
+    +---> auth.startupCheck()            # Verify claude CLI is on PATH
+    +---> db.resetStaleThreads()         # Reset assessing/launching/onboarding threads
+    +---> startSlackApp()                # Create Bolt app, register handlers
+    |       - app_mention handler
+    |       - reaction_added handler
+    |       - message handler (thread replies)
+    |       - health.startPatrol()
+    +---> app.start()                    # Connect Socket Mode WebSocket
+    +---> createHTTPServer(slackApp)     # Dashboard + API + SSE
+    +---> server.listen(3000)            # Ready
+</pre>
+<p class="diagram-caption">Figure 28 &mdash; Complete startup sequence</p>
+</div>
+
+</body>
+</html>
